@@ -1,0 +1,129 @@
+/* ============================================
+   Skeleton loading styles for league pages
+   ============================================ */
+
+@keyframes sk-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sk-wrap {
+  padding: 24px 40px 60px;
+  max-width: 2200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* -- Shared bone / pill / circle primitives -------------- */
+.sk-bone, .sk-pill, .sk-circle {
+  background: linear-gradient(
+    90deg,
+    var(--surface-card, #141820) 25%,
+    var(--surface-inset, #1a1f2b) 50%,
+    var(--surface-card, #141820) 75%
+  );
+  background-size: 800px 100%;
+  animation: sk-shimmer 1.6s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+.sk-pill { border-radius: 12px; height: 24px; }
+.sk-circle { border-radius: 50%; flex-shrink: 0; }
+
+/* -- Size helpers ---------------------------------------- */
+.sk-w60  { width: 60px; }
+.sk-w80  { width: 80px; }
+.sk-w120 { width: 120px; }
+.sk-w160 { width: 160px; }
+.sk-w200 { width: 200px; }
+.sk-full { width: 100%; }
+
+.sk-h10  { height: 10px; }
+.sk-h14  { height: 14px; }
+.sk-h28  { height: 28px; }
+
+.sk-s24  { width: 24px; height: 24px; }
+.sk-s32  { width: 32px; height: 32px; }
+
+/* -- Header bar ------------------------------------------ */
+.sk-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+}
+
+/* -- Filter bar ------------------------------------------ */
+.sk-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-spacer { flex: 1; }
+
+/* -- Cards grid ------------------------------------------ */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.sk-card {
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sk-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* -- Table skeleton -------------------------------------- */
+.sk-table {
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sk-table-head {
+  display: flex;
+  gap: 20px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.05));
+}
+
+.sk-table-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
+}
+
+.sk-table-row:last-child { border-bottom: none; }
+
+/* -- Responsive ------------------------------------------ */
+@media (max-width: 768px) {
+  .sk-wrap { padding: 16px 16px 40px; }
+  .sk-grid { grid-template-columns: 1fr; }
+  .sk-header { flex-wrap: wrap; }
+}

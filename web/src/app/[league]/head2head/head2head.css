@@ -1,0 +1,1399 @@
+/* ============================================
+   HEAD TO HEAD - Comparador
+   ============================================ */
+
+.p11-container {
+    padding: 60px 40px 80px;
+    max-width: 1800px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: calc(100vh - 80px);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #fff;
+    background: #0e1117;
+
+    --p11-accent: #fbbf24;
+    --p11-accent-glow: rgba(251, 191, 36, 0.4);
+    --p11-surface: #141820;
+    --p11-card: #141820;
+    --p11-border: rgba(255, 255, 255, 0.08);
+    --p11-text-muted: #8b949e;
+}
+
+/* ============================================
+   LEAGUE HEADER BANNER
+   ============================================ */
+.p11-league-header {
+    background: var(--p11-surface);
+    border: 1px solid var(--p11-border);
+    border-radius: 4px;
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.p11-league-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--p11-accent), transparent);
+}
+
+.p11-header-info {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.p11-header-logo-container {
+    width: 72px;
+    height: 72px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--p11-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.p11-header-logo-container img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.p11-header-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.p11-header-league-name {
+    font-size: 32px;
+    font-weight: 950;
+    letter-spacing: -1.5px;
+    background: linear-gradient(to left, #fff, var(--p11-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+
+.p11-header-season {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fbbf24;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.p11-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.p11-header-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-left: 4px;
+}
+
+.p11-hstat-val {
+    font-size: 36px;
+    font-weight: 950;
+    color: #fff;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -1.5px;
+    line-height: 1;
+}
+
+.p11-hstat-lbl {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.p11-header-filters {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 6px;
+}
+
+.p11-filter-btn {
+    padding: 8px 16px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted, #64748b);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.p11-filter-btn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.p11-filter-btn.p11-filter-active {
+    border-color: var(--p11-accent);
+    color: var(--p11-accent);
+    background: rgba(240, 165, 0, 0.06);
+}
+
+/* ============================================
+   INSTRUCTION TEXT
+   ============================================ */
+.p11-instruction {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+
+.p11-instruction-best {
+    color: var(--p11-accent);
+    font-weight: 700;
+}
+
+
+/* ============================================
+   COMMON CARD
+   ============================================ */
+.p11-card {
+    background: var(--p11-card);
+    border-radius: 4px;
+    border: 1px solid var(--p11-border);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.p11-card-hdr {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--p11-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.p11-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+.p11-card-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 2px;
+}
+
+.p11-card-body {
+    padding: 20px 24px;
+}
+
+/* ============================================
+   TEAM SELECTOR GRID
+   ============================================ */
+.p11-team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+.p11-team-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    z-index: 0;
+}
+
+.p11-team-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: radial-gradient(circle at center, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0) 70%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: -1;
+}
+
+.p11-team-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.p11-team-card:hover::before {
+    opacity: 1;
+}
+
+.p11-team-card.selected {
+    border-color: var(--p11-accent);
+    background: rgba(240, 165, 0, 0.08);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.2), inset 0 0 8px rgba(251, 191, 36, 0.05);
+}
+
+.p11-team-card.selected::before {
+    opacity: 1;
+}
+
+.p11-team-card.disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.p11-team-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.p11-team-abbr {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.p11-team-card.selected .p11-team-abbr {
+    color: var(--p11-accent);
+}
+
+/* ============================================
+   PLAYER SELECTOR
+   ============================================ */
+.p11-role-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.p11-role-tab {
+    padding: 8px 16px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted, #64748b);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.p11-role-tab:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.p11-role-tab.active {
+    border-color: var(--p11-accent);
+    color: var(--p11-accent);
+    background: rgba(240, 165, 0, 0.06);
+}
+
+.p11-player-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.p11-player-grid::-webkit-scrollbar {
+    width: 3px;
+}
+
+.p11-player-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.p11-player-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+}
+
+.p11-player-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    z-index: 0;
+}
+
+.p11-player-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: radial-gradient(circle at center, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0) 70%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: -1;
+}
+
+.p11-player-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.p11-player-card:hover::before {
+    opacity: 1;
+}
+
+.p11-player-card.selected {
+    border-color: var(--p11-accent);
+    background: rgba(240, 165, 0, 0.08);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.2), inset 0 0 8px rgba(251, 191, 36, 0.05);
+}
+
+.p11-player-card.selected::before {
+    opacity: 1;
+}
+
+.p11-player-card.disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.p11-pc-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.p11-pc-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.p11-pc-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.p11-pc-team {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.p11-player-card.selected .p11-pc-name {
+    color: var(--p11-accent);
+}
+
+/* ============================================
+   SELECTED CHIPS
+   ============================================ */
+.p11-selected-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 14px 0 0;
+    margin-top: 16px;
+}
+
+.p11-sel-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+}
+
+.p11-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 6px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.p11-chip-logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.p11-chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 2px;
+    transition: color 0.15s;
+}
+
+.p11-chip-remove:hover {
+    color: #ef4444;
+}
+
+.p11-clear-btn {
+    margin-left: auto;
+    padding: 5px 14px;
+    border-radius: 2px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: rgba(239, 68, 68, 0.6);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.p11-clear-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+/* ============================================
+   COMPARISON TABLE
+   ============================================ */
+.p11-cmp-card {
+    background: var(--p11-card);
+    border-radius: 4px;
+    border: 1px solid var(--p11-border);
+    overflow: hidden;
+    margin-bottom: 48px;
+}
+
+/* Header row items (logo + name integrated into stats header) */
+.p11-stats-hdr-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.p11-stats-hdr-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.p11-stats-hdr-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* Stats table */
+.p11-stats-table {
+    width: 100%;
+}
+
+.p11-stats-hdr {
+    display: grid;
+    padding: 12px 32px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--p11-border);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.p11-stats-hdr .p11-col-lbl {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.p11-stats-hdr .p11-col-val {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.p11-stat-row {
+    display: grid;
+    padding: 0 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.1s;
+}
+
+.p11-stat-row:last-child {
+    border-bottom: none;
+}
+
+.p11-stat-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.p11-col-lbl {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 14px 0;
+    letter-spacing: 0.2px;
+}
+
+.p11-col-val {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 8px;
+}
+
+.p11-val-num {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1;
+    min-height: 20px;
+}
+
+.p11-val-num.best {
+    color: var(--p11-accent);
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+}
+
+.p11-val-num.rank-2 {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.p11-val-num.rank-3 {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.p11-val-num.rank-4 {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Bar styling */
+.p11-val-bar-wrap {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    display: block;
+}
+
+.p11-val-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    transition: all 0.2s;
+}
+
+.p11-val-bar-fill.best {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.5), var(--p11-accent));
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+}
+
+.p11-val-bar-fill.rank-2 {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.p11-val-rank {
+    display: none;
+}
+
+/* Stat group separator */
+.p11-group-sep {
+    grid-column: 1 / -1;
+    padding: 16px 0 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.p11-group-sep::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+/* Empty state */
+.p11-empty-state {
+    text-align: center;
+    padding: 48px 32px;
+}
+
+.p11-empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.p11-empty-state-txt {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 0.3px;
+}
+
+/* ============================================
+   H2H HISTORY SECTION
+   ============================================ */
+.p11-h2h-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.p11-h2h-vs-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 32px;
+    background: rgba(255, 255, 255, 0.01);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.p11-h2h-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.p11-h2h-team-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+}
+
+.p11-h2h-team-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.p11-h2h-score {
+    text-align: center;
+    padding: 0 32px;
+}
+
+.p11-h2h-score-val {
+    font-size: 48px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--p11-accent);
+    line-height: 1;
+    letter-spacing: -2px;
+}
+
+.p11-h2h-score-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+.p11-h2h-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+}
+
+.p11-h2h-game-row {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.p11-h2h-game-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Team A side (left) */
+.p11-h2h-team-a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.p11-h2h-team-logo-small {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.p11-h2h-team-result {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.p11-h2h-team-result-text {
+    font-weight: 700;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+}
+
+.p11-h2h-team-result.win .p11-h2h-team-result-text {
+    color: #10b981;
+}
+
+.p11-h2h-team-result.loss .p11-h2h-team-result-text {
+    color: #f43f5e;
+}
+
+.p11-h2h-kills {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Center info */
+.p11-h2h-center-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.p11-h2h-side-badges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.p11-h2h-side-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.p11-h2h-side-badge.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.p11-h2h-side-badge.red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.p11-h2h-vs-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 600;
+}
+
+.p11-h2h-datetime {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Team B side (right) */
+.p11-h2h-team-b {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
+.p11-h2h-team-b .p11-h2h-kills {
+    order: -1;
+}
+
+.p11-h2h-team-b .p11-h2h-team-logo-small {
+    order: 1;
+}
+
+/* Glow effects for win/loss */
+.p11-h2h-game-row.win-a {
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.p11-h2h-game-row.win-b {
+    border-color: rgba(244, 63, 94, 0.2);
+}
+
+/* ============================================
+   RESPONSIVE MEDIA QUERIES
+   ============================================ */
+
+/* Desktop (1200px and up) - no changes */
+@media (max-width: 1200px) {
+    .p11-container {
+        padding: 40px 24px 60px;
+    }
+
+    .p11-league-header {
+        padding: 24px 32px;
+    }
+
+    .p11-header-league-name {
+        font-size: 28px;
+    }
+
+    .p11-hstat-val {
+        font-size: 32px;
+    }
+
+    .p11-header-logo-container {
+        width: 64px;
+        height: 64px;
+    }
+
+    .p11-header-logo-container img {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* Tablet (1024px and down) */
+@media (max-width: 1024px) {
+    .p11-container {
+        padding: 32px 20px 48px;
+    }
+
+    .p11-league-header {
+        padding: 20px 24px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .p11-header-info {
+        width: 100%;
+        gap: 16px;
+    }
+
+    .p11-header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .p11-header-filters {
+        position: static;
+        transform: none;
+    }
+
+    .p11-header-league-name {
+        font-size: 24px;
+    }
+
+    .p11-hstat-val {
+        font-size: 28px;
+    }
+
+    .p11-card-body {
+        padding: 16px 20px;
+    }
+
+    .p11-team-grid {
+        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+        gap: 6px;
+    }
+
+    .p11-player-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        max-height: 280px;
+    }
+
+    .p11-stats-hdr {
+        padding: 10px 24px;
+    }
+
+    .p11-stat-row {
+        padding: 0 24px;
+    }
+
+    .p11-val-num {
+        font-size: 13px;
+    }
+
+    .p11-stats-hdr-name {
+        font-size: 13px;
+    }
+}
+
+/* Small tablet / large mobile (768px and down) */
+@media (max-width: 768px) {
+    .p11-container {
+        padding: 24px 16px 40px;
+        max-width: 100%;
+    }
+
+    .p11-league-header {
+        padding: 16px 16px;
+        margin-bottom: 24px;
+    }
+
+    .p11-header-info {
+        gap: 12px;
+    }
+
+    .p11-header-logo-container {
+        width: 56px;
+        height: 56px;
+    }
+
+    .p11-header-logo-container img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .p11-header-league-name {
+        font-size: 20px;
+    }
+
+    .p11-header-season {
+        font-size: 10px;
+    }
+
+    .p11-hstat-val {
+        font-size: 24px;
+    }
+
+    .p11-hstat-lbl {
+        font-size: 10px;
+    }
+
+    .p11-instruction {
+        font-size: 12px;
+        margin-bottom: 16px;
+    }
+
+    .p11-card {
+        margin-bottom: 20px;
+    }
+
+    .p11-card-hdr {
+        padding: 14px 16px;
+    }
+
+    .p11-card-title {
+        font-size: 13px;
+    }
+
+    .p11-card-body {
+        padding: 14px 16px;
+    }
+
+    .p11-team-grid {
+        grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+        gap: 5px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .p11-team-logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .p11-team-abbr {
+        font-size: 11px;
+    }
+
+    .p11-role-tabs {
+        gap: 4px;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .p11-role-tab {
+        padding: 6px 12px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .p11-player-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        max-height: 240px;
+        gap: 5px;
+    }
+
+    .p11-player-card {
+        padding: 8px 10px;
+    }
+
+    .p11-pc-name {
+        font-size: 12px;
+    }
+
+    .p11-pc-team {
+        font-size: 9px;
+    }
+
+    .p11-chip {
+        padding: 4px 8px 4px 5px;
+        font-size: 11px;
+    }
+
+    .p11-selected-bar {
+        gap: 6px;
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    .p11-sel-label {
+        font-size: 10px;
+    }
+
+    .p11-cmp-card {
+        margin-bottom: 32px;
+    }
+
+    .p11-stats-hdr {
+        padding: 8px 16px;
+        font-size: 10px;
+    }
+
+    .p11-stat-row {
+        padding: 0 16px;
+    }
+
+    .p11-col-lbl {
+        font-size: 12px;
+        padding: 10px 0;
+    }
+
+    .p11-col-val {
+        padding: 10px 6px;
+    }
+
+    .p11-val-num {
+        font-size: 12px;
+    }
+
+    .p11-stats-hdr-logo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .p11-stats-hdr-name {
+        font-size: 12px;
+    }
+
+    .p11-empty-state {
+        padding: 32px 16px;
+    }
+
+    .p11-empty-state-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+
+    .p11-empty-state-txt {
+        font-size: 13px;
+    }
+}
+
+/* Mobile (600px and down) */
+@media (max-width: 600px) {
+    .p11-container {
+        padding: 16px 12px 32px;
+    }
+
+    .p11-league-header {
+        padding: 12px 12px;
+        margin-bottom: 16px;
+    }
+
+    .p11-header-info {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .p11-header-logo-container {
+        width: 48px;
+        height: 48px;
+    }
+
+    .p11-header-logo-container img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .p11-header-league-name {
+        font-size: 18px;
+    }
+
+    .p11-header-right {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .p11-header-stat {
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .p11-hstat-val {
+        font-size: 20px;
+    }
+
+    .p11-header-filters {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .p11-filter-btn {
+        padding: 6px 12px;
+        font-size: 10px;
+    }
+
+    .p11-instruction {
+        font-size: 11px;
+        margin-bottom: 14px;
+        line-height: 1.5;
+    }
+
+    .p11-card {
+        margin-bottom: 16px;
+    }
+
+    .p11-card-hdr {
+        padding: 12px 12px;
+    }
+
+    .p11-card-title {
+        font-size: 12px;
+    }
+
+    .p11-card-subtitle {
+        font-size: 11px;
+    }
+
+    .p11-card-body {
+        padding: 12px 12px;
+    }
+
+    .p11-team-grid {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        gap: 4px;
+    }
+
+    .p11-team-card {
+        padding: 10px 6px;
+    }
+
+    .p11-team-logo {
+        width: 28px;
+        height: 28px;
+    }
+
+    .p11-team-abbr {
+        font-size: 10px;
+    }
+
+    .p11-role-tabs {
+        gap: 3px;
+        margin-bottom: 10px;
+    }
+
+    .p11-role-tab {
+        padding: 5px 10px;
+        font-size: 9px;
+        letter-spacing: 1px;
+    }
+
+    .p11-player-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        max-height: 200px;
+        gap: 4px;
+    }
+
+    .p11-player-card {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .p11-pc-logo {
+        width: 20px;
+        height: 20px;
+    }
+
+    .p11-pc-name {
+        font-size: 11px;
+    }
+
+    .p11-pc-team {
+        font-size: 8px;
+    }
+
+    .p11-selected-bar {
+        flex-direction: column;
+        gap: 4px;
+        padding-top: 8px;
+        margin-top: 8px;
+    }
+
+    .p11-sel-label {
+        font-size: 9px;
+        width: 100%;
+    }
+
+    .p11-chip {
+        padding: 3px 6px 3px 4px;
+        font-size: 10px;
+    }
+
+    .p11-clear-btn {
+        margin-left: 0;
+        width: 100%;
+        margin-top: 8px;
+        padding: 6px 12px;
+    }
+
+    .p11-cmp-card {
+        margin-bottom: 24px;
+    }
+
+    .p11-stats-hdr {
+        padding: 8px 12px;
+        font-size: 9px;
+    }
+
+    .p11-stat-row {
+        padding: 0 12px;
+    }
+
+    .p11-col-lbl {
+        font-size: 11px;
+        padding: 8px 0;
+    }
+
+    .p11-col-val {
+        padding: 8px 4px;
+    }
+
+    .p11-val-num {
+        font-size: 11px;
+    }
+
+    .p11-stats-hdr-logo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .p11-stats-hdr-name {
+        font-size: 11px;
+    }
+
+    .p11-stats-hdr-item {
+        gap: 8px;
+    }
+
+    .p11-group-sep {
+        padding: 12px 0 6px;
+        font-size: 10px;
+        letter-spacing: 1.5px;
+    }
+
+    .p11-empty-state {
+        padding: 24px 12px;
+    }
+
+    .p11-empty-state-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+
+    .p11-empty-state-txt {
+        font-size: 12px;
+    }
+}

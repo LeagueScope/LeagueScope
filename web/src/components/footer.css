@@ -1,0 +1,43 @@
+.global-footer {
+    width: 100%;
+    background: rgba(10, 14, 20, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 24px 0;
+    margin-top: auto;
+    /* pushes footer to bottom of flex layouts generally */
+    z-index: 100;
+}
+
+.footer-content {
+    max-width: 1752px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 13px;
+    color: #8293a7;
+    font-family: 'Inter', -apple-system, sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.footer-heart {
+    color: #f87171;
+    font-size: 14px;
+    margin: 0 4px;
+}
+
+.footer-right strong {
+    color: #cbd5e1;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+}

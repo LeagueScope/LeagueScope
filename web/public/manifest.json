@@ -1,0 +1,17 @@
+{
+  "name": "LeagueScope — Esports Analytics",
+  "short_name": "LeagueScope",
+  "description": "Análisis competitivo de League of Legends: estadísticas de jugadores, equipos, campeones y partidos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1117",
+  "theme_color": "#f0a500",
+  "icons": [
+    {
+      "src": "/LeagueScope_Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

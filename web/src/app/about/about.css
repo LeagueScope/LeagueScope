@@ -1,0 +1,209 @@
+/* ============================================
+   ABOUT -- Editorial institucional
+   ============================================ */
+
+.abt {
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text-primary, #f8fafc);
+  min-height: 100vh;
+}
+
+/* -- Hero ------------------------------------------------ */
+.abt-hero {
+  text-align: center;
+  padding: 80px 32px 60px;
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+}
+
+.abt-logo {
+  width: 56px; height: 56px; object-fit: contain; margin-bottom: 24px;
+}
+
+.abt-hero h1 {
+  font-size: 42px; font-weight: 900; letter-spacing: -1.5px;
+  margin: 0 0 12px 0;
+}
+
+.abt-claim {
+  font-size: 17px; color: var(--text-secondary, #94a3b8);
+  margin: 0 auto; line-height: 1.6; max-width: 560px;
+}
+
+.abt-tagline {
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--accent, #f0a500);
+  margin: 20px 0 0 0;
+}
+
+/* -- Body ------------------------------------------------ */
+.abt-body {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 32px 80px;
+}
+
+.abt-body section {
+  padding: 48px 0;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.05));
+}
+
+.abt-body section:last-of-type { border-bottom: none; }
+
+.abt-body h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2.5px; color: var(--accent, #f0a500);
+  margin: 0 0 24px 0;
+}
+
+.abt-body h3 {
+  font-size: 18px; font-weight: 700; color: var(--text-primary);
+  margin: 36px 0 18px 0; letter-spacing: -0.2px;
+}
+
+.abt-body p {
+  font-size: 17px; line-height: 1.9; color: var(--text-secondary, #94a3b8);
+  margin: 0 0 18px 0;
+}
+
+.abt-body p:last-child { margin-bottom: 0; }
+.abt-body p strong { color: var(--text-primary); font-weight: 600; }
+.abt-body p em { color: var(--text-primary); font-style: italic; }
+
+/* -- Lists ----------------------------------------------- */
+.abt-body ul {
+  list-style: none; padding: 0; margin: 16px 0 0 0;
+}
+
+.abt-body ul li {
+  font-size: 16px; line-height: 1.8; color: var(--text-secondary, #94a3b8);
+  padding: 10px 0; border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
+}
+
+.abt-body ul li:last-child { border-bottom: none; }
+.abt-body ul li strong { color: var(--text-primary); font-weight: 600; }
+
+/* -- Tiers ----------------------------------------------- */
+.abt-tiers {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1px; margin: 24px 0;
+  background: var(--border-inner, rgba(255,255,255,0.05));
+  border: 1px solid var(--border-inner, rgba(255,255,255,0.05));
+}
+
+.abt-tier {
+  background: var(--surface-card, #141820);
+  padding: 28px 24px;
+}
+
+.abt-tier-open { border-left: 1px dashed var(--border-card, rgba(255,255,255,0.08)); }
+
+.abt-tier-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.abt-tier-name {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-primary);
+}
+
+.abt-tier-price {
+  font-size: 22px; font-weight: 900; color: var(--accent, #f0a500);
+  letter-spacing: -0.5px;
+}
+
+.abt-tier-price small {
+  font-size: 12px; font-weight: 500; color: var(--text-muted, #64748b);
+}
+
+.abt-tier-body {
+  font-size: 13px; line-height: 1.8; color: var(--text-muted, #64748b);
+}
+
+/* -- CTA ------------------------------------------------- */
+.abt-cta {
+  display: flex; gap: 12px; margin: 28px 0 0 0;
+}
+
+.abt-btn {
+  display: inline-flex; align-items: center;
+  padding: 11px 28px;
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  color: var(--text-primary); font-weight: 600; font-size: 13px;
+  text-decoration: none; transition: all 0.15s; letter-spacing: 0.3px;
+}
+
+.abt-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.abt-btn-primary {
+  background: var(--accent, #f0a500); border-color: var(--accent);
+  color: #0e1117; font-weight: 700;
+}
+
+.abt-btn-primary:hover { opacity: 0.9; color: #0e1117; }
+
+/* -- Solidario highlight --------------------------------- */
+.abt-solidario p:last-child {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* -- Wall of Fame ---------------------------------------- */
+.abt-wall {
+  font-size: 15px; line-height: 1.8;
+  color: var(--text-muted, #64748b);
+  text-align: center; padding: 48px 0;
+  border: 1px dashed var(--border-card, rgba(255,255,255,0.08));
+  margin-top: 12px;
+}
+
+.abt-wall strong { color: var(--accent); font-weight: 600; }
+
+/* -- Contact --------------------------------------------- */
+.abt-contact { text-align: center; }
+
+.abt-links {
+  display: flex; justify-content: center; gap: 24px; margin-top: 16px;
+}
+
+.abt-links a {
+  font-size: 14px; font-weight: 600;
+  color: var(--text-secondary); text-decoration: none;
+  transition: color 0.15s; padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+}
+
+.abt-links a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* -- Footer ---------------------------------------------- */
+.abt-footer {
+  margin-top: 48px; padding-top: 32px;
+  border-top: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  text-align: center;
+  font-size: 14px; color: var(--text-muted, #64748b);
+  line-height: 1.65;
+}
+
+.abt-footer span {
+  display: block; margin-top: 12px;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  font-weight: 700; font-style: normal;
+}
+
+.abt-quote {
+  font-size: 16px; line-height: 1.8;
+  color: var(--text-secondary, #94a3b8);
+  font-style: italic; margin: 0 0 8px 0;
+}
+
+/* -- Responsive ------------------------------------------ */
+@media (max-width: 640px) {
+  .abt-hero { padding: 48px 20px 40px; }
+  .abt-hero h1 { font-size: 30px; }
+  .abt-body { padding: 0 20px 60px; }
+  .abt-body section { padding: 32px 0; }
+  .abt-tiers { grid-template-columns: 1fr; }
+  .abt-cta { flex-direction: column; }
+  .abt-links { flex-direction: column; align-items: center; gap: 12px; }
+}

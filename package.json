@@ -1,0 +1,27 @@
+{
+  "name": "leaguescope",
+  "version": "2.0.0",
+  "description": "LeagueScope — League of Legends Esports Statistics",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "build": "cd web && npx next build",
+    "start": "concurrently \"npm run dev:backend\" \"npm run start:web\"",
+    "start:web": "cd web && npx next start",
+    "ingest": "cd backend && npm run ingest",
+    "validate": "cd backend && npm run validate",
+    "backup": "cd backend && node scripts/backup.js",
+    "backup:restore": "cd backend && node scripts/backup.js --restore",
+    "install:all": "npm install && cd backend && npm install && cd ../web && npm install",
+    "test": "echo \"No tests yet\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

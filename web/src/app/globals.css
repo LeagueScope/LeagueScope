@@ -1,0 +1,82 @@
+/* ===========================================================================
+   LeagueScope - Next.js Global Styles
+   Mirrors the Vite frontend design system for visual consistency
+   =========================================================================== */
+
+:root {
+  /* Layered Surface */
+  --surface-base: #0e1117;
+  --surface-card: #141820;
+  --surface-inset: #1a1f2b;
+  --surface-hover: #222938;
+
+  /* Borders */
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-inner: rgba(255, 255, 255, 0.05);
+
+  /* Accent - Amber */
+  --accent: #f0a500;
+  --accent-dim: rgba(240, 165, 0, 0.10);
+  --accent-soft: rgba(240, 165, 0, 0.20);
+  --accent-secondary: #60a5fa;
+
+  /* Semantic */
+  --clr-win: #4ade80;
+  --clr-loss: #f87171;
+  --clr-mid: #94a3b8;
+
+  /* Typography */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #7a8ba0;
+
+  /* Radius */
+  --radius-card: 2px;
+  --radius-lg: 4px;
+  --radius-sm: 0px;
+
+  /* Shadows */
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  color: var(--text-primary);
+  background: var(--surface-base);
+}
+
+a { color: inherit; text-decoration: none; }
+
+#app {
+  max-width: 2200px;
+  padding: 24px;
+  margin: 0 auto;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--surface-base); }
+::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 4px; }
+
+/* Responsive utilities */
+html { -webkit-text-size-adjust: 100%; }
+
+img, video { max-width: 100%; height: auto; }
+
+/* Responsive media queries */
+@media (max-width: 1024px) {
+  #app { padding: 16px; }
+}
+
+@media (max-width: 768px) {
+  #app { padding: 12px; }
+}
+
+@media (max-width: 600px) {
+  #app { padding: 8px; }
+}

@@ -1,0 +1,1343 @@
+/* ============================================
+   PRUEBAS40 - Player Profile (Radical Editorial)
+   Matches team-profile.css design system
+   ============================================ */
+
+:root {
+  --p40-bg: #0e1117;
+  --p40-surface: #12141c;
+  --p40-border: rgba(255, 255, 255, 0.08);
+  --p40-accent: #fbbf24;
+  --p40-accent-dim: rgba(251, 191, 36, 0.1);
+  --p40-muted: #64748b;
+  --p40-secondary: #94a3b8;
+}
+
+.p40-container {
+  padding: 60px 40px;
+  max-width: 1800px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: white;
+  background: var(--p40-bg);
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+.p40-hero {
+  background: var(--p40-surface);
+  border: 1px solid var(--p40-border);
+  border-radius: 4px;
+  padding: 32px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.p40-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--p40-accent), transparent);
+}
+
+.p40-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.p40-hero-photo-wrap {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--p40-accent);
+  flex-shrink: 0;
+}
+
+.p40-hero-photo {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+.p40-hero-logo-wrap {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.p40-hero-logo {
+  width: 54px; height: 54px; object-fit: contain;
+}
+
+.p40-hero-text {
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.p40-hero-name {
+  font-size: 32px; font-weight: 900; margin: 0;
+  letter-spacing: -1.5px; line-height: 1;
+  text-transform: uppercase;
+}
+
+.p40-hero-meta {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.p40-hero-role {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-accent);
+  letter-spacing: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.p40-role-icon {
+  width: 16px; height: 16px; object-fit: contain; opacity: 0.8;
+}
+
+.p40-hero-team {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-secondary);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 5px;
+}
+
+.p40-hero-team-logo {
+  width: 16px; height: 16px;
+  object-fit: contain;
+}
+
+.p40-hero-league {
+  font-size: 10px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--p40-border);
+  border-radius: 2px;
+}
+
+.p40-hero-wl {
+  font-size: 16px; font-weight: 800;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-hero-wl .w { color: #4ade80; }
+.p40-hero-wl .l { color: #f87171; }
+
+.p40-hero-games {
+  font-size: 13px; font-weight: 700;
+  color: var(--p40-muted); margin-left: 12px;
+}
+
+.p40-hero-stats {
+  display: flex; gap: 36px;
+}
+
+.p40-hstat {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 2px;
+}
+
+.p40-hstat-val {
+  font-size: 22px; font-weight: 900; line-height: 1;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.p40-hstat-lbl {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+}
+
+.p40-hstat-rank {
+  font-size: 10px; font-weight: 700;
+  color: var(--p40-accent);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================
+   GRID LAYOUTS
+   ============================================ */
+.p40-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+/* ============================================
+   CARD BASE
+   ============================================ */
+.p40-card {
+  background: var(--p40-surface);
+  border: 1px solid var(--p40-border);
+  border-radius: 6px;
+  display: flex; flex-direction: column;
+  min-height: 300px;
+  position: relative;
+  overflow: hidden;
+}
+
+
+
+.p40-card-hdr {
+  padding: 20px 24px 14px 24px;
+  border-bottom: 1px solid var(--p40-border);
+  display: flex; flex-direction: column;
+}
+
+.p40-card-title {
+  font-size: 13px; font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.p40-card-sub {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted);
+  margin-top: 4px; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.p40-card-body {
+  padding: 16px 24px 24px 24px;
+  flex: 1;
+  display: flex; flex-direction: column;
+  justify-content: center;
+}
+
+/* ============================================
+   KDA CARD (Ring Layout)
+   ============================================ */
+.p40-kda-ring-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--p40-border);
+  margin-bottom: 16px;
+}
+
+.p40-kda-ring-svg {
+  flex-shrink: 0;
+}
+
+.p40-kda-right {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.p40-kda-pills {
+  display: flex; gap: 8px;
+}
+
+.p40-kda-pill {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px;
+}
+
+.p40-pill-val {
+  font-size: 18px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-pill-lbl {
+  font-size: 7px; font-weight: 800;
+  color: var(--p40-muted); letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.p40-kda-pill.kill .p40-pill-val { color: #4ade80; }
+.p40-kda-pill.death .p40-pill-val { color: #f87171; }
+.p40-kda-pill.assist .p40-pill-val { color: #60a5fa; }
+
+.p40-kp-bar-wrap { }
+
+.p40-kp-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+
+.p40-kp-label {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted); letter-spacing: 1px;
+}
+
+.p40-kp-val {
+  font-size: 13px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--p40-accent);
+}
+
+.p40-kp-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.p40-kp-fill {
+  height: 100%;
+  background: var(--p40-accent);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.p40-kda-bottom {
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.p40-fb-grid {
+  display: flex; gap: 0;
+  justify-content: center;
+}
+
+.p40-fb-item {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  position: relative;
+}
+
+.p40-fb-item + .p40-fb-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%;
+  width: 1px; height: 60%;
+  background: var(--p40-border);
+}
+
+.p40-fb-val {
+  display: block;
+  font-size: 16px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.p40-fb-val.accent { color: var(--p40-accent); }
+.p40-fb-val.danger { color: #f87171; }
+
+.p40-fb-lbl {
+  display: block;
+  font-size: 7px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.p40-multikills {
+  display: flex; gap: 0;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--p40-border);
+}
+
+.p40-mk-chip {
+  text-align: center;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 16px;
+  position: relative;
+}
+
+.p40-mk-chip + .p40-mk-chip::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%;
+  width: 1px; height: 60%;
+  background: var(--p40-border);
+}
+
+.p40-mk-val {
+  font-size: 18px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--p40-secondary);
+}
+
+.p40-mk-lbl {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted); letter-spacing: 0.5px;
+}
+
+/* ============================================
+   PER MINUTE CARD (Row layout + rank bars)
+   ============================================ */
+.p40-pm-rows {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.p40-pm-stat-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-pm-stat-row:last-child { border-bottom: none; }
+
+.p40-pm-left {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 64px;
+}
+
+.p40-pm-val {
+  font-size: 20px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: white; line-height: 1;
+}
+
+.p40-pm-lbl {
+  font-size: 9px; font-weight: 900;
+  color: var(--p40-accent);
+  letter-spacing: 1px; margin-top: 2px;
+}
+
+.p40-pm-right {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.p40-pm-desc {
+  font-size: 9px; font-weight: 700;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+}
+
+.p40-share-strip {
+  display: flex; align-items: center; gap: 16px;
+  justify-content: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--p40-border);
+}
+
+.p40-share-chip {
+  text-align: center;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.p40-share-divider {
+  width: 1px; height: 28px;
+  background: var(--p40-border);
+}
+
+.p40-share-val {
+  font-size: 18px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-share-lbl {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted); letter-spacing: 1px;
+}
+
+/* -- Rank Bar (reusable) -- */
+.p40-rankbar {
+  display: flex; flex-direction: column; gap: 3px;
+}
+
+.p40-rankbar-info {
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.p40-rankbar-label {
+  font-size: 9px; font-weight: 700;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-rankbar-rank {
+  font-size: 9px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-rankbar-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+}
+
+.p40-rankbar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.p40-rankbar-marker {
+  position: absolute;
+  top: -2px;
+  width: 3px; height: 7px;
+  background: white;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  transition: left 0.6s ease;
+}
+
+/* ============================================
+   LANING DIFFS
+   ============================================ */
+.p40-diff-section {
+  margin-bottom: 16px;
+}
+
+.p40-diff-section:last-child { margin-bottom: 0; }
+
+.p40-diff-label {
+  font-size: 10px; font-weight: 900;
+  color: var(--p40-accent);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-diff-row { margin-bottom: 10px; }
+.p40-diff-row:last-child { margin-bottom: 0; }
+
+.p40-diff-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.p40-diff-time {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-muted); letter-spacing: 1px;
+}
+
+.p40-diff-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 900;
+}
+
+.p40-diff-val.pos { color: #4ade80; }
+.p40-diff-val.neg { color: #f87171; }
+
+.p40-diff-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  border-radius: 2px;
+}
+
+.p40-diff-track::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: -3px;
+  width: 2px; height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+}
+
+.p40-diff-fill {
+  height: 100%;
+  position: absolute;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.p40-diff-fill.pos { background: #4ade80; }
+.p40-diff-fill.neg { background: #f87171; }
+
+/* ============================================
+   BEG / BMG / BLG SCORES
+   ============================================ */
+.p40-score-row {
+  margin-bottom: 12px;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-score-row:last-child { margin-bottom: 0; border-bottom: none; }
+
+.p40-score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.p40-score-name {
+  font-size: 14px; font-weight: 900;
+  letter-spacing: 1px;
+  margin-right: 8px;
+}
+
+.p40-score-desc {
+  font-size: 10px; font-weight: 700;
+  color: var(--p40-muted);
+}
+
+.p40-score-num {
+  font-size: 24px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-score-track {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.p40-score-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.p40-score-tags {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+.p40-tag {
+  font-size: 8px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 2px;
+}
+
+/* ============================================
+   DAMAGE BREAKDOWN (Legend top + Donut bottom)
+   ============================================ */
+.p40-dmg-body {
+  justify-content: flex-start;
+}
+
+.p40-dmg-legend {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--p40-border);
+  margin-bottom: 16px;
+}
+
+.p40-dmg-legend-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-dmg-legend-row:last-child { border-bottom: none; }
+
+.p40-dmg-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.p40-dmg-legend-label {
+  font-size: 10px; font-weight: 900;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+  flex: 1;
+}
+
+.p40-dmg-legend-val {
+  font-size: 15px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-dmg-legend-pct {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  width: 44px; text-align: right;
+}
+
+.p40-dmg-donut-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.p40-dmg-donut-svg {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   VISION CARD (Row layout + rank bars)
+   ============================================ */
+.p40-vis-rows {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.p40-vis-stat-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-vis-stat-row:last-child { border-bottom: none; }
+
+.p40-vis-left {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 56px;
+}
+
+.p40-vis-val {
+  font-size: 18px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: white; line-height: 1;
+}
+
+.p40-vis-lbl {
+  font-size: 9px; font-weight: 900;
+  color: var(--p40-accent);
+  letter-spacing: 1px; margin-top: 2px;
+}
+
+.p40-vis-right {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.p40-vis-desc {
+  font-size: 9px; font-weight: 700;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+}
+
+.p40-vision-totals {
+  display: flex; gap: 0;
+  justify-content: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--p40-border);
+}
+
+.p40-vt-chip {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  position: relative;
+}
+
+.p40-vt-chip + .p40-vt-chip::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%;
+  width: 1px; height: 60%;
+  background: var(--p40-border);
+}
+
+.p40-vt-val {
+  display: block;
+  font-size: 16px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-vt-lbl {
+  display: block;
+  font-size: 7px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* ============================================
+   CHAMPION POOL
+   ============================================ */
+.p40-champ-body {
+  padding: 0 24px 16px;
+}
+
+.p40-champ-hdr {
+  display: grid;
+  grid-template-columns: 1fr 40px 50px 50px;
+  padding: 12px 8px 8px;
+  font-size: 10px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--p40-border);
+  border-left: 2px solid var(--p40-accent);
+  margin-bottom: 4px;
+}
+
+.p40-champ-hdr-c { text-align: center; }
+.p40-champ-hdr-r { text-align: right; }
+
+.p40-champ-row {
+  display: grid;
+  grid-template-columns: 1fr 40px 50px 50px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--p40-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.p40-champ-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.p40-champ-info {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.p40-champ-idx {
+  font-size: 10px; font-weight: 800;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+  width: 16px;
+}
+
+.p40-champ-icon {
+  width: 28px; height: 28px;
+  object-fit: contain; border-radius: 2px;
+}
+
+.p40-champ-name {
+  font-size: 13px; font-weight: 800;
+  color: var(--p40-secondary);
+}
+
+.p40-champ-games {
+  font-size: 12px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  color: var(--p40-secondary);
+}
+
+.p40-champ-kda {
+  font-size: 12px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  color: var(--p40-secondary);
+}
+
+.p40-champ-wr {
+  font-size: 12px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+}
+
+/* ============================================
+   SIDE PERFORMANCE (Versus layout)
+   ============================================ */
+.p40-side-versus {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.p40-side-col {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+}
+
+.p40-side-side-label {
+  font-size: 10px; font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--p40-muted);
+}
+
+.p40-side-wr-big {
+  font-size: 28px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+
+.p40-side-wr-big.blue { color: #01e4be; }
+.p40-side-wr-big.red { color: #ff453a; }
+
+.p40-side-games-sm {
+  font-size: 10px; font-weight: 700;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-side-vs-center {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  min-width: 80px;
+}
+
+.p40-side-vs-bar {
+  display: flex;
+  width: 100%; height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.p40-side-vs-fill.blue { background: #01e4be; }
+.p40-side-vs-fill.red { background: #ff453a; }
+
+.p40-side-vs-text {
+  font-size: 10px; font-weight: 900;
+  color: var(--p40-muted);
+  letter-spacing: 2px;
+}
+
+.p40-side-extras {
+  display: flex; gap: 0;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-side-extra-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px 8px;
+  position: relative;
+}
+
+.p40-side-extra-item + .p40-side-extra-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 15%;
+  width: 1px; height: 70%;
+  background: var(--p40-border);
+}
+
+.p40-side-extra-val {
+  display: block;
+  font-size: 16px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.p40-side-extra-val.accent { color: var(--p40-accent); font-size: 13px; }
+
+.p40-side-extra-lbl {
+  display: block;
+  font-size: 7px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+}
+
+.p40-keystones-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.p40-keystones-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.p40-keystone-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--p40-border);
+}
+
+.p40-keystone-primary {
+  border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+  background: rgba(251, 191, 36, 0.04);
+  border-radius: 4px;
+}
+
+.p40-keystone-primary .p40-key-chip-name {
+  color: var(--p40-accent);
+  font-size: 11px;
+}
+
+.p40-keystone-primary .p40-key-chip-pct {
+  color: var(--p40-accent);
+}
+
+.p40-keystone-primary .p40-key-chip-icon {
+  width: 28px; height: 28px;
+}
+
+.p40-key-chip-icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.p40-key-chip-name {
+  font-size: 10px; font-weight: 800;
+  color: var(--p40-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.p40-key-chip-stats {
+  display: flex; gap: 6px;
+  flex-shrink: 0;
+}
+
+.p40-key-chip-count {
+  font-size: 10px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--p40-muted);
+}
+
+.p40-key-chip-pct {
+  font-size: 10px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+/* Hero rune icon inline */
+.p40-side-extra-rune {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.p40-side-extra-rune-icon {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+/* ============================================
+   ROLE STANDINGS
+   ============================================ */
+.p40-standings-body {
+  padding: 0 24px 16px;
+}
+
+.p40-std-hdr {
+  display: grid;
+  grid-template-columns: 28px 1fr 40px 50px;
+  padding: 12px 8px 8px;
+  font-size: 10px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--p40-border);
+  border-left: 2px solid var(--p40-accent);
+  margin-bottom: 4px;
+}
+
+.p40-std-hdr-c { text-align: center; }
+.p40-std-hdr-r { text-align: right; }
+
+.p40-std-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 40px 50px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--p40-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.p40-std-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.p40-active {
+  background: var(--p40-accent-dim) !important;
+  border-left: 2px solid var(--p40-accent);
+}
+
+.p40-std-idx {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-std-player {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.p40-std-logo {
+  width: 22px; height: 22px; object-fit: contain;
+}
+
+.p40-std-name {
+  font-size: 13px; font-weight: 800;
+  color: var(--p40-secondary);
+}
+
+.p40-std-games {
+  font-size: 11px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  color: var(--p40-muted);
+}
+
+.p40-std-wr {
+  font-size: 12px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+}
+
+/* ============================================
+   MATCH HISTORY (Grid-aligned rows)
+   ============================================ */
+.p40-history-card {
+  margin-bottom: 40px;
+  min-height: auto;
+}
+
+.p40-hm-header {
+  display: grid;
+  grid-template-columns: 48px 2fr 72px 64px 1.2fr 1fr 80px 80px 80px 80px;
+  align-items: center;
+  padding: 10px 24px 8px;
+  border-bottom: 1px solid var(--p40-border);
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+}
+
+.p40-hm-hcol { text-align: center; }
+.p40-hm-hcol-champ { text-align: left; }
+.p40-hm-hcol-date { text-align: right; }
+
+.p40-history-list {
+  padding: 4px 24px 16px;
+  display: flex; flex-direction: column;
+  gap: 0;
+}
+
+.p40-hm-row {
+  display: grid;
+  grid-template-columns: 48px 2fr 72px 64px 1.2fr 1fr 80px 80px 80px 80px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--p40-border);
+  transition: background 0.15s;
+}
+
+.p40-hm-row:last-child { border-bottom: none; }
+
+.p40-hm-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.p40-hm-row.win { border-left: 3px solid #4ade80; padding-left: 0; }
+.p40-hm-row.loss { border-left: 3px solid #f87171; padding-left: 0; }
+
+.p40-hm-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p40-hm-badge {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  border-radius: 4px;
+}
+
+.p40-hm-badge.win { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.p40-hm-badge.loss { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+
+.p40-hm-champ {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.p40-hm-champ-icon {
+  width: 32px; height: 32px;
+  object-fit: contain; border-radius: 4px;
+  border: 1px solid var(--p40-border);
+}
+
+.p40-hm-champ-name {
+  font-size: 12px; font-weight: 800;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Runes: keystone + secondary path icons */
+.p40-hm-runes {
+  display: flex; align-items: center; gap: 4px;
+  justify-content: center;
+}
+
+.p40-hm-rune-img {
+  width: 24px; height: 24px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.p40-hm-rune-img.sec {
+  width: 20px; height: 20px;
+  opacity: 0.7;
+}
+
+.p40-hm-rune-txt {
+  font-size: 8px; font-weight: 800;
+  color: var(--p40-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-hm-rune-txt.sec { opacity: 0.6; }
+
+/* Shards: 3 small icons */
+.p40-hm-shards {
+  display: flex; align-items: center; gap: 3px;
+  justify-content: center;
+}
+
+.p40-hm-shard-img {
+  width: 16px; height: 16px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.p40-hm-shard-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* VS opponent */
+.p40-hm-vs {
+  display: flex; align-items: center; gap: 6px;
+  justify-content: center;
+}
+
+.p40-hm-opp-logo {
+  width: 20px; height: 20px; object-fit: contain;
+}
+
+.p40-hm-opp-name {
+  font-size: 11px; font-weight: 800;
+  color: var(--p40-secondary);
+}
+
+/* KDA */
+.p40-hm-kda {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1px;
+}
+
+.p40-hm-kda-line {
+  font-size: 13px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.p40-hm-k { color: var(--p40-accent); }
+.p40-hm-d { color: var(--p40-accent); }
+.p40-hm-a { color: var(--p40-accent); }
+.p40-hm-sep { color: var(--p40-muted); margin: 0 1px; }
+
+.p40-hm-kda-val {
+  font-size: 10px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Stat columns (CS/M, DPM, GPM) */
+.p40-hm-stat {
+  text-align: center;
+}
+
+.p40-hm-stat-val {
+  font-size: 13px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+/* Date (bigger) */
+.p40-hm-date {
+  text-align: right;
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 0;
+}
+
+.p40-hm-date-day {
+  font-size: 16px; font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--p40-secondary);
+  line-height: 1;
+}
+
+.p40-hm-date-month {
+  font-size: 9px; font-weight: 800;
+  color: var(--p40-muted);
+  letter-spacing: 1px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.p40-no-data {
+  padding: 32px;
+  color: var(--p40-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ============================================
+   WIN RATE CLASSES (from helpers)
+   ============================================ */
+.wr-high { color: #4ade80 !important; }
+.wr-mid { color: #fbbf24 !important; }
+.wr-low { color: #f87171 !important; }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1200px) {
+  .p40-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .p40-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .p40-hero-stats {
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .p40-hstat { align-items: flex-start; }
+}
+
+@media (max-width: 900px) {
+  .p40-container { padding: 24px 16px; }
+  .p40-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .p40-card { min-height: auto; }
+  .p40-hero-name { font-size: 24px; }
+  .p40-hero-stats { gap: 16px; }
+  .p40-hstat-val { font-size: 18px; }
+  .p40-hm-header,
+  .p40-hm-row {
+    grid-template-columns: 40px 2fr 60px 56px 1fr 1fr 64px 64px 64px 64px;
+    padding-left: 8px; padding-right: 8px;
+  }
+  .p40-history-list { padding: 4px 8px 16px; }
+  .p40-hm-header { padding-left: 8px; padding-right: 8px; }
+}
+
+@media (max-width: 600px) {
+  .p40-hm-header,
+  .p40-hm-row {
+    grid-template-columns: 32px 1fr 70px 48px 48px;
+  }
+  .p40-hm-runes, .p40-hm-shards, .p40-hm-vs, .p40-hm-date,
+  .p40-hm-hcol-runes, .p40-hm-hcol-shards, .p40-hm-hcol-vs, .p40-hm-hcol-date { display: none; }
+  .p40-hm-hcol-stat:nth-child(9) { display: none; } /* hide GPM */
+  .p40-hm-stat:last-of-type { display: none; } /* hide GPM column on mobile */
+}

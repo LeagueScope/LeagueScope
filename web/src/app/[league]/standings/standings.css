@@ -1,0 +1,602 @@
+/* ===========================================================================
+   Pruebas20 - Standings Redesign (p22 visual language)
+   Prefix: p20-
+   =========================================================================== */
+
+.p20-page {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 60px 40px 80px;
+  color: var(--text-primary, #f8fafc);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: calc(100vh - 80px);
+  font-size: 14px;
+}
+
+/* ===========================================================================
+   HEADER - p22 style (top gradient, logo container, clean layout)
+   =========================================================================== */
+
+.p20-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 40px;
+  margin-bottom: 32px;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.p20-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--p20-accent, #f0a500), transparent);
+}
+
+.p20-header-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.p20-header-logo {
+  width: 72px;
+  height: 72px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.p20-header-logo img { width: 48px; height: 48px; object-fit: contain; }
+.p20-header-title {
+  font-size: 32px;
+  font-weight: 950;
+  letter-spacing: -1.5px;
+  background: linear-gradient(to left, #fff, var(--p20-accent, #f0a500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.p20-header-sub {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.p20-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.p20-header-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: 20px;
+}
+.p20-hstat-val {
+  font-size: 36px;
+  font-weight: 950;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+.p20-hstat-lbl {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ===========================================================================
+   BUTTONS
+   =========================================================================== */
+
+.p20-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 2px;
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  background: rgba(255,255,255,0.03);
+  color: var(--text-muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.p20-btn:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+.p20-btn.p20-btn-active {
+  border-color: var(--p20-accent, #f0a500);
+  color: var(--p20-accent, #f0a500);
+  background: rgba(240,165,0,0.06);
+}
+
+/* Pro Vision button pulse dot */
+.p20-pv-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--p20-accent, #f0a500);
+  box-shadow: 0 0 8px var(--p20-accent, #f0a500);
+  animation: p20-pulse 1.5s infinite;
+}
+@keyframes p20-pulse {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ===========================================================================
+   NORMAL TABLE
+   =========================================================================== */
+
+.p20-table-card {
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.p20-table-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--p20-accent, #f0a500);
+}
+
+.p20-table-hdr {
+  display: grid;
+  grid-template-columns: 60px 2fr repeat(4, 1fr) 100px;
+  padding: 14px 24px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--p20-accent, #f0a500);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.p20-col-pos { text-align: left; padding-left: 24px; }
+.p20-col-stat, .p20-col-streak { text-align: center; }
+
+.p20-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.p20-row {
+  display: grid;
+  grid-template-columns: 60px 2fr repeat(4, 1fr) 100px;
+  padding: 14px 24px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  position: relative;
+}
+.p20-row:last-child { border-bottom: none; }
+.p20-row:hover {
+  background: rgba(255,255,255,0.03);
+  transform: translateX(3px);
+}
+
+/* Medal rows */
+.p20-row-gold { background: rgba(251,191,36,0.04); }
+.p20-row-silver { background: rgba(148,163,184,0.04); }
+.p20-row-bronze { background: rgba(180,83,9,0.04); }
+
+.p20-row-gold::before,
+.p20-row-silver::before,
+.p20-row-bronze::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 3px;
+  height: 100%;
+}
+.p20-row-gold::before { background: #fbbf24; }
+.p20-row-silver::before { background: #94a3b8; }
+.p20-row-bronze::before { background: #b45309; }
+
+/* Position */
+.p20-pos {
+  font-size: 14px;
+  font-weight: 950;
+  color: var(--text-muted, #64748b);
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.5px;
+  text-align: left;
+  padding-left: 24px;
+}
+.p20-pos-gold { color: #fbbf24; }
+.p20-pos-silver { color: #94a3b8; }
+.p20-pos-bronze { color: #b45309; }
+
+/* Team cell */
+.p20-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.p20-team-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.p20-team-text {
+  display: flex;
+  flex-direction: column;
+}
+.p20-team-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.p20-name-gold { color: #fbbf24; }
+.p20-name-silver { color: #c8d0d9; }
+.p20-name-bronze { color: #d97706; }
+.p20-team-abbr {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Stat values */
+.p20-stat {
+  font-size: 14px;
+  font-weight: 950;
+  color: var(--text-secondary, #94a3b8);
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+.p20-stat-w { color: #22c55e; }
+.p20-stat-l { color: #ef4444; }
+
+.p20-wr.winrate-high { color: #22c55e; }
+.p20-wr.winrate-mid { color: #eab308; }
+.p20-wr.winrate-low { color: #ef4444; }
+
+/* Streak */
+.p20-streak {
+  font-size: 13px;
+  font-weight: 950;
+  font-family: 'Inter', system-ui, sans-serif;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+.p20-streak-w { color: #22c55e; }
+.p20-streak-l { color: #ef4444; }
+
+
+/* ===========================================================================
+   PRO VISION TABLE
+   =========================================================================== */
+
+.p20-pro-wrap {
+  border-radius: 2px;
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-top: 2px solid var(--p20-accent, #f0a500);
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+  position: relative;
+}
+.p20-pro-wrap::-webkit-scrollbar { height: 6px; }
+.p20-pro-wrap::-webkit-scrollbar-track { background: transparent; }
+.p20-pro-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+.p20-pro-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: #0f1219;
+}
+
+/* Sticky columns - opaque backgrounds to prevent bleed-through */
+.p20-sticky-pos {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #0f1219 !important;
+}
+.p20-sticky-team {
+  position: sticky;
+  left: 56px;
+  z-index: 3;
+  background: #0f1219 !important;
+}
+.p20-sticky-team::after {
+  content: '';
+  position: absolute;
+  top: 0; right: -14px;
+  width: 14px; height: 100%;
+  background: linear-gradient(to right, rgba(0,0,0,0.5), transparent);
+  pointer-events: none;
+}
+
+/* Header sticky overrides - must be opaque and above data rows */
+.p20-th.p20-sticky-pos,
+.p20-th.p20-sticky-team { z-index: 20; background: #0f1219 !important; }
+.p20-pro-groups .p20-sticky-pos,
+.p20-pro-groups .p20-sticky-team { background: #0f1219 !important; }
+.p20-pro-stats .p20-sticky-pos,
+.p20-pro-stats .p20-sticky-team { background: #0f1219 !important; }
+
+/* Header: group row */
+.p20-pro-groups { background: #0f1219; }
+.p20-th {
+  padding: 0;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+}
+.p20-th-pos {
+  width: 56px; min-width: 56px;
+  text-align: center;
+  padding: 16px 0;
+  font-size: 10px; font-weight: 900;
+  color: var(--text-muted, #64748b);
+  background: #0f1219;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.p20-th-team {
+  width: 258px; min-width: 258px;
+  padding: 16px 16px;
+  font-size: 10px; font-weight: 900;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  text-align: left;
+  background: #0f1219;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.p20-th-group {
+  text-align: center;
+  padding: 14px 12px;
+  font-size: 11px; font-weight: 900;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--p20-accent, #f0a500);
+  border-left: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 2px solid var(--p20-accent, #f0a500);
+  background: #0f1219;
+  cursor: default;
+  position: relative;
+}
+.p20-th-group[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  color: #fff;
+  font-size: 11px; font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* Header: stat labels row */
+.p20-pro-stats { background: #0f1219; }
+.p20-th-stat {
+  width: 76px; min-width: 76px;
+  text-align: center;
+  padding: 12px 4px;
+  font-size: 12px; font-weight: 700;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(255,255,255,0.05);
+  border-left: 1px solid rgba(255,255,255,0.05);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+  position: relative;
+}
+.p20-th-stat:hover { color: #fff; }
+.p20-th-sorted {
+  color: var(--p20-accent, #f0a500) !important;
+  border-bottom-color: var(--p20-accent, #f0a500);
+}
+.p20-sort-arrow {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 8px;
+  vertical-align: middle;
+}
+
+/* Stat tooltip on hover */
+.p20-th-stat[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  color: #fff;
+  font-size: 11px; font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 2px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+.p20-th-stat[title]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(255,255,255,0.05);
+  z-index: 101;
+  pointer-events: none;
+}
+
+/* Data rows - all alternate uniformly, no medal highlights */
+.p20-pro-row {
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: #0f1219;
+  height: 55px;
+}
+.p20-pro-row:hover { background: #1c212b !important; }
+.p20-pro-row:hover .p20-sticky-pos,
+.p20-pro-row:hover .p20-sticky-team { background: #1c212b !important; }
+.p20-pro-alt { background: #11141d; }
+.p20-pro-alt .p20-sticky-pos,
+.p20-pro-alt .p20-sticky-team { background: #11141d !important; }
+.p20-pro-row:last-child { border-bottom: none; }
+
+/* Non-alt rows sticky background */
+.p20-pro-row:not(.p20-pro-alt) .p20-sticky-pos,
+.p20-pro-row:not(.p20-pro-alt) .p20-sticky-team { background: #0f1219 !important; }
+
+/* Sticky cell styles */
+.p20-td { padding: 0; }
+.p20-td-pos {
+  text-align: center;
+  font-size: 16px; font-weight: 700;
+  color: #64748b;
+  font-style: italic;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.05);
+}
+.p20-td-team {
+  padding: 0 16px 0 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.05);
+}
+
+.p20-pro-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.p20-pro-logo {
+  width: 28px; height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.p20-pro-abbr {
+  font-size: 16px; font-weight: 800;
+  color: #cbd5e1;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Data cells */
+.p20-td-stat {
+  text-align: center;
+  padding: 12px 4px;
+  font-size: 16px; font-weight: 800;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-left: 1px solid rgba(255,255,255,0.05);
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Cell value colors */
+.p20-cv-pos { color: #22c55e !important; }
+.p20-cv-neg { color: #ef4444 !important; }
+.p20-cv-zero { color: var(--text-muted, #64748b) !important; }
+.p20-cv-blue { color: #3b82f6 !important; }
+.p20-cv-red { color: #ef4444 !important; }
+.p20-cv-na {
+  color: rgba(255,255,255,0.1);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+
+/* ===========================================================================
+   RESPONSIVE
+   =========================================================================== */
+
+@media (max-width: 1024px) {
+  .p20-header { flex-direction: column; gap: 20px; align-items: flex-start; }
+  .p20-page { padding: 40px 24px 60px; }
+}
+
+@media (max-width: 768px) {
+  .p20-page { padding: 24px 16px; }
+  .p20-header { padding: 20px; }
+  .p20-header-title { font-size: 24px; }
+  .p20-header-actions { flex-wrap: wrap; gap: 8px; }
+  .p20-table-hdr { font-size: 9px; padding: 10px 16px; }
+  .p20-row { padding: 10px 16px; }
+  .p20-team-name { font-size: 13px; }
+  .p20-team-logo { width: 28px; height: 28px; }
+  .p20-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 600px) {
+  .p20-page { padding: 16px 12px; font-size: 12px; }
+  .p20-header { padding: 16px; margin-bottom: 20px; }
+  .p20-header-info { gap: 12px; }
+  .p20-header-logo { width: 56px; height: 56px; }
+  .p20-header-logo img { width: 36px; height: 36px; }
+  .p20-header-title { font-size: 20px; letter-spacing: -1px; }
+  .p20-header-sub { font-size: 9px; }
+  .p20-header-actions { gap: 6px; }
+  .p20-hstat-val { font-size: 28px; }
+  .p20-hstat-lbl { font-size: 9px; }
+  .p20-table-card { border-radius: 0; }
+  .p20-table-hdr { grid-template-columns: 50px 1fr 70px 70px; gap: 8px; padding: 10px 12px; font-size: 8px; }
+  .p20-row { grid-template-columns: 50px 1fr 70px 70px; gap: 8px; padding: 10px 12px; flex-wrap: wrap; }
+  .p20-team-name { font-size: 11px; }
+  .p20-team-logo { width: 24px; height: 24px; }
+  .p20-team-abbr { font-size: 8px; }
+  .p20-stat { font-size: 12px; }
+  .p20-streak { font-size: 11px; }
+  .p20-pos { font-size: 12px; }
+  .p20-header-stat { align-items: flex-start; gap: 2px; }
+  .p20-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

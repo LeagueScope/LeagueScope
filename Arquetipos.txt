@@ -1,0 +1,172 @@
+Aatrox		Luchador
+Ahri		Mago / Asesino
+Akali		Asesino
+Akshan		Tirador / Asesino
+Alistar		Tanque / Resistencia
+Ambessa		Luchador / Asesino
+Amumu		Tanque / Resistencia
+Anivia		Mago
+Annie		Mago / Resistencia
+Aphelios	Tirador
+Ashe		Tirador / Asistencia
+Aurelion Sol	Mago
+Aurora		Mago / Asesino
+Azir		Mago / Tirador
+Bardo		Asistencia / Mago
+Bel'Veth	Luchador
+Blitzcrank	Tanque / Resistencia
+Brand		Mago / Resistencia
+Braum		Tanque / Resistencia
+Briar		Luchador / Asesino
+Caitlyn		Tirador
+Camille		Luchador / Asesino
+Cassiopeia	Mago
+Cho'Gath	Tanque / Mago
+Corki		Tirador / Mago
+Darius		Luchador / Tanque
+Diana		Luchador / Asesino
+Dr. Mundo	Tanque / Luchador
+Draven		Tirador
+Ekko		Asesino / Mago
+Elise		Asesino / Mago
+Evelynn		Asesino / Mago
+Ezreal		Tirador / Mago
+Fiddlesticks	Mago / Resistencia
+Fiora		Luchador / Asesino
+Fizz		Asesino / Luchador
+Galio		Tanque / Mago
+Gangplank	Luchador
+Garen		Luchador / Tanque
+Gnar		Luchador / Tanque
+Gragas		Luchador / Mago
+Graves		Tirador
+Gwen		Luchador
+Hecarim		Luchador / Tanque
+Heimerdinger	Mago / Asistencia
+Hwei		Mago / Asistencia
+Illaoi		Luchador / Tanque
+Irelia		Luchador / Asesino
+Ivern		Asistencia / Mago
+Janna		Asistencia / Mago
+Jarvan IV	Luchador / Tanque
+Jax		Luchador
+Jayce		Luchador / Tirador
+Jhin		Tirador / Mago
+Jinx		Tirador
+K'Sante		Tanque / Luchador
+Kai'Sa		Tirador / Mago
+Kalista		Tirador
+Karm		Mago / Asistencia
+Karthus		Mago
+Kassadin	Asesino / Mago
+Katarina	Asesino / Mago
+Kayle		Mago / Tirador
+Kayn		Luchador / Asesino
+Kennen		Mago
+Kha'Zix		Asesino
+Kindred		Tirador
+Kled		Luchador
+Kog'Maw		Tirador / Mago
+Leblanc		Asesino / Mago
+Lee Sin		Luchador / Asesino
+Leona		Tanque / Resistencia
+Lillia		Luchador / Mago
+Lissandra 	Mago
+Lucian		Tirador / Asesino
+Lulu		Asistencia / Mago
+Lux		Mago / Asistencia
+Maestro Yi	Luchador / Asesino
+Malphite	Tanque / Mago
+Malzahar	Mago
+Maokai		Tanque / Asistencia
+Mel 		Mago / Asistencia
+Milio		Asistencia / Mago
+Miss Fortune	Tirador / Mago
+Mordekaiser	Luchador / Mago
+Morgana		Asistencia / Mago
+Naafiri		Asesino / Luchador
+Nami		Asistencia / Mago
+Nasus		Luchador / Tanque
+Nautilus	Tanque / Asistencia
+Neeko		Mago / Asistencia
+Nidalee		Asesino / Mago
+Nilah		Luchador / Asesino
+Nocturne	Luchador / Asesino
+Nunu y Willump	Tanque / Mago
+Olaf		Luchador / Tanque
+Orianna		Mago / Asistencia
+Ornn		Tanque
+Pantheon	Luchador / Asesino
+Poppy		Tanque / Luchador
+Pyke		Asistencia / Asesino
+Qiyana		Asesino
+Quinn		Tirador / Asesino
+Rakan		Asistencia
+Rammus		Tanque
+Rek'Sai		Luchador / Tanque
+Rell		Tanque / Asistencia
+Renata Glasc	Asistencia / Mago
+Renekton	Luchador / Tanque
+Rengar		Asesino / Luchador
+Riven		Luchador / Asesino
+Rumble		Luchador / Mago
+Ryze		Mago
+Samira		Tirador / Asesino
+Sejuani		Tanque
+Senna		Asistencia / Tirador
+Seraphine	Asistencia / Mago
+Sett		Luchador / Tanque
+Shaco		Asesino
+Shen		Tanque
+Shyvana		Luchador / Asesino
+Singed		Tanque / Mago
+Sion		Tanque / Luchador
+Sivir		Tirador
+Skarner		Tanque / Luchador
+Smolder		Tirador / Mago
+Sona		Asistencia / Mago
+Soraka		Asistencia / Mago
+Swain		Mago / Asistencia
+Sylas		Mago / Asesino
+Syndra		Mago
+Tahm Kench	Tanque / Asistencia
+Taliyah		Mago / Asistencia
+Talon		Asesino
+Taric		Asistencia / Tanque
+Teemo		Tirador / Mago
+Thresh		Asistencia / Tanque
+Tristana	Tirador / Asesino
+Trundle		Luchador / Tanque
+Tryndamere	Luchador / Asesino
+Twisted Fate 	Mago / Tirador
+Twitch		Tirador / Asesino
+Udyr		Luchador / Tanque
+Urgot		Luchador / Tanque
+Varus		Tirador / Mago
+Vayne		Tirador / Asesino
+Veigar		Mago
+Vel'Koz		Mago / Asistencia
+Vex		Mago
+Vi		Luchador / Asesino
+Viego		Luchador / Asesino
+Viktor		Mago
+Vladimir 	Mago / Luchador
+Volibear	Luchador / Tanque
+Warwick		Luchador / Tanque
+Wukong		Luchador / Tanque
+Xayah		Tirador
+Xerath		Mago / Asistencia
+Xin Zhao	Luchador / Tanque
+Yasuo		Luchador / Asesino
+Yone		Luchador / Asesino
+Yorick		Luchador / Tanque
+Yunara		Tirador
+Yuumi		Asistencia / Mago
+Zaahen		Luchador / Asesino
+Zac		Tanque / Luchador
+Zed		Asesino
+Zeri		Tirador
+Ziggs 		Mago
+Zilean		Asistencia / Mago
+Zoe		Mago
+Zyra		Mago / Asistencia

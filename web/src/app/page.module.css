@@ -1,0 +1,271 @@
+/* ===========================================================================
+   Home Page - SSR Proof of Concept
+   =========================================================================== */
+
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg, 4px);
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.logo {
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: -1px;
+  background: linear-gradient(to left, #fff, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.headerTag {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--clr-win);
+  background: rgba(74,222,128,0.1);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.headerSub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* Section titles */
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.patchBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Meta grid */
+.metaSection {
+  margin-bottom: 36px;
+}
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.metaCard {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg, 4px);
+  padding: 16px;
+}
+.metaCardTitle {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.metaRank {
+  width: 16px;
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-align: center;
+}
+.metaChamp {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.metaVal {
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+/* League grid */
+.leagueGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* Card */
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg, 4px);
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+.card:hover {
+  border-color: rgba(255,255,255,0.12);
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cardTitle {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+.cardSplit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Standings */
+.standings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+.standingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+.standingRow:nth-child(odd) {
+  background: rgba(255,255,255,0.02);
+}
+.standingRank {
+  width: 14px;
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-align: center;
+}
+.standingName {
+  flex: 1;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.standingRecord {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.standingWr {
+  width: 36px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+/* Matches */
+.matches {
+  border-top: 1px solid var(--border-inner);
+  padding-top: 10px;
+}
+.matchesLabel {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.matchRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.matchTeam {
+  width: 50px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.matchWin {
+  color: var(--clr-win);
+}
+.matchScore {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+.emptyHint {
+  font-size: 12px;
+  margin-top: 8px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page { padding: 24px 16px; }
+  .header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .metaGrid { grid-template-columns: 1fr; }
+  .leagueGrid { grid-template-columns: 1fr; }
+}

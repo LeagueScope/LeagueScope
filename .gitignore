@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Next.js build
+.next/
+out/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.production.local
+.env.*.local
+
+# Database dumps & backups
+backups/
+*.dump
+*.backup
+*.bak
+*.sql.gz
+
+# Generated documents (PDFs, Word, etc.)
+*.docx
+*.pdf
+*.pptx
+
+# OS files
+.DS_Store
+Thumbs.db
+.fuse_hidden*
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.timestamp-*
+*.log
+*.tsbuildinfo
