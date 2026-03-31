@@ -1,7 +1,3 @@
-/**
- * Logger profesional con pino
- */
-
 import pino from 'pino';
 import config from '../config/index.js';
 

@@ -1,13 +1,3 @@
-/**
- * validateInput.js
- * Centralized input validation middleware for all /pg/ endpoints.
- *
- * Sanitizes and validates common query parameters (league, year, split, stage)
- * and URL params (name, abbr, id) to prevent injection, abuse, and garbage data.
- */
-
-// ── Constraints ───────────────────────────────────────────────────────────────
-
 const MAX_STRING_LEN   = 100;   // max length for any string param
 const MAX_SEARCH_LEN   = 50;    // max length for search query
 const MIN_YEAR         = 2011;  // League of Legends esports started
@@ -17,7 +7,7 @@ const VALID_ROLES      = new Set(['top', 'jng', 'jun', 'mid', 'adc', 'bot', 'sup
 // Allowed characters: alphanumeric, spaces, hyphens, underscores, dots, accented chars
 const SAFE_STRING_RE = /^[\w\s\-.'áéíóúàèìòùäëïöüâêîôûñçÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÂÊÎÔÛÑÇ&]+$/u;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers 
 
 function sanitizeString(val, maxLen = MAX_STRING_LEN) {
   if (val == null) return undefined;
@@ -29,7 +19,7 @@ function isCleanString(val) {
   return !val || SAFE_STRING_RE.test(val);
 }
 
-// ── Middleware ─────────────────────────────────────────────────────────────────
+// Middleware
 
 /**
  * Validates common query params used across most /pg/ endpoints.

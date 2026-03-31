@@ -1,13 +1,6 @@
-/**
- * Middleware de manejo de errores
- */
-
 import { log } from '../utils/logger.js';
 import config from '../config/index.js';
 
-/**
- * Clase de error de API
- */
 export class ApiError extends Error {
   constructor(message, statusCode = 500) {
     super(message);
@@ -28,16 +21,10 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Middleware para rutas no encontradas
- */
 export function notFoundHandler(req, res, next) {
   res.status(404).json({ error: 'Not found' });
 }
 
-/**
- * Middleware de manejo de errores
- */
 export function errorHandler(err, req, res, next) {
   log.error('Error', { 
     message: err.message, 
@@ -53,9 +40,6 @@ export function errorHandler(err, req, res, next) {
   return res.status(500).json({ error: message });
 }
 
-/**
- * Wrapper para controladores async
- */
 export function asyncHandler(fn) {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

@@ -1,7 +1,3 @@
-/**
- * Middleware de logging de requests
- */
-
 import { log } from '../utils/logger.js';
 
 export function requestLogger(req, res, next) {

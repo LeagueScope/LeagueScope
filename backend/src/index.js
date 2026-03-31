@@ -37,9 +37,7 @@ import routes from './routes/index.js';
 import { log } from './utils/logger.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
-// Cache desactivada — datos servidos por PostgreSQL, no necesita pre-calentar ni persistir
-// import { startCacheWarmer } from './services/cacheWarmer.js';
-// import { saveToDisk } from './services/cache.js';
+
 
 // Placeholder para WebSocket (futuro)
 let io = null;
