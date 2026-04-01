@@ -48,13 +48,16 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         ...(upstream.headers.get('cache-control')
           ? { 'Cache-Control': upstream.headers.get('cache-control')! }
           : {}),
+        // Debug header — remove after verifying proxy works
+        'X-Proxy-Target': target,
+        'X-Proxy-Status': String(upstream.status),
       },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[API Proxy] Failed to reach backend: ${target}`, message);
     return NextResponse.json(
-      { error: 'Backend unreachable', detail: message },
+      { error: 'Backend unreachable', detail: message, target, backendUrl: BACKEND_URL },
       { status: 502 },
     );
   }
