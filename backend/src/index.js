@@ -9,8 +9,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import http from 'http';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// path and fileURLToPath removed — no longer serving static files
 
 // ── Environment validation ────────────────────────────────────────────────────
 // Must run before any other import that reads process.env
@@ -156,26 +155,7 @@ function createApp() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // ── Static file serving (production) ──────────────────────────────────────
-  if (config.isProd()) {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const distPath = path.resolve(__dirname, '../../frontend/dist');
-
-    // Hashed assets (JS, CSS) — cache 1 year (immutable, filename changes on rebuild)
-    app.use('/assets', express.static(path.join(distPath, 'assets'), {
-      maxAge: '1y',
-      immutable: true,
-    }));
-
-    // Other static files (index.html, logos, etc.) — cache 1 hour
-    app.use(express.static(distPath, { maxAge: '1h' }));
-
-    // SPA fallback — serve index.html for all non-API routes
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  // Static file serving removed — frontend is deployed on AWS Amplify
 
   // Error handling
   app.use(notFoundHandler);

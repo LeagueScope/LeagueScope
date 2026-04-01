@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import * as pgDb from '../../services/pgDb.js';
 import {
   validateCommonParams,
   validateUrlParams,
@@ -35,8 +36,42 @@ const router = Router();
 const common = [validateCommonParams];
 const commonWithUrl = [validateCommonParams, validateUrlParams];
 
-// Health
-router.get('/health', (req, res) => res.json({ status: 'ok', source: 'postgresql' }));
+// Health — actually tests DB connection
+router.get('/health', async (req, res) => {
+  try {
+    const { rows } = await pgDb.query('SELECT 1 AS ok');
+    res.json({ status: 'ok', source: 'postgresql', db: 'connected' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', source: 'postgresql', db: 'disconnected', error: err.message });
+  }
+});
+
+// Diagnostic — shows PG_DSN format (masked) for debugging
+router.get('/diag', (req, res) => {
+  const dsn = process.env.PG_DSN || '(not set)';
+  const len = dsn.length;
+  // Show first 15 chars and last 10, mask the rest
+  const masked = len > 30
+    ? dsn.slice(0, 15) + '***' + dsn.slice(-10)
+    : dsn.slice(0, 5) + '***';
+  // Check for common issues
+  const issues = [];
+  if (dsn.startsWith(' ') || dsn.startsWith('"') || dsn.startsWith("'")) issues.push('starts with whitespace or quote');
+  if (dsn.endsWith(' ') || dsn.endsWith('"') || dsn.endsWith("'")) issues.push('ends with whitespace or quote');
+  if (!dsn.startsWith('postgres')) issues.push('does not start with postgres://');
+  if (dsn.includes(' ') && !dsn.startsWith('/')) issues.push('contains spaces');
+
+  // Test URL parsing (same as pg-connection-string does)
+  let urlValid = false;
+  try {
+    new URL(dsn, 'postgres://base');
+    urlValid = true;
+  } catch (e) {
+    issues.push(`URL parse error: ${e.message}`);
+  }
+
+  res.json({ dsn_length: len, dsn_masked: masked, urlValid, issues, node_env: process.env.NODE_ENV });
+});
 
 // ── Filters ─────────────────────────────────────────────────────────────────
 router.get('/pg/filters/init',   ...common, asyncHandler(getFilterInitPg));
