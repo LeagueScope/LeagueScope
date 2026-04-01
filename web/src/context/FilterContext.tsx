@@ -52,10 +52,14 @@ const FilterContext = createContext<FilterState | null>(null);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+// In production, NEXT_PUBLIC_API_URL is inlined at build time (e.g. https://…apprunner.com/api/v1).
+// In development, falls back to relative path which uses the Next.js rewrite proxy.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
 async function fetchJson<T>(path: string, retries = 3): Promise<T> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(`/api/v1${path}`);
+      const res = await fetch(`${API_BASE}${path}`);
       if (!res.ok) throw new Error(`Filter API ${res.status}`);
       return (await res.json()) as T;
     } catch (err) {

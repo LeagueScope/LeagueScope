@@ -369,7 +369,8 @@ function GlobalSearchBar({
       }
       setLoading(true);
       try {
-        const res = await fetch(`/api/v1/pg/search?q=${encodeURIComponent(q)}`);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+        const res = await fetch(`${apiBase}/pg/search?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error(`Search API ${res.status}`);
         const data = await res.json();
         setResults(data);
