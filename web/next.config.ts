@@ -8,12 +8,15 @@ const nextConfig: NextConfig = {
   // Monorepo root — avoids "multiple lockfiles" warning
   outputFileTracingRoot: path.join(__dirname, '..'),
 
-  // Proxy API calls to the Express backend during development
+  // Proxy API calls to the Express backend
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')
+      : 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
@@ -46,7 +49,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://cdn.pandascore.co https://cdn-api.pandascore.co https://raw.githubusercontent.com https://flagcdn.com",
-              "connect-src 'self' http://localhost:3001 https://leaguescope.gg",
+              "connect-src 'self' http://localhost:3001 https://wwzhhxf7jd.eu-west-3.awsapprunner.com https://leaguescope.com https://www.leaguescope.com",
               "object-src 'none'",
               "frame-src 'none'",
               "base-uri 'self'",
