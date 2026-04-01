@@ -36,8 +36,8 @@ export function errorHandler(err, req, res, next) {
     return res.status(err.statusCode).json({ error: err.message });
   }
   
-  const message = config.isDev() ? err.message : 'Internal server error';
-  return res.status(500).json({ error: message });
+  // Temporarily show real errors to debug rewrite issue
+  return res.status(500).json({ error: err.message });
 }
 
 export function asyncHandler(fn) {
