@@ -6,7 +6,7 @@ import { OrganizationJsonLd, WebSiteJsonLd } from '@/components/JsonLd';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com'),
   title: {
     default: 'LeagueScope — Esports Analytics',
     template: '%s | LeagueScope',

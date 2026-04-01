@@ -12,7 +12,7 @@ const PlayerProfileClient = dynamic(() => import('./PlayerProfileClient'));
    Data fetching stays client-side due to chained/fallback logic
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export async function generateMetadata({
   params,

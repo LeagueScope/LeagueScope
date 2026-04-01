@@ -36,8 +36,8 @@ export function errorHandler(err, req, res, next) {
     return res.status(err.statusCode).json({ error: err.message });
   }
   
-  // TODO: revert to hiding errors in production after debugging
-  return res.status(500).json({ error: err.message, stack: err.stack?.split('\n').slice(0, 5) });
+  const message = config.isDev() ? err.message : 'Internal server error';
+  return res.status(500).json({ error: message });
 }
 
 export function asyncHandler(fn) {

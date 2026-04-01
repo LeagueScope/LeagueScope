@@ -12,7 +12,7 @@ const ChampionsClient = dynamic(() => import('./ChampionsClient'));
    Fetches champion list on server, passes to interactive client
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export async function generateMetadata({
   params,

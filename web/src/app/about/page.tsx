@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import './about.css';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export const metadata: Metadata = {
   title: 'Sobre LeagueScope — Quiénes somos',
@@ -280,8 +280,8 @@ export default function AboutPage() {
           <div className="abt-links">
             <a href="#" aria-label="Discord de LeagueScope">Discord</a>
             <a href="#" aria-label="Twitter / X de LeagueScope">Twitter / X</a>
-            <a href="mailto:contacto@leaguescope.gg">
-              contacto@leaguescope.gg
+            <a href="mailto:contacto@leaguescope.com">
+              contacto@leaguescope.com
             </a>
           </div>
         </section>

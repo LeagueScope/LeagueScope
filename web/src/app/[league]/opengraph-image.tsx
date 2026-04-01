@@ -133,7 +133,7 @@ export default async function Image({ params }: { params: { league: string } }) 
               letterSpacing: '1px',
             }}
           >
-            leaguescope.gg
+            leaguescope.com
           </span>
         </div>
       </div>

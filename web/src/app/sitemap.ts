@@ -23,7 +23,7 @@ import {
 // Force dynamic — sitemap fetches live data from the backend
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 // All leagues that have content pages
 const ALL_LEAGUE_IDS = [

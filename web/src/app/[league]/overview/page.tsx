@@ -10,7 +10,7 @@ import type { OverviewData } from './OverviewClient';
    Fetches overview data on server, passes to interactive client
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 // ── SEO Metadata ──────────────────────────────────────────────────────────
 export async function generateMetadata({

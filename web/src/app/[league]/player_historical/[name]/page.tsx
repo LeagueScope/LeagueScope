@@ -12,7 +12,7 @@ const PlayerHistoricalClient = dynamic(() => import('./PlayerHistoricalClient'))
    Thin shell: passes league, name, accent/glow to client component
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export async function generateMetadata({
   params,

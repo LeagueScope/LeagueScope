@@ -16,7 +16,7 @@ export function JsonLd({ data }: JsonLdProps) {
 
 // ── Organization (global, used in layout) ──────────────────────────────
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export function OrganizationJsonLd() {
   return (

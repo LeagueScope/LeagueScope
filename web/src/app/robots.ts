@@ -4,7 +4,7 @@ import type { MetadataRoute } from 'next';
    Robots.txt — /robots.txt
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {

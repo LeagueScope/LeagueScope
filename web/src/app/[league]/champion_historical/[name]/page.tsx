@@ -12,7 +12,7 @@ const ChampionHistoricalClient = dynamic(() => import('./ChampionHistoricalClien
    Route: /:league/champion_historical/:name
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export async function generateMetadata({
   params,

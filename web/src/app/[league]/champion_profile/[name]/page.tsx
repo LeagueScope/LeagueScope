@@ -12,7 +12,7 @@ const ChampionProfileClient = dynamic(() => import('./ChampionProfileClient'));
    Client-side fetching (single API call, no chained logic needed here)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export async function generateMetadata({
   params,

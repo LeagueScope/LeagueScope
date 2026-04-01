@@ -11,7 +11,7 @@ import InternationalEvents from './components/InternationalEvents';
 import Tier3Carousel from './components/Tier3Carousel';
 import McCarousel from './components/McCarousel';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leaguescope.gg';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
 export const metadata: Metadata = {
   title: 'LeagueScope — Esports Analytics',

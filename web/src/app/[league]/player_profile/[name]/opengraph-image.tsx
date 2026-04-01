@@ -42,7 +42,7 @@ export default async function Image({ params }: { params: { league: string; name
         {/* Bottom */}
         <div style={{ position: 'absolute', bottom: '40px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '20px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '1px' }}>LeagueScope</span>
-          <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.2)' }}>leaguescope.gg</span>
+          <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.2)' }}>leaguescope.com</span>
         </div>
       </div>
     ),
