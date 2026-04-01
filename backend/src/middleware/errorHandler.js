@@ -26,10 +26,10 @@ export function notFoundHandler(req, res, next) {
 }
 
 export function errorHandler(err, req, res, next) {
-  log.error('Error', { 
-    message: err.message, 
-    stack: config.isDev() ? err.stack : undefined,
-    path: req.path 
+  log.error('Error', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path
   });
   
   if (err.isOperational) {
