@@ -16,12 +16,16 @@ if (!PG_DSN) {
   process.exit(1);
 }
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: PG_DSN,
   max: 10,
   min: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
+  // RDS requires SSL in production
+  ...(isProd && { ssl: { rejectUnauthorized: false } }),
 });
 
 pool.on('error', (err) => {
