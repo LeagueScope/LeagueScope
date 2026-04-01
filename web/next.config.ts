@@ -8,18 +8,9 @@ const nextConfig: NextConfig = {
   // Monorepo root — avoids "multiple lockfiles" warning
   outputFileTracingRoot: path.join(__dirname, '..'),
 
-  // Proxy API calls to the Express backend
-  async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')
-      : 'http://localhost:3001';
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      },
-    ];
-  },
+  // API proxy: handled by src/app/api/[...path]/route.ts (Route Handler)
+  // Rewrites to external URLs are unreliable on AWS Amplify WEB_COMPUTE,
+  // so we use a server-side Route Handler instead.
 
   // Security & caching headers (mirrors backend helmet config)
   async headers() {

@@ -33,11 +33,11 @@ export function errorHandler(err, req, res, next) {
   });
   
   if (err.isOperational) {
-    return res.status(err.statusCode).json({ error: err.message, operational: true, stack: err.stack?.split('\n').slice(0, 3) });
+    return res.status(err.statusCode).json({ error: err.message });
   }
-  
-  // Temporarily show ALL error details to debug rewrite issue
-  return res.status(500).json({ error: err.message, type: err.constructor.name, stack: err.stack?.split('\n').slice(0, 3) });
+
+  const message = config.isDev() ? err.message : 'Internal server error';
+  return res.status(500).json({ error: message });
 }
 
 export function asyncHandler(fn) {

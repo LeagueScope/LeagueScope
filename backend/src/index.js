@@ -69,14 +69,21 @@ function createApp() {
   // ── Gzip/Brotli compression ─────────────────────────────────────────────────
   app.use(compression({ level: 6, threshold: 1024 }));
 
-  // ── CORS — temporarily wide open for debugging ──────────────────────
-  app.use(cors());
-
-  // ── Debug middleware — log every request to find rewrite issue ──────
-  app.use('/api/', (req, res, next) => {
-    console.log('[DEBUG]', req.method, req.path, 'origin:', req.headers.origin || 'none', 'host:', req.headers.host);
-    next();
-  });
+  // ── CORS ─────────────────────────────────────────────────────────────
+  const allowedOrigins = [
+    config.frontendUrl,
+    ...(config.isProd() ? [process.env.PROD_URL].filter(Boolean) : []),
+  ];
+  app.use(cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);              // server-to-server (no origin)
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET'],
+    allowedHeaders: ['Content-Type', 'Accept'],
+    credentials: true,
+  }));
 
   // ── Rate limiting — global baseline ────────────────────────────────────
   app.use('/api/', rateLimit({
