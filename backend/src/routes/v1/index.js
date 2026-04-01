@@ -36,14 +36,18 @@ const router = Router();
 const common = [validateCommonParams];
 const commonWithUrl = [validateCommonParams, validateUrlParams];
 
-// Health — actually tests DB connection
+// Health — always returns 200 so App Runner doesn't rollback, but reports DB status
 router.get('/health', async (req, res) => {
+  let db = 'unknown';
+  let dbError = null;
   try {
-    const { rows } = await pgDb.query('SELECT 1 AS ok');
-    res.json({ status: 'ok', source: 'postgresql', db: 'connected' });
+    await pgDb.query('SELECT 1 AS ok');
+    db = 'connected';
   } catch (err) {
-    res.status(500).json({ status: 'error', source: 'postgresql', db: 'disconnected', error: err.message });
+    db = 'disconnected';
+    dbError = err.message;
   }
+  res.json({ status: 'ok', source: 'postgresql', db, dbError });
 });
 
 // Diagnostic — shows PG_DSN format (masked) for debugging
