@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { FilterProvider } from '@/context/FilterContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import WelcomeModal from '@/components/WelcomeModal';
 import { OrganizationJsonLd, WebSiteJsonLd } from '@/components/JsonLd';
 import './globals.css';
 
@@ -59,6 +60,7 @@ export default function RootLayout({
           <Navbar />
           <main id="app">{children}</main>
           <Footer />
+          <WelcomeModal />
         </FilterProvider>
       </body>
     </html>

@@ -1,0 +1,133 @@
+/* ═══════════════════════════════════════════════════════════════
+   WelcomeModal — First-visit popup
+   ═══════════════════════════════════════════════════════════════ */
+
+.wm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  animation: wm-fade-in 0.3s ease;
+}
+
+.wm-modal {
+  width: min(460px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  animation: wm-slide-up 0.35s ease;
+}
+
+/* Logo */
+.wm-logo-row {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+.wm-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+/* Section */
+.wm-section {
+  margin-bottom: 0.75rem;
+}
+
+.wm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent, #f0a500);
+  margin: 0 0 0.5rem;
+}
+
+.wm-text {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 0.4rem;
+}
+.wm-text strong {
+  color: var(--text-primary, #f8fafc);
+}
+
+/* Divider */
+.wm-divider {
+  height: 1px;
+  background: var(--border-card, rgba(255, 255, 255, 0.08));
+  margin: 0.75rem 0;
+}
+
+/* Social buttons */
+.wm-socials {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 1.25rem 0;
+}
+
+.wm-social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.wm-social-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.wm-instagram {
+  background: rgba(228, 64, 95, 0.15);
+  color: #E4405F;
+}
+.wm-twitter {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.wm-discord {
+  background: rgba(88, 101, 242, 0.15);
+  color: #5865F2;
+}
+
+/* Close button */
+.wm-close {
+  display: block;
+  width: 100%;
+  padding: 0.7rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent, #f0a500);
+  color: #000;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.wm-close:hover {
+  opacity: 0.9;
+}
+
+/* Animations */
+@keyframes wm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes wm-slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
