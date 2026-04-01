@@ -30,7 +30,9 @@ export function OrganizationJsonLd() {
         description:
           'Plataforma de analytics competitivo de League of Legends con estadisticas en tiempo real de todas las ligas profesionales.',
         sameAs: [
-          'https://twitter.com/LeagueScopeGG',
+          'https://x.com/LeagueScope',
+          'https://www.instagram.com/leaguescope',
+          'https://discord.gg/zn2NW4E4',
         ],
       }}
     />
