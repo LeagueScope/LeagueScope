@@ -3,7 +3,7 @@
  * Used in Server Components and Route Handlers.
  */
 
-const API_BASE = process.env.API_URL || 'http://localhost:3001/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 interface FetchOptions {
   revalidate?: number; // ISR: seconds before revalidation (0 = no cache)
