@@ -16,17 +16,23 @@ if (!PG_DSN) {
   process.exit(1);
 }
 
-const isProd = process.env.NODE_ENV === 'production';
+// RDS requires SSL — detect by hostname
+const useSSL = PG_DSN.includes('rds.amazonaws.com');
 
-const pool = new Pool({
+const poolConfig = {
   connectionString: PG_DSN,
   max: 10,
   min: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  // RDS requires SSL in production
-  ...(isProd && { ssl: { rejectUnauthorized: false } }),
-});
+};
+
+if (useSSL) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+  console.log('[pgDb] SSL enabled (RDS detected)');
+}
+
+const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
   console.error('[pgDb] Unexpected pool error:', err.message);
