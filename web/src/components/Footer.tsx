@@ -31,13 +31,13 @@ export default function Footer() {
     <footer className="global-footer">
       <div className="footer-content">
         <div className="footer-socials">
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="footer-social-link">
+          <a href="https://www.instagram.com/leaguescope?igsh=eGw4ZTJ1M2hzNmRt" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="footer-social-link">
             <InstagramIcon />
           </a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X" className="footer-social-link">
+          <a href="https://x.com/LeagueScope" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X" className="footer-social-link">
             <TwitterIcon />
           </a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="footer-social-link">
+          <a href="https://discord.gg/zn2NW4E4" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="footer-social-link">
             <DiscordIcon />
           </a>
         </div>
