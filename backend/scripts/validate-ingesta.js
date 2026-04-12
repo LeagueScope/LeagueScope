@@ -17,6 +17,7 @@
  * --serie Restrict checks to a specific serie_id (faster for incremental runs)
  */
 
+import 'dotenv/config';
 import pg from 'pg';
 
 const DSN = process.env.PG_DSN;

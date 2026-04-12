@@ -92,7 +92,6 @@ export async function getChampionsPg(req, res) {
         p.dpm, p.gpm, p.cspm, p.avg_dtaken_pm, p.fb_rate,
         p.players_count,
         p.kill_participation,
-        NULL AS roles_json,
         t.cnt AS total_games_in_serie
       FROM pick_stats p
       FULL OUTER JOIN ban_stats b ON b.champ_name = p.champ_name
@@ -146,11 +145,14 @@ export async function getChampionsPg(req, res) {
     // Ban-only champions: banned in games but NOT picked
     pgDb.query(`
       SELECT pb.champion_id, COUNT(*) AS bans,
-             ca.name AS champion_name
+             ca.name AS champion_name,
+             SUM(CASE WHEN gt.color = 'blue' THEN 1 ELSE 0 END) AS bans_blue,
+             SUM(CASE WHEN gt.color = 'red' THEN 1 ELSE 0 END) AS bans_red
       FROM game_picks_bans pb
       JOIN games g ON g.id = pb.game_id
       JOIN matches m ON m.id = g.match_id
       JOIN tournaments t ON t.id = m.tournament_id
+      JOIN game_teams gt ON gt.game_id = g.id AND gt.team_id = pb.team_id
       JOIN champion_aliases ca ON ca.pandascore_id = pb.champion_id
       LEFT JOIN champion_global_stats cgs
         ON cgs.champion_id = pb.champion_id AND cgs.serie_id = $1
@@ -219,8 +221,15 @@ export async function getChampionsPg(req, res) {
     const champ = champMap[c.champion_id] || {};
     const imageUrl = champ.image_url || null;
 
-    // Position breakdown from roles_json — convert counts to percentages + remap jun→jng, adc→bot
-    const rolesRaw = ensureObj(c.roles_json);
+    // Position breakdown from champion_role_stats table
+    const { rows: rolesRows } = await pgDb.query(`
+      SELECT role, games FROM champion_role_stats
+      WHERE champion_id = $1 AND serie_id = $2
+    `, [c.champion_id, c.serie_id]);
+    const rolesRaw = {};
+    for (const r of rolesRows) {
+      rolesRaw[r.role] = r.games;
+    }
     const roleTotalGames = Object.values(rolesRaw).reduce((s, v) => s + (Number(v) || 0), 0) || 1;
     const posBreakdown = {};
     for (const [k, v] of Object.entries(rolesRaw)) {
@@ -298,7 +307,11 @@ export async function getChampionsPg(req, res) {
 
     const imageUrl = champ.image_url || null;
     const bans = Number(b.bans) || 0;
+    const bansBlue = Number(b.bans_blue) || 0;
+    const bansRed = Number(b.bans_red) || 0;
     const banRate = rnd(bans / totalGames * 100, 1);
+    const banRateBlue = rnd(bansBlue / totalGames * 100, 1);
+    const banRateRed = rnd(bansRed / totalGames * 100, 1);
 
     champions.push({
       name,
@@ -309,13 +322,20 @@ export async function getChampionsPg(req, res) {
       games: 0, wins: 0, losses: 0, win_rate: 0,
       picks: 0, pick_rate: 0,
       bans, ban_rate: banRate,
+      bans_blue: bansBlue,
+      bans_red: bansRed,
+      ban_rate_blue: banRateBlue,
+      ban_rate_red: banRateRed,
       presence: banRate,
 
       avg_kills: 0, avg_deaths: 0, avg_assists: 0, kda: 0, kill_participation: 0,
       avg_gpm: 0, avg_cspm: 0, avg_dpm: 0, avg_dtaken_per_min: 0,
       fb_rate: 0,
+      blue_picks: 0, red_picks: 0,
+      blue_wins: 0, red_wins: 0,
       blue_wr: null, red_wr: null,
       avg_game_duration: 0, avg_duration_formatted: '0:00', players_count: 0,
+      played_by: [],
     });
   }
 
@@ -447,12 +467,17 @@ export async function getChampionHistoryPg(req, res) {
   // ── Build response ────────────────────────────────────────────────────────
 
   // Career (per-season stats)
-  const career = cgsRows.map(c => {
+  const career = await Promise.all(cgsRows.map(async c => {
     const serieBans = bansPatchMap[c.serie_id] || {};
-    const patchBreakdown = ensureArr(c.patch_breakdown_json).map(pb => ({
+    // Query patch stats from champion_patch_stats table
+    const { rows: patchStatsRows } = await pgDb.query(`
+      SELECT patch, games, wins, bans FROM champion_patch_stats
+      WHERE champion_id = $1 AND serie_id = $2
+    `, [c.champion_id, c.serie_id]);
+    const patchBreakdown = patchStatsRows.map(pb => ({
       patch: pb.patch,
-      picks: pb.picks ?? 0,
-      bans: serieBans[pb.patch] ?? pb.bans ?? 0,
+      picks: pb.games ?? 0,
+      bans: serieBans[pb.patch] ?? 0,
       wins: pb.wins ?? 0,
       win_rate: pb.picks > 0 ? rnd(pb.wins / pb.picks * 100, 1) : 0,
       total_games: gamesPerPatch[pb.patch] ?? 0,
@@ -490,7 +515,7 @@ export async function getChampionHistoryPg(req, res) {
       avg_damage_share: rnd(c.dmg_share, 1),
       patch_breakdown: patchBreakdown,
     };
-  });
+  }));
 
   // Aggregate profile stats
   const totalGames = career.reduce((s, c) => s + (c.games || 0), 0);
@@ -501,14 +526,16 @@ export async function getChampionHistoryPg(req, res) {
     ? career.reduce((s, c) => s + (c[key] ?? 0) * c.games, 0) / totalGames
     : 0;
 
-  // Role distribution from champion_global_stats roles_json
+  // Role distribution from champion_role_stats table
+  const { rows: allRolesRows } = await pgDb.query(`
+    SELECT role, SUM(games) AS total_games FROM champion_role_stats
+    WHERE champion_id = ANY($1::int[])
+    GROUP BY role
+  `, [aliasIds]);
   const roleAgg = {};
-  for (const c of cgsRows) {
-    const rj = ensureObj(c.roles_json);
-    for (const [role, count] of Object.entries(rj)) {
-      const mapped = mapRole(role);
-      roleAgg[mapped] = (roleAgg[mapped] || 0) + (count || 0);
-    }
+  for (const r of allRolesRows) {
+    const mapped = mapRole(r.role);
+    roleAgg[mapped] = (roleAgg[mapped] || 0) + (Number(r.total_games) || 0);
   }
   const totalRoleGames = Object.values(roleAgg).reduce((s, v) => s + v, 0) || 1;
   const ROLE_ORDER = { top: 0, jng: 1, mid: 2, bot: 3, sup: 4 };
@@ -930,75 +957,80 @@ export async function getChampionByNamePg(req, res) {
   const champ = champMap[c.champion_id] || {};
   const imageUrl = champ.image_url || null;
 
-  // roles_json stores game counts {mid: 40, top: 2}, convert to percentages
-  const rolesRaw = ensureObj(c.roles_json);
+  // roles_json — query from champion_role_stats table
+  const { rows: champRolesRows } = await pgDb.query(`
+    SELECT role, games FROM champion_role_stats
+    WHERE champion_id = $1 AND serie_id = $2
+  `, [c.champion_id, c.serie_id]);
+  const rolesRaw = {};
+  for (const r of champRolesRows) {
+    rolesRaw[r.role] = r.games;
+  }
   const roleTotalGames = Object.values(rolesRaw).reduce((s, v) => s + (Number(v) || 0), 0) || 1;
   const posBreakdown = {};
   for (const [k, v] of Object.entries(rolesRaw)) {
     posBreakdown[mapRole(k)] = rnd((Number(v) || 0) / roleTotalGames * 100, 1);
   }
 
-  // Top players from pre-aggregated JSON — resolve team info from team_id
-  const topPlayersRaw = ensureArr(c.top_players_json);
-  const tpTeamIds = [...new Set(topPlayersRaw.map(tp => tp.team_id).filter(Boolean))];
-  let tpTeamMap = {};
-  if (tpTeamIds.length > 0) {
-    const { rows: tpTeams } = await pgDb.query(
-      `SELECT id, acronym, image_url, dark_mode_image_url FROM teams WHERE id = ANY($1::int[])`,
-      [tpTeamIds]
-    );
-    for (const t of tpTeams) tpTeamMap[t.id] = t;
-  }
-  const playedBy = topPlayersRaw.map(tp => {
-    const team = tpTeamMap[tp.team_id] || {};
+  // Top players from champion_top_players table — resolve team info via player_career
+  const { rows: topPlayersRows } = await pgDb.query(`
+    SELECT ctp.player_id, ctp.player_name, ctp.games, ctp.wins, ctp.kda,
+           p.image_url AS player_image_url,
+           COALESCE(tb.display_acronym, t.acronym) AS team_abbr,
+           COALESCE(tb.display_logo, t.dark_mode_image_url, t.image_url) AS team_logo_url
+    FROM champion_top_players ctp
+    LEFT JOIN players p ON p.id = ctp.player_id
+    LEFT JOIN player_career pc ON pc.player_id = ctp.player_id AND pc.serie_id = ctp.serie_id
+    LEFT JOIN teams t ON t.id = pc.team_id
+    LEFT JOIN team_brands tb ON tb.team_id = pc.team_id
+      AND (SELECT year FROM series WHERE id = ctp.serie_id) BETWEEN tb.year_start AND tb.year_end
+    WHERE ctp.champion_id = $1 AND ctp.serie_id = $2
+    ORDER BY ctp.games DESC
+  `, [c.champion_id, c.serie_id]);
+  const playedBy = topPlayersRows.map(tp => {
     return {
-      name: tp.name,
-      team_abbr: tp.team_abbr || team.acronym || null,
-      team_logo_url: tp.team_logo_url || team.dark_mode_image_url || team.image_url || null,
+      name: tp.player_name,
+      player_image_url: tp.player_image_url || null,
+      team_abbr: tp.team_abbr || null,
+      team_logo_url: tp.team_logo_url || null,
       games: tp.games,
       wins: tp.wins,
       losses: tp.games - (tp.wins || 0),
       kda: rnd(tp.kda),
-      win_rate: tp.win_rate != null ? rnd(tp.win_rate, 1) : (tp.games > 0 ? rnd((tp.wins || 0) / tp.games * 100, 1) : null),
+      win_rate: tp.games > 0 ? rnd((tp.wins || 0) / tp.games * 100, 1) : null,
     };
   });
 
-  // Matchups from pre-aggregated JSON — stored as {best: [...], worst: [...]}
-  // Build name→image_url lookup from champMap for enrichment
+  // Matchups from champion_matchups table
   const champByName = {};
   for (const v of Object.values(champMap)) if (v.name) champByName[v.name.toLowerCase()] = v;
 
-  const matchupsRaw = typeof c.matchups_json === 'string'
-    ? (() => { try { return JSON.parse(c.matchups_json); } catch { return c.matchups_json; } })()
-    : (c.matchups_json || {});
+  const { rows: matchupsRows } = await pgDb.query(`
+    SELECT opponent_champion_id, opponent_name, games, wins
+    FROM champion_matchups
+    WHERE champion_id = $1 AND serie_id = $2
+  `, [c.champion_id, c.serie_id]);
   const mapMatchup = (m) => {
-    const mName = m.champion || m.name;
+    const mName = m.opponent_name;
     const info = champByName[mName?.toLowerCase()] || {};
+    const winRate = m.games > 0 ? rnd(m.wins / m.games * 100, 1) : 0;
     return {
       champion: mName,
       image_url: info.image_url || null,
       games: m.games,
-      win_rate: rnd(m.win_rate, 1),
+      win_rate: winRate,
     };
   };
-  let bestMatchups, worstMatchups;
-  if (matchupsRaw && !Array.isArray(matchupsRaw) && (matchupsRaw.best || matchupsRaw.worst)) {
-    // Pre-computed best/worst from db-create-pro-profiles.py
-    bestMatchups = ensureArr(matchupsRaw.best).map(mapMatchup);
-    worstMatchups = ensureArr(matchupsRaw.worst).map(mapMatchup);
-  } else {
-    // Fallback: flat array (live stage data or legacy format)
-    const minGames = stageParam ? 1 : 2;
-    const allMatchups = ensureArr(matchupsRaw).map(mapMatchup);
-    bestMatchups = allMatchups
-      .filter(m => m.games >= minGames && m.win_rate >= 50)
-      .sort((a, b) => b.win_rate - a.win_rate || b.games - a.games)
-      .slice(0, 5);
-    worstMatchups = allMatchups
-      .filter(m => m.games >= minGames && m.win_rate < 50)
-      .sort((a, b) => a.win_rate - b.win_rate || b.games - a.games)
-      .slice(0, 5);
-  }
+  const allMatchups = matchupsRows.map(mapMatchup);
+  const minGames = stageParam ? 1 : 2;
+  const bestMatchups = allMatchups
+    .filter(m => m.games >= minGames && m.win_rate >= 50)
+    .sort((a, b) => b.win_rate - a.win_rate || b.games - a.games)
+    .slice(0, 5);
+  const worstMatchups = allMatchups
+    .filter(m => m.games >= minGames && m.win_rate < 50)
+    .sort((a, b) => a.win_rate - b.win_rate || b.games - a.games)
+    .slice(0, 5);
 
   // Items: aggregate in SQL to avoid huge unnest result sets in Node
   const champIds2 = `(SELECT ca2.pandascore_id FROM champion_aliases ca2 JOIN champions ch2 ON ch2.id = ca2.canonical_id WHERE LOWER(ch2.name) = LOWER($2))`;
@@ -1036,28 +1068,38 @@ export async function getChampionByNamePg(req, res) {
     ? allItemsSorted.slice(-3).reverse()
     : [];
 
-  // Keystones from pre-aggregated JSON — enrich with rune images from runeMap
+  // Keystones from champion_keystones table — enrich with rune images from runeMap
+  const { rows: keystoneRows } = await pgDb.query(`
+    SELECT rune_name, games, wins FROM champion_keystones
+    WHERE champion_id = $1 AND serie_id = $2
+    ORDER BY games DESC
+  `, [c.champion_id, c.serie_id]);
   const runeByName = {};
   for (const [, rv] of Object.entries(runeMap)) {
     runeByName[rv.name?.toLowerCase()] = rv;
   }
-  const keystones = ensureArr(c.keystones_json).map(k => {
-    const ri = runeByName[k.name?.toLowerCase()];
+  const keystones = keystoneRows.map(k => {
+    const ri = runeByName[k.rune_name?.toLowerCase()];
     return {
-      name: k.name,
-      image_url: k.image_url || ri?.image_url || null,
-      count: k.count,
-      pct: rnd(k.pct ?? (k.count / (c.picks || 1) * 100), 1),
+      name: k.rune_name,
+      image_url: ri?.image_url || null,
+      count: Number(k.games),
+      pct: rnd(Number(k.games) / (c.picks || 1) * 100, 1),
     };
   });
 
-  // Patch breakdown from pre-aggregated JSON
-  const patchBreakdown = ensureArr(c.patch_breakdown_json).map(pb => ({
+  // Patch breakdown from champion_patch_stats table
+  const { rows: patchStatsRows } = await pgDb.query(`
+    SELECT patch, games, wins, bans FROM champion_patch_stats
+    WHERE champion_id = $1 AND serie_id = $2
+    ORDER BY patch DESC
+  `, [c.champion_id, c.serie_id]);
+  const patchBreakdown = patchStatsRows.map(pb => ({
     patch: pb.patch,
-    picks: pb.picks ?? 0,
+    picks: pb.games ?? 0,
     bans: pb.bans ?? 0,
     wins: pb.wins ?? 0,
-    win_rate: pb.picks > 0 ? rnd(pb.wins / pb.picks * 100, 1) : 0,
+    win_rate: pb.games > 0 ? rnd(pb.wins / pb.games * 100, 1) : 0,
   }));
 
   // FB stats from live query
@@ -1107,8 +1149,8 @@ export async function getChampionByNamePg(req, res) {
     avg_deaths: rnd(c.deaths_avg, 1),
     avg_assists: rnd(c.assists_avg, 1),
     kda: rnd(c.kda),
-    kill_participation: rnd(c.kill_participation, 1),
-    fb_rate: rnd(c.fb_rate, 1),
+    kill_participation: rnd(c.kill_participation != null && c.kill_participation > 0 && c.kill_participation <= 1 ? c.kill_participation * 100 : c.kill_participation, 1),
+    fb_rate: rnd(c.fb_rate != null && c.fb_rate > 0 && c.fb_rate <= 1 ? c.fb_rate * 100 : c.fb_rate, 1),
     fb_kills: fbKills,
     fb_assists: fbAssists,
 

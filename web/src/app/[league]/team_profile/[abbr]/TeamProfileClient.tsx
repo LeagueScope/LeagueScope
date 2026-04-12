@@ -819,7 +819,7 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
                 <Image src={`/rol/${p.position?.toLowerCase()}.png`} alt={p.position} className="p50-r-pos-icon" width={20} height={20} />
               </div>
               <div className="p50-r-player">
-                {p.image_url && <Image src={p.image_url} className="p50-r-photo" alt={p.name} width={32} height={32} />}
+                {p.image_url && <Image src={p.image_url} className="p50-r-photo" alt={p.name} width={88} height={88} />}
                 <span className="p50-r-name">{p.name}</span>
               </div>
               <span className="p50-r-stat">{p.kda != null ? <AnimatedNumber value={p.kda} decimals={2} /> : '—'}</span>

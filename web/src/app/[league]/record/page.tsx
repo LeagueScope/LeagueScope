@@ -45,6 +45,12 @@ export async function generateMetadata({
   };
 }
 
+interface TeamFormEntry {
+  status: 'win' | 'loss' | 'pending';
+  opp_acronym: string;
+  opp_logo?: string;
+}
+
 interface MatchTeam {
   id: number;
   name: string;
@@ -52,6 +58,7 @@ interface MatchTeam {
   acronym: string;
   logo_url?: string;
   score: number;
+  form?: TeamFormEntry[];
 }
 
 interface MatchGame {

@@ -390,7 +390,7 @@ export default function PlayerHistoricalClient({ league, name, accent, glow }: P
         <div className="p70-hero-left">
           <div className="p70-hero-photo">
             {profile.image_url
-              ? <Image src={profile.image_url} alt={profile.name} onError={e => (e.target as HTMLImageElement).style.display = 'none'} width={96} height={96} />
+              ? <Image src={profile.image_url} alt={profile.name} onError={e => (e.target as HTMLImageElement).style.display = 'none'} width={256} height={256} unoptimized />
               : <div style={{ width: '100%', height: '100%', background: '#1a1f2b' }} />
             }
           </div>
@@ -600,7 +600,7 @@ export default function PlayerHistoricalClient({ league, name, accent, glow }: P
               {teams.map(t => {
                 const wr = t.totalGames > 0 ? (t.totalWins / t.totalGames * 100) : 0;
                 return (
-                  <div key={t.team} className="p70-teammate-card" onClick={() => router.push(`/${league}/team_historical/${encodeURIComponent(t.team)}`)} style={{ cursor: 'pointer' }}>
+                  <div key={t.team} className="p70-teammate-card">
                     <div className="p70-teammate-header">
                       {t.logo && <Image src={t.logo} alt={t.team} onError={e => (e.target as HTMLImageElement).style.display = 'none'} width={64} height={64} />}
                       <span className="p70-teammate-name">{t.team}</span>

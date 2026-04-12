@@ -909,18 +909,21 @@
    KEYSTONES GRID
    ============================================ */
 .p60-keystones-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
 }
 
 .p60-keystone-chip {
   padding: 8px 10px;
   border-bottom: 1px solid var(--p60-border);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  min-width: 100px;
 }
 
 .p60-key-chip-top {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; justify-content: center;
 }
 
 .p60-key-chip-icon {
@@ -940,7 +943,7 @@
 }
 
 .p60-key-chip-stats {
-  display: flex; gap: 6px; margin-top: 3px;
+  display: flex; gap: 6px; margin-top: 3px; justify-content: center;
 }
 
 .p60-key-chip-count {
@@ -1245,5 +1248,5 @@
   .p60-hm-vs, .p60-hm-date,
   .p60-hm-hcol:nth-child(3), .p60-hm-hcol-date { display: none; }
   .p60-items-grid { grid-template-columns: 1fr 1fr; }
-  .p60-keystones-grid { grid-template-columns: 1fr; }
+  .p60-keystones-grid { justify-content: center; }
 }

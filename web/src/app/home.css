@@ -15,6 +15,81 @@
     margin-top: 60px;
 }
 
+/* ── SHARED: Bo Tag & Playoffs ────────────────── */
+
+.p1-section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.p1-bo-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    border: 1px solid var(--border-inner);
+    padding: 1px 6px;
+    letter-spacing: 0.5px;
+}
+
+.p1-playoffs-tag {
+    font-size: 9px;
+    font-weight: 900;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 2px 7px;
+    letter-spacing: 1px;
+}
+
+.p1-winner-text {
+    color: var(--text-primary) !important;
+    font-weight: 800;
+}
+
+.p1-loser-text {
+    color: var(--text-muted) !important;
+    opacity: 0.5;
+}
+
+.p1-table-cell-team-editorial {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.p1-vs-divider {
+    font-size: 8px;
+    font-weight: 900;
+    color: var(--text-muted);
+    opacity: 0.3;
+    letter-spacing: 1px;
+    margin: 0 2px;
+}
+
+.p1-abbr-right {
+    text-align: right;
+}
+
+.p1-table-cell-score {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.p1-major-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 
 /* Grid de 2 columnas para las major league cards */
 .p1-league-grid {
@@ -705,11 +780,14 @@
 }
 
 .t3-carousel-item {
-    flex: 0 0 auto;
-    width: 100%;
-    height: 700px;
-    /* Force height match with card */
-    scroll-snap-align: center;
+    flex: 0 0 calc(50% - 12px);
+    scroll-snap-align: start;
+}
+
+@media (max-width: 1150px) {
+    .t3-carousel-item {
+        flex: 0 0 100%;
+    }
 }
 
 /* -- MINOR CAROUSEL TECHNICAL BLOCKS --------------------- */
@@ -737,10 +815,7 @@
     border: 1px solid var(--border-card);
     border-radius: var(--radius-card);
     padding: 0;
-    /* REMOVED padding for edge-to-edge grid */
     overflow: hidden;
-    height: 700px;
-    /* Sized to fit 2-row layout + footer comfortably */
     display: flex;
     flex-direction: column;
 }
@@ -761,8 +836,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 24px 32px 0 32px;
-    /* Changed padding */
+    padding: 16px 20px 0 20px;
     position: relative;
     z-index: 1;
     border-bottom: 1px solid var(--border-inner);
@@ -775,15 +849,15 @@
 }
 
 .t3-logo-small {
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
     filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.4));
 }
 
 .t3-region-label {
     display: block;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 900;
     line-height: 1;
 }
@@ -797,16 +871,6 @@
     display: block;
 }
 
-.t3-tag {
-    background: var(--accent-dim);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-size: 9px;
-    font-weight: 900;
-    padding: 2px 8px;
-    letter-spacing: 1px;
-}
-
 .t3-grid-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -816,6 +880,10 @@
     border-left: none;
     border-right: none;
     border-bottom: 1px solid var(--border-inner);
+}
+
+.t3-grid-row.t3-grid-3col {
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 .t3-grid-top {
@@ -829,33 +897,53 @@
 
 .t3-editorial-column {
     background: var(--surface-card);
-    padding: 20px 32px;
-    /* Adjusted padding for internal breathing room */
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.t3-editorial-column .p1-data-table.slim,
+.t3-editorial-column .p1-hairline-stats.slim {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.t3-editorial-column .p1-data-table.slim .p1-table-row {
+    flex: 1;
+}
+
+.t3-editorial-column .p1-hairline-stats.slim .p1-hairline-row {
+    flex: 1;
+    margin-bottom: 0;
 }
 
 /* High-Density Utilities for T3 */
+.p1-data-table.slim .p1-table-head {
+    padding: 4px 8px;
+    font-size: 9px;
+}
+
 .p1-data-table.slim .p1-table-row {
-    padding: 6px 10px;
+    padding: 4px 8px;
     font-size: 11px;
 }
 
 .p1-hairline-stats.slim .p1-hairline-row {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .p1-hairline-stats.slim .p1-hairline-label {
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .p1-hairline-stats.slim .p1-val-mono {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .t3-editorial-footer {
     margin-top: auto;
-    /* Push to bottom */
-    padding: 16px 32px 24px 32px;
-    /* Consistent padding */
+    padding: 12px 18px 16px 18px;
     border-top: 1px solid var(--border-inner);
 }
 
@@ -888,28 +976,32 @@
     background: var(--surface-card);
     border: 1px solid var(--border-card);
     border-radius: var(--radius-card);
-    padding: 24px;
+    padding: 0;
     overflow: hidden;
-    height: 360px;
     display: flex;
     flex-direction: column;
 }
 
 .mc-editorial-watermark {
     position: absolute;
-    bottom: -10px;
-    right: -10px;
-    width: 120px;
-    height: 120px;
-    opacity: 0.05;
+    top: -20px;
+    right: -30px;
+    width: 160px;
+    height: 160px;
+    opacity: 0.03;
     filter: grayscale(1);
     pointer-events: none;
+    z-index: 0;
 }
 
 .mc-editorial-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 24px;
+    align-items: flex-start;
+    padding: 14px 16px 0 16px;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid var(--border-inner);
 }
 
 .mc-header-left {
@@ -919,77 +1011,111 @@
 }
 
 .mc-logo-small {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
 .mc-region-label {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
     display: block;
     line-height: 1;
 }
 
 .mc-split-label {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-muted);
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-top: 3px;
+    display: block;
 }
 
-.mc-tag {
-    font-size: 8px;
-    font-weight: 900;
-    color: var(--text-muted);
-    border: 1px solid var(--border-inner);
-    padding: 2px 6px;
-}
-
-.mc-editorial-grid {
+/* MC Grid Layout — mirrors T3 but more compact */
+.mc-grid-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    gap: 1px;
+    background: var(--border-inner);
+    border-bottom: 1px solid var(--border-inner);
+}
+
+.mc-grid-top {
+    border-bottom: none;
+}
+
+.mc-grid-bottom {
+    margin-top: -1px;
+}
+
+.mc-grid-column {
+    background: var(--surface-card);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.mc-grid-column .p1-data-table.slim,
+.mc-grid-column .p1-hairline-stats.slim {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mc-grid-column .p1-data-table.slim .p1-table-row {
     flex: 1;
 }
 
-.p1-data-table.slim .p1-table-row {
-    padding: 6px 0;
-    font-size: 12px;
+.mc-grid-column .p1-hairline-stats.slim .p1-hairline-row {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Playoffs layout: BRACKET full-height left, SIDE PERF + UPCOMING stacked right */
+.mc-playoffs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+}
+
+.mc-playoffs-bracket {
+    grid-row: 1 / -1;
+}
+
+.mc-playoffs-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.mc-playoffs-right .mc-grid-column {
+    flex: 1;
 }
 
 .mc-editorial-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    padding-top: 12px;
+    margin-top: auto;
+    padding: 10px 16px 12px 16px;
     border-top: 1px solid var(--border-inner);
-}
-
-.mc-footer-stat {
     display: flex;
-    gap: 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-}
-
-.mc-footer-stat .lbl {
-    color: var(--text-muted);
-}
-
-.mc-footer-stat .val {
-    color: var(--text-primary);
-    font-weight: 800;
+    justify-content: center;
 }
 
 .mc-editorial-link {
     background: transparent;
-    border: none;
-    color: var(--accent);
+    border: 1px solid var(--border-card);
+    color: var(--text-muted);
     font-size: 10px;
-    font-weight: 900;
+    font-weight: 800;
+    padding: 6px 14px;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mc-editorial-link:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* -- EDITORIAL HIGHLIGHTS (Meta & Team) -------------------- */
@@ -1008,7 +1134,8 @@
 }
 
 .p1-section-header-editorial.compact {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 
 .p1-section-header-editorial.compact.accent {
@@ -1226,6 +1353,125 @@
     padding: 32px 40px;
 }
 
+/* ── LIVE MATCHES ────────────────────────────────────── */
+.p1-live-section {
+    background: var(--surface-card);
+    border-top: 1px solid var(--border-inner);
+    padding: 20px 40px;
+}
+
+.p1-live-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-left: 14px;
+    border-left: 3px solid #ef4444;
+}
+
+.p1-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: p1-live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes p1-live-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { opacity: 0.6; box-shadow: 0 0 8px 4px rgba(239, 68, 68, 0.3); }
+}
+
+.p1-live-title {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #ef4444;
+}
+
+.p1-live-matches {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.p1-live-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-card);
+    border-radius: 0;
+    padding: 14px 28px;
+    flex: 0 1 auto;
+    min-width: 220px;
+}
+
+.p1-live-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.p1-live-team:last-child {
+    justify-content: flex-end;
+}
+
+.p1-live-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.p1-live-abbr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.p1-live-score {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.p1-live-score-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.p1-live-score-sep {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* LIVE section – inactive state (no matches running) */
+.p1-live-dot.inactive {
+    background: rgba(255, 255, 255, 0.15);
+    animation: none;
+}
+
+.p1-live-title.inactive {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.p1-live-empty {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+    padding: 12px 0 4px;
+}
+
 /* Section Titles (Editorial Style) */
 .p1-section-header-editorial {
     display: flex;
@@ -1318,6 +1564,15 @@
     font-size: 13px;
     font-weight: 600;
 }
+
+.p1-wr-col {
+    width: 60px;
+    margin-left: 6px;
+}
+
+.p1-table-cell-val.wr-high,
+.p1-table-cell-val.wr-mid,
+.p1-table-cell-val.wr-low  { color: #f0a500 !important; }
 
 .p1-table-cell-val-bold {
     flex: 1;
@@ -1449,7 +1704,7 @@
 
 .p1-table-cell-win,
 .p1-table-cell-loss {
-    width: 35px;
+    min-width: 35px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     font-weight: 800;
@@ -1462,6 +1717,12 @@
 
 .p1-table-cell-loss {
     color: var(--clr-loss);
+}
+
+.p1-game-wl {
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.55;
 }
 
 /* Latest Results Specifics */

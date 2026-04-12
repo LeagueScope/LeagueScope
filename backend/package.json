@@ -16,7 +16,12 @@
     "validate": "node scripts/validate-ingesta.js",
     "validate:fix": "node scripts/validate-ingesta.js --fix",
     "test:pipeline": "node scripts/test-pipeline.js",
-    "ingest": "node scripts/fetch-to-postgres.js"
+    "ingest": "node scripts/fetch-to-postgres.js",
+    "auto-ingest": "node scripts/auto-ingest.js",
+    "auto-ingest:test": "node scripts/auto-ingest.js --max-leagues 1 --max-time 120",
+    "poller": "node scripts/match-poller.js",
+    "poller:once": "node scripts/match-poller.js --once",
+    "poller:test": "node scripts/match-poller.js --once --leagues LEC,LCK"
   },
   "dependencies": {
     "compression": "^1.8.1",

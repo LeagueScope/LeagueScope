@@ -1349,6 +1349,7 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
   const leagueName = league.toUpperCase();
   const filters = useFilters();
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
   const [matches, setMatches] = useState<MatchData[]>(initialMatches);
   const [tournamentData, setTournamentData] = useState<TournamentData>(tournament);
 
@@ -1383,7 +1384,156 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
     return () => { cancelled = true; };
   }, [league, filters.ready, filters.year, filters.split, filters.stage]);
 
-  const totalGames = matches.reduce((acc, m) => acc + (m.games?.length || 0), 0);
+  // Live polling: refetch every 30s when there are live matches
+  useEffect(() => {
+    const hasLive = matches.some(m => m.status === 'running');
+    if (!hasLive || !filters.ready) return;
+
+    const interval = setInterval(() => {
+      const qs = new URLSearchParams();
+      qs.set('league', league.toUpperCase());
+      if (filters.year) qs.set('year', String(filters.year));
+      if (filters.split) qs.set('split', filters.split);
+      if (filters.stage && filters.stage !== 'all') qs.set('stage', filters.stage);
+
+      clientFetch<MatchData[]>(`/api/v1/pg/matches?${qs}`)
+        .then(setMatches)
+        .catch(logger.error);
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [matches, league, filters.ready, filters.year, filters.split, filters.stage]);
+
+  // Split matches into 3 groups
+  const liveMatches = useMemo(() => matches.filter(m => m.status === 'running'), [matches]);
+  const scheduledMatches = useMemo(() =>
+    matches.filter(m => m.status === 'not_started').sort((a, b) =>
+      new Date(a.begin_at || a.scheduled_at || 0).getTime() - new Date(b.begin_at || b.scheduled_at || 0).getTime()
+    ), [matches]);
+  const finishedMatches = useMemo(() => matches.filter(m => m.status === 'finished'), [matches]);
+
+  const totalGames = finishedMatches.reduce((acc, m) => acc + (m.games?.length || 0), 0);
+
+  // Render a form pip: color-coded circle with opponent logo
+  const FormPip = ({ entry }: { entry: any }) => (
+    <div
+      className={`p22-form-pip ${entry.status === 'win' ? 'p22-form-win' : entry.status === 'loss' ? 'p22-form-loss' : 'p22-form-pending'}`}
+      title={`${entry.status === 'win' ? 'W' : entry.status === 'loss' ? 'L' : '?'} vs ${entry.opp_acronym}`}
+    >
+      {entry.opp_logo
+        ? <Image src={entry.opp_logo} alt={entry.opp_acronym} width={20} height={20} className="p22-form-opp-logo" />
+        : <span className="p22-form-opp-text">{(entry.opp_acronym || '?').substring(0, 3)}</span>
+      }
+    </div>
+  );
+
+  // Scheduled match card
+  const ScheduledCard = ({ m }: { m: MatchData }) => {
+    const dateObj = new Date(m.begin_at || m.scheduled_at || '');
+    const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const formA = (m.teamA as any)?.form || [];
+    const formB = (m.teamB as any)?.form || [];
+    const matchLabel = m.match_label || null;
+
+    return (
+      <div className="p22-match-wrapper">
+        <div className="p22-match-card p22-scheduled-card">
+          {matchLabel && <span className="p22-match-label">{matchLabel}</span>}
+          {m.best_of > 1 && <span className="p22-bo-badge">BO{m.best_of}</span>}
+
+          <div className="p22-scheduled-content">
+            {/* Team A form (oldest → newest) */}
+            <div className="p22-form-group p22-form-left">
+              {formA.slice().reverse().map((f: any, i: number) => <FormPip key={i} entry={f} />)}
+            </div>
+
+            {/* Team A name + logo */}
+            <div className="p22-sched-team p22-sched-team-left">
+              <span className="p22-team-name">{m.teamA?.abbr || '?'}</span>
+              <div className="p22-team-logo-wrap">
+                <Image src={m.teamA?.logo_url || psImg(null, m.teamA?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+              </div>
+            </div>
+
+            {/* Center: time */}
+            <div className="p22-sched-center">
+              <span className="p22-sched-hour">{timeStr}</span>
+            </div>
+
+            {/* Team B logo + name */}
+            <div className="p22-sched-team p22-sched-team-right">
+              <div className="p22-team-logo-wrap">
+                <Image src={m.teamB?.logo_url || psImg(null, m.teamB?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+              </div>
+              <span className="p22-team-name">{m.teamB?.abbr || '?'}</span>
+            </div>
+
+            {/* Team B form (newest → oldest) */}
+            <div className="p22-form-group p22-form-right">
+              {formB.map((f: any, i: number) => <FormPip key={i} entry={f} />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Match card (works for both finished and live)
+  const FinishedCard = ({ m, isSelected }: { m: MatchData; isSelected: boolean }) => {
+    const isLive = m.status === 'running';
+    const aWins = !isLive && m.winner_id === m.teamA?.id;
+    const bWins = !isLive && m.winner_id === m.teamB?.id;
+    const matchLabel = m.match_label || null;
+
+    return (
+      <div className="p22-match-wrapper">
+        <div
+          className={`p22-match-card ${isSelected ? 'p22-match-active' : ''} ${isLive ? 'p22-match-live' : ''}`}
+          onClick={() => !isLive && setSelectedMatchId(isSelected ? null : m.matchid)}
+          style={isLive ? { cursor: 'default' } : undefined}
+        >
+          {matchLabel && <span className="p22-match-label">{matchLabel}</span>}
+          {m.best_of > 1 && <span className="p22-bo-badge">BO{m.best_of}</span>}
+
+          <div className="p22-match-content">
+            <div className={`p22-team-name p22-team-left ${aWins ? 'p22-team-winner' : ''}`}>
+              {m.teamA?.abbr || m.teamA?.name || '?'}
+            </div>
+            <div className="p22-team-logo-wrap">
+              <Image src={m.teamA?.logo_url || psImg(null, m.teamA?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+            </div>
+            <div className="p22-score-center">
+              <div className="p22-score">
+                <span className={`p22-score-num ${isLive ? 'p22-score-live' : aWins ? 'p22-score-winner-left' : 'p22-score-loser-left'}`}>{m.teamA?.score || 0}</span>
+                <span className="p22-score-sep">—</span>
+                <span className={`p22-score-num ${isLive ? 'p22-score-live' : bWins ? 'p22-score-winner-right' : 'p22-score-loser-right'}`}>{m.teamB?.score || 0}</span>
+              </div>
+            </div>
+            <div className="p22-team-logo-wrap">
+              <Image src={m.teamB?.logo_url || psImg(null, m.teamB?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+            </div>
+            <div className={`p22-team-name p22-team-right ${bWins ? 'p22-team-winner' : ''}`}>
+              {m.teamB?.abbr || m.teamB?.name || '?'}
+            </div>
+            {!isLive && (
+              <div className="p22-expand-icon">
+                <svg className={isSelected ? 'p22-chevron-up' : ''} width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {!isLive && (aWins
+            ? <div className="p22-winner-bar p22-bar-left" />
+            : <div className="p22-winner-bar p22-bar-right" />
+          )}
+        </div>
+        <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
+      </div>
+    );
+  };
 
   return (
     <div className="p22-page" style={{ '--p22-accent': accent } as React.CSSProperties}>
@@ -1400,7 +1550,7 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
         </div>
         <div className="p22-header-stats">
           <div className="p22-hstat">
-            <span className="p22-hstat-val">{matches.length}</span>
+            <span className="p22-hstat-val">{finishedMatches.length}</span>
             <span className="p22-hstat-lbl">Series</span>
           </div>
           <div className="p22-hstat">
@@ -1414,87 +1564,84 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
         </div>
       </div>
 
-      {/* Match List */}
-      <div className="p22-matches">
-        {matches.map((m, i) => {
-          const currentDate = m.date_str || formatDate(m.date);
-          const prevDate = i > 0 ? (matches[i - 1].date_str || formatDate(matches[i - 1].date)) : null;
-          const isNewDate = currentDate !== prevDate;
-          const isSelected = selectedMatchId === m.matchid;
-          const aWins = m.winner_id === m.teamA?.id;
+      {/* ── EN VIVO ── */}
+      {liveMatches.length > 0 && (
+        <div className="p22-section">
+          <div className="p22-section-header p22-section-live">
+            <span className="p22-live-dot-record" />
+            <span>EN VIVO</span>
+          </div>
+          <div className="p22-matches">
+            {liveMatches.map(m => <FinishedCard key={m.matchid} m={m} isSelected={selectedMatchId === m.matchid} />)}
+          </div>
+        </div>
+      )}
 
-          // Match label from backend (parsed from slug): "Grand Final", "Semifinal", etc.
-          const matchLabel = m.match_label || null;
+      {/* ── PROGRAMADAS (collapsible) ── */}
+      {scheduledMatches.length > 0 && (
+        <div className="p22-section">
+          <div
+            className={`p22-section-header p22-section-scheduled ${scheduledOpen ? 'p22-section-open' : ''}`}
+            onClick={() => setScheduledOpen(o => !o)}
+          >
+            <span className="p22-section-title">PROGRAMADAS</span>
+            <span className="p22-section-count">{scheduledMatches.length}</span>
+            <svg className={`p22-section-chevron ${scheduledOpen ? 'p22-chevron-up' : ''}`} width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+          {scheduledOpen && (
+            <div className="p22-matches">
+              {scheduledMatches.map((m, i) => {
+                const dateObj = new Date(m.begin_at || m.scheduled_at || '');
+                const currentDate = dateObj.toISOString().split('T')[0];
+                const prevDate = i > 0
+                  ? new Date(scheduledMatches[i - 1].begin_at || scheduledMatches[i - 1].scheduled_at || '').toISOString().split('T')[0]
+                  : null;
+                const isNewDate = currentDate !== prevDate;
+                const dateLabel = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long' });
 
-          return (
-            <React.Fragment key={m.matchid}>
-              {isNewDate && (
-                <div className="p22-date-header">
-                  <span className="p22-date-label">{currentDate}</span>
-                </div>
-              )}
-
-              <div className="p22-match-wrapper">
-                <div
-                  className={`p22-match-card ${isSelected ? 'p22-match-active' : ''}`}
-                  onClick={() => setSelectedMatchId(isSelected ? null : m.matchid)}
-                >
-                  {/* Floating labels — absolutely positioned, centered in each half */}
-                  {matchLabel && <span className="p22-match-label">{matchLabel}</span>}
-                  {m.best_of > 1 && <span className="p22-bo-badge">BO{m.best_of}</span>}
-
-                  <div className="p22-match-content">
-                    {/* Team A name */}
-                    <div className={`p22-team-name p22-team-left ${aWins ? 'p22-team-winner' : ''}`}>
-                      {m.teamA?.abbr || m.teamA?.name || '?'}
-                    </div>
-
-                    {/* Team A logo */}
-                    <div className="p22-team-logo-wrap">
-                      <Image src={m.teamA?.logo_url || psImg(null, m.teamA?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
-                    </div>
-
-                    {/* Score — true center */}
-                    <div className="p22-score-center">
-                      <div className="p22-score">
-                        <span className={`p22-score-num ${aWins ? 'p22-score-winner-left' : 'p22-score-loser-left'}`}>{m.teamA?.score || 0}</span>
-                        <span className="p22-score-sep">—</span>
-                        <span className={`p22-score-num ${!aWins ? 'p22-score-winner-right' : 'p22-score-loser-right'}`}>{m.teamB?.score || 0}</span>
+                return (
+                  <React.Fragment key={m.matchid}>
+                    {isNewDate && (
+                      <div className="p22-date-header">
+                        <span className="p22-date-label">{dateLabel}</span>
                       </div>
-                    </div>
+                    )}
+                    <ScheduledCard m={m} />
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                    {/* Team B logo */}
-                    <div className="p22-team-logo-wrap">
-                      <Image src={m.teamB?.logo_url || psImg(null, m.teamB?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
-                    </div>
+      {/* ── JUGADAS ── */}
+      <div className="p22-section">
+        <div className="p22-section-header p22-section-played">
+          <span>JUGADAS</span>
+          <span className="p22-section-count">{finishedMatches.length}</span>
+        </div>
+        <div className="p22-matches">
+          {finishedMatches.map((m, i) => {
+            const currentDate = m.date_str || formatDate(m.date);
+            const prevDate = i > 0 ? (finishedMatches[i - 1].date_str || formatDate(finishedMatches[i - 1].date)) : null;
+            const isNewDate = currentDate !== prevDate;
 
-                    {/* Team B name */}
-                    <div className={`p22-team-name p22-team-right ${!aWins ? 'p22-team-winner' : ''}`}>
-                      {m.teamB?.abbr || m.teamB?.name || '?'}
-                    </div>
-
-                    {/* Expand indicator */}
-                    <div className="p22-expand-icon">
-                      <svg className={isSelected ? 'p22-chevron-up' : ''} width="20" height="20" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </div>
+            return (
+              <React.Fragment key={m.matchid}>
+                {isNewDate && (
+                  <div className="p22-date-header">
+                    <span className="p22-date-label">{currentDate}</span>
                   </div>
-
-                  {/* Winner accent bar */}
-                  {aWins
-                    ? <div className="p22-winner-bar p22-bar-left" />
-                    : <div className="p22-winner-bar p22-bar-right" />
-                  }
-                </div>
-
-                {/* Expanded Detail — animated collapse/expand */}
-                <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
-              </div>
-            </React.Fragment>
-          );
-        })}
+                )}
+                <FinishedCard m={m} isSelected={selectedMatchId === m.matchid} />
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

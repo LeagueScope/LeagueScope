@@ -112,6 +112,209 @@
   gap: 12px;
 }
 
+/* ── Section headers (EN VIVO / PROGRAMADAS / JUGADAS) ── */
+
+.p22-section {
+  margin-bottom: 32px;
+}
+
+.p22-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  margin-bottom: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.p22-section-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--p22-accent, var(--accent, #f0a500)), transparent);
+}
+
+.p22-section-live {
+  color: #ef4444;
+}
+.p22-section-live::before {
+  background: linear-gradient(90deg, transparent, #ef4444, transparent);
+}
+
+.p22-live-dot-record {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: p22-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes p22-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.p22-section-scheduled {
+  color: var(--p22-accent, #60a5fa);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.p22-section-scheduled:hover {
+  background: rgba(255,255,255,0.03);
+}
+.p22-section-scheduled::before {
+  background: linear-gradient(90deg, transparent, var(--p22-accent, #60a5fa), transparent);
+}
+
+/* Chevron icon */
+.p22-section-chevron {
+  margin-left: auto;
+  transition: transform 0.25s ease;
+  opacity: 0.6;
+}
+.p22-chevron-up {
+  transform: rotate(180deg);
+}
+
+/* Section title inside scheduled */
+.p22-section-title {
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.p22-section-played {
+  color: rgba(255,255,255,0.5);
+}
+.p22-section-played::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+
+.p22-section-count {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.5;
+}
+
+/* ── Scheduled card ── */
+
+.p22-scheduled-card {
+  border: 1px dashed rgba(255,255,255,0.1);
+  cursor: default;
+}
+
+.p22-scheduled-card:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+
+.p22-scheduled-content {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px 1fr 120px;
+  align-items: center;
+  width: 100%;
+}
+
+.p22-sched-team {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.p22-sched-team-left {
+  justify-content: flex-end;
+}
+
+.p22-sched-team-right {
+  justify-content: flex-start;
+}
+
+.p22-sched-team .p22-team-name {
+  font-size: 24px;
+}
+
+.p22-sched-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+
+.p22-sched-hour {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--p22-accent, #60a5fa);
+}
+
+/* ── Team form pips ── */
+
+.p22-form-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.p22-form-left {
+  justify-content: flex-end;
+}
+
+.p22-form-right {
+  justify-content: flex-start;
+}
+
+.p22-form-pip {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+
+.p22-form-pip:hover {
+  transform: scale(1.1);
+}
+
+.p22-form-win {
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.p22-form-loss {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.p22-form-pending {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.p22-form-opp-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.p22-form-opp-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
 .p22-match-wrapper {
   display: flex;
   flex-direction: column;
@@ -270,6 +473,18 @@
 .p22-score-loser-right {
   color: rgba(248, 113, 113, 0.45);
 }
+
+/* Live match: neutral score, no winner highlight */
+.p22-score-live {
+  color: rgba(255, 255, 255, 0.7);
+}
+.p22-match-live {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.p22-match-live:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
 .p22-score-sep {
   color: rgba(255,255,255,0.15);
   font-weight: 300;
@@ -1202,6 +1417,10 @@
   .p22-match-content {
     grid-template-columns: 1fr 48px 160px 48px 1fr 32px;
   }
+  .p22-scheduled-content { grid-template-columns: 90px 1fr 100px 1fr 90px; }
+  .p22-sched-team .p22-team-name { font-size: 18px; }
+  .p22-form-pip { width: 28px; height: 28px; }
+  .p22-form-opp-logo { width: 18px; height: 18px; }
   .p22-team-name { font-size: 18px; }
   .p22-score-num { font-size: 28px; }
   .p22-team-logo { width: 40px; height: 40px; }
@@ -1222,10 +1441,14 @@
   .p22-hstat { align-items: center; }
   .p22-header-title { font-size: 24px; }
 
+  .p22-section-header { padding: 12px 16px; font-size: 12px; }
   .p22-match-card { padding: 12px 16px; }
   .p22-match-content {
     grid-template-columns: 1fr 36px 120px 36px 1fr 28px;
   }
+  .p22-scheduled-content { grid-template-columns: 1fr 100px 1fr; }
+  .p22-form-group { display: none; }
+  .p22-sched-team .p22-team-name { font-size: 14px; }
   .p22-match-label, .p22-bo-badge { display: none; }
   .p22-team-name { font-size: 14px; padding: 0 8px; }
   .p22-team-logo { width: 32px; height: 32px; }

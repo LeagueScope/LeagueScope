@@ -60,6 +60,14 @@ export interface BestPlayer {
   value: number;
 }
 
+export interface LiveMatch {
+  id: number;
+  begin_at: string;
+  number_of_games: number;
+  blue: { abbr: string; logo_url: string | null; score: number };
+  red: { abbr: string; logo_url: string | null; score: number };
+}
+
 export interface LeagueOverview {
   region: string;
   split: string | null;
@@ -71,6 +79,10 @@ export interface LeagueOverview {
   bestPlayers: BestPlayer[];
   teamPerformance: Record<string, unknown>;
   teamRankings: Record<string, unknown>;
+  liveMatches?: LiveMatch[];
+  bestOf?: number;         // Most common match format: 1, 3, or 5
+  isPlayoffs?: boolean;    // Whether current tournament stage has bracket
+  phaseName?: string | null; // Tournament stage name (e.g. "Playoffs", "Regular Season")
 }
 
 export interface MetaChampion {
@@ -84,6 +96,7 @@ export interface MetaChampion {
 
 export interface MetaSnapshot {
   patch: string | null;
+  patchLeagues?: string[];   // Which major leagues have games on this patch
   totalGames: number;
   mostPickedChampions: MetaChampion[];
   mostBannedChampions: MetaChampion[];

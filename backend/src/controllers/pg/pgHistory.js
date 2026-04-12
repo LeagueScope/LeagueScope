@@ -72,6 +72,9 @@ export async function getPlayerHistoryPg(req, res) {
         gp.total_damage_dealt_to_champions AS dmg_dealt,
         gp.gold_earned, gp.gold_spent,
         gp.team_id AS player_team_id, gp.items, gp.spell_1_id, gp.spell_2_id,
+        gp.rune_primary_path_id, gp.rune_secondary_path_id,
+        rp_pri.name AS rune_primary_path_name, rp_pri.image_url AS rune_primary_path_img,
+        rp_sec.name AS rune_secondary_path_name, rp_sec.image_url AS rune_secondary_path_img,
         g.id AS gid, g.length, g.winner_id, g.begin_at, g.match_id, g.serie_id,
         gt_player.color AS side,
         COALESCE(opp_tb.display_acronym, opp_t.acronym) AS opp_abbr,
@@ -86,6 +89,8 @@ export async function getPlayerHistoryPg(req, res) {
       JOIN series _s ON _s.id = g.serie_id
       LEFT JOIN team_brands opp_tb ON opp_tb.team_id = gt_opp.team_id AND _s.year BETWEEN opp_tb.year_start AND opp_tb.year_end
       JOIN game_teams gt_team ON gt_team.game_id = g.id AND gt_team.team_id = gp.team_id
+      LEFT JOIN rune_paths rp_pri ON rp_pri.id = gp.rune_primary_path_id
+      LEFT JOIN rune_paths rp_sec ON rp_sec.id = gp.rune_secondary_path_id
       WHERE gp.player_id = $1 AND g.serie_id = ANY($2::int[])
         AND g.finished = true AND g.length > 60
       ORDER BY g.begin_at DESC
@@ -98,18 +103,23 @@ export async function getPlayerHistoryPg(req, res) {
       WHERE gp.player_id = $1 AND g.serie_id = ANY($2::int[])
       ORDER BY gp.game_id, gpr.tree, gpr.slot
     `, [playerId, serieIds]),
-    // Use pre-computed player_champion_stats instead of JS aggregation
-    // Group by champion_name (not champion_id) to avoid duplicates from multiple pandascore aliases
+    // Champion stats: compute from game_players for accurate wins
+    // Group by champion NAME (not ID) because PandaScore assigns different IDs across seasons
     pgDb.query(`
-      SELECT MIN(pcs.champion_id) AS champion_id, pcs.champion_name,
-             SUM(pcs.games)::int AS games, SUM(pcs.wins)::int AS wins,
-             SUM(pcs.games * pcs.kills_avg) AS total_kills,
-             SUM(pcs.games * pcs.deaths_avg) AS total_deaths,
-             SUM(pcs.games * pcs.assists_avg) AS total_assists
-      FROM player_champion_stats pcs
-      WHERE pcs.player_id = $1 AND pcs.serie_id = ANY($2::int[])
-      GROUP BY pcs.champion_name
-      ORDER BY SUM(pcs.games) DESC
+      SELECT MIN(gp.champion_id) AS champion_id,
+             COALESCE(ca.name, 'champ_' || gp.champion_id) AS champion_name,
+             COUNT(*)::int AS games,
+             SUM(CASE WHEN g.winner_id = gp.team_id THEN 1 ELSE 0 END)::int AS wins,
+             SUM(gp.kills)::numeric AS total_kills,
+             SUM(gp.deaths)::numeric AS total_deaths,
+             SUM(gp.assists)::numeric AS total_assists
+      FROM game_players gp
+      JOIN games g ON g.id = gp.game_id
+      LEFT JOIN champion_aliases ca ON ca.pandascore_id = gp.champion_id
+      WHERE gp.player_id = $1 AND g.serie_id = ANY($2::int[])
+        AND g.finished = true AND g.length > 60
+      GROUP BY COALESCE(ca.name, 'champ_' || gp.champion_id)
+      ORDER BY COUNT(*) DESC
     `, [playerId, serieIds]),
     // Tournament standings for placement
     pgDb.query(`
@@ -203,21 +213,20 @@ export async function getPlayerHistoryPg(req, res) {
       if (g.spell_1_id && spells[g.spell_1_id]) spellList.push(spells[g.spell_1_id]);
       if (g.spell_2_id && spells[g.spell_2_id]) spellList.push(spells[g.spell_2_id]);
 
-      // Runes
+      // Runes — keystone from game_player_runes, secondary path from game_players join
       const gameRunes = runesByGame[g.game_id] || [];
-      let keystoneImg = null, keystoneName = null, secPathImg = null, secPathName = null;
+      let keystoneImg = null, keystoneName = null;
       for (const rr of gameRunes) {
         const runeInfo = runes[rr.rune_id];
         if (!runeInfo) continue;
         if (rr.tree === 'primary' && rr.slot === 0) {
           keystoneImg = runeInfo.image_url;
           keystoneName = runeInfo.name;
-        }
-        if (rr.tree === 'secondary' && rr.slot === 0) {
-          secPathImg = runeInfo.image_url;
-          secPathName = runeInfo.name;
+          break;
         }
       }
+      const secPathImg = g.rune_secondary_path_img || null;
+      const secPathName = g.rune_secondary_path_name || null;
 
       // KDA
       const deaths = g.deaths || 0;
@@ -257,12 +266,33 @@ export async function getPlayerHistoryPg(req, res) {
       };
     });
 
+    // Compute ONLY per-minute stats & KP from game data (player_career stores per-game totals, not per-minute)
+    // Use player_career for games/wins/losses/kda/avg_k/avg_d/avg_a (correct from API, covers all games)
+    const gCount = serieGames.length;
+    let sumCspm = 0, sumDpm = 0, sumGpm = 0, sumKp = 0, kpCount = 0;
+    for (const g of serieGames) {
+      const dur = (g.length || 1) / 60;
+      const cs = (g.minions_killed || 0) + (g.neutral_cs || 0);
+      sumCspm += cs / Math.max(dur, 1);
+      sumDpm  += (g.dmg_dealt || 0) / Math.max(dur, 1);
+      sumGpm  += (g.gold_earned || 0) / Math.max(dur, 1);
+      const teamK = Number(g.team_kills || 0);
+      if (teamK > 0) {
+        sumKp += ((g.kills || 0) + (g.assists || 0)) / teamK * 100;
+        kpCount++;
+      }
+    }
+    const calcCspm = gCount > 0 ? rnd(sumCspm / gCount, 1) : 0;
+    const calcDpm  = gCount > 0 ? Math.round(sumDpm / gCount) : 0;
+    const calcGpm  = gCount > 0 ? Math.round(sumGpm / gCount) : 0;
+    const calcKp   = kpCount > 0 ? Math.round(sumKp / kpCount) : 0;
+
     return {
       year: pc.year,
       split: splitName,
       league: leagueSlug,
       serie_id: pc.serie_id,
-      role: mapRole(roleBySerie[pc.serie_id] || pc.role),  // most played role from actual games
+      role: mapRole(roleBySerie[pc.serie_id] || pc.role),
       team: pc.team_name || '—',
       team_abbr: pc.team_abbr || '—',
       team_logo: pc.team_logo || null,
@@ -274,21 +304,21 @@ export async function getPlayerHistoryPg(req, res) {
       avg_deaths: Number(pc.deaths_avg || 0),
       avg_assists: Number(pc.assists_avg || 0),
       kda: Number(pc.kda || 0),
-      avg_cspm: Number(pc.cspm || 0),
-      avg_gpm: Number(pc.gpm || 0),
-      avg_dpm: Number(pc.dpm || 0),
+      avg_cspm: calcCspm,
+      avg_gpm: calcGpm,
+      avg_dpm: calcDpm,
       avg_vspm: Number(pc.avg_vspm || 0),
-      kill_participation: Number(pc.kill_participation || 0),
+      kill_participation: calcKp,
       avg_damage_share: Number(pc.dmg_share || 0),
       avg_gold_share: Number(pc.gold_share || 0),
-      unique_champions: Number(pc.unique_champions || 0),
+      unique_champions: new Set(serieGames.map(g => champs[g.champion_id]?.name || g.champion_id)).size || Number(pc.unique_champions || 0),
       match_log,
       placement: placementBySerie[pc.serie_id] ?? null,
       is_winner: (placementBySerie[pc.serie_id] === 1) || (pc.serie_winner_id === pc.team_id),
     };
   });
 
-  // 8. Build allChampions from pre-computed player_champion_stats
+  // 8. Build allChampions from game_players query (accurate wins from actual game results)
   const allChampions = champStatRows.map(c => {
     const g = Number(c.games || 0);
     const w = Number(c.wins || 0);
@@ -297,7 +327,7 @@ export async function getPlayerHistoryPg(req, res) {
     const a = Number(c.total_assists || 0);
     const champInfo = champs[c.champion_id] || {};
     return {
-      name: c.champion_name || champInfo.name || `champ_${c.champion_id}`,
+      name: champInfo.name || c.champion_name || `champ_${c.champion_id}`,
       image_url: champInfo.image_url || null,
       games: g, wins: w,
       kills: k, deaths: d, assists: a,
@@ -422,17 +452,28 @@ export async function getTeamHistoryPg(req, res) {
       WHERE m.serie_id = ANY($2::int[]) AND m.status = 'finished'
       ORDER BY m.begin_at DESC
     `, [teamId, serieIds]),
+    // Roster: prioritize actual game role (most played in that serie) > tournament_rosters > player_career
     pgDb.query(`
       SELECT DISTINCT ON (s.id, p.id)
         s.id AS serie_id, s.year, s.season AS split, l.name AS league_slug,
         p.id AS player_id, p.name AS player_name, p.image_url AS player_image,
-        p.nationality, COALESCE(pc.role, tr.role::text) AS role
+        p.nationality, COALESCE(gp_role.actual_role, tr.role::text, pc.role) AS role
       FROM tournament_rosters tr
       JOIN tournaments t ON t.id = tr.tournament_id
       JOIN series s ON s.id = t.serie_id
       JOIN leagues l ON l.id = s.league_id
       JOIN players p ON p.id = tr.player_id
       LEFT JOIN player_career pc ON pc.player_id = tr.player_id AND pc.serie_id = s.id
+      LEFT JOIN LATERAL (
+        SELECT gp.role::text AS actual_role
+        FROM game_players gp
+        JOIN games g ON g.id = gp.game_id
+        WHERE gp.player_id = p.id AND g.serie_id = s.id AND gp.team_id = $1
+          AND g.finished = true AND gp.role IS NOT NULL
+        GROUP BY gp.role
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      ) gp_role ON true
       WHERE tr.team_id = $1 AND s.id = ANY($2::int[])
       ORDER BY s.id, p.id
     `, [teamId, serieIds]),

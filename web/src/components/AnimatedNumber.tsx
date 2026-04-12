@@ -28,13 +28,15 @@ export default function AnimatedNumber({
   prefix = '',
   format,
 }: AnimatedNumberProps) {
-  const [display, setDisplay] = useState(value);
+  // Guard against null/undefined/NaN — treat as 0
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+  const [display, setDisplay] = useState(safeValue);
   const prevRef = useRef(value);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const from = prevRef.current;
-    const to = value;
+    const to = safeValue;
     prevRef.current = to;
 
     // Skip animation if same value or first mount
@@ -68,17 +70,18 @@ export default function AnimatedNumber({
   const dec =
     decimals !== undefined
       ? decimals
-      : Number.isInteger(value)
+      : Number.isInteger(safeValue)
         ? 0
-        : value >= 100
+        : safeValue >= 100
           ? 0
-          : value >= 10
+          : safeValue >= 10
             ? 1
             : 2;
 
+  const safeDisplay = typeof display === 'number' && !isNaN(display) ? display : 0;
   const text = format
-    ? format(display)
-    : `${prefix}${display.toFixed(dec)}${suffix}`;
+    ? format(safeDisplay)
+    : `${prefix}${safeDisplay.toFixed(dec)}${suffix}`;
 
   return <>{text}</>;
 }

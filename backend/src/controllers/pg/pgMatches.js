@@ -53,6 +53,7 @@ export async function getMatchDetailPg(req, res) {
     { rows: allFrameRows },
     { rows: allFramePlayerRows },
     { rows: allEventRows },
+    { rows: allBanRows },
   ] = await Promise.all([
     pgDb.query(`
       SELECT gt.game_id, gt.team_id, gt.color,
@@ -65,8 +66,7 @@ export async function getMatchDetailPg(req, res) {
              gt.cloud_drake_kills, gt.ocean_drake_kills, gt.mountain_drake_kills,
              gt.infernal_drake_kills, gt.hextech_drake_kills, gt.chemtech_drake_kills,
              gt.first_blood, gt.first_tower, gt.first_dragon, gt.first_baron,
-             gt.first_herald, gt.first_inhibitor, gt.first_voidgrub, gt.first_atakhan,
-             gt.bans
+             gt.first_herald, gt.first_inhibitor, gt.first_voidgrub, gt.first_atakhan
       FROM game_teams gt
       JOIN teams t ON t.id = gt.team_id
       JOIN games g ON g.id = gt.game_id
@@ -108,12 +108,22 @@ export async function getMatchDetailPg(req, res) {
       SELECT ge.game_id, ge.type, ge.timestamp, ge.is_first,
              ge.killer_player_id, ge.killer_champion_id,
              ge.victim_player_id, ge.victim_champion_id,
-             ge.assistants,
-             pk.name AS killer_name, pv.name AS victim_name
+             pk.name AS killer_name, pv.name AS victim_name,
+             COALESCE(
+               (SELECT json_agg(json_build_object('player_id', gea.player_id, 'champion_id', gea.champion_id))
+                FROM game_event_assists gea WHERE gea.event_id = ge.id),
+               '[]'::json
+             ) AS assistants
       FROM game_events ge
       LEFT JOIN players pk ON pk.id = ge.killer_player_id
       LEFT JOIN players pv ON pv.id = ge.victim_player_id
       WHERE ge.game_id = ANY($1::int[]) ORDER BY ge.game_id, ge.timestamp
+    `, [gameIds]),
+    pgDb.query(`
+      SELECT gpb.game_id, gpb.team_id, gpb.champion_id, gpb.pick_turn
+      FROM game_picks_bans gpb
+      WHERE gpb.game_id = ANY($1::int[]) AND gpb.type = 'ban'
+      ORDER BY gpb.game_id, gpb.team_id, gpb.pick_turn
     `, [gameIds]),
   ]);
 
@@ -128,6 +138,8 @@ export async function getMatchDetailPg(req, res) {
   for (const f of allFrameRows) { (framesByGame[f.game_id] ||= []).push(f); }
   const framePlayersByFrame = {};
   for (const fp of allFramePlayerRows) { (framePlayersByFrame[fp.frame_id] ||= []).push(fp); }
+  const bansByGameTeam = {};
+  for (const b of allBanRows) { const key = `${b.game_id}_${b.team_id}`; (bansByGameTeam[key] ||= []).push(b); }
   const eventsByGame = {};
   for (const e of allEventRows) { (eventsByGame[e.game_id] ||= []).push(e); }
 
@@ -142,10 +154,10 @@ export async function getMatchDetailPg(req, res) {
       elder_drake_kills: t.elder_drake_kills, voidgrub_kills: t.voidgrub_kills, atakhan_kills: t.atakhan_kills,
       first_blood: t.first_blood, first_tower: t.first_tower, first_dragon: t.first_dragon,
       first_baron: t.first_baron, first_herald: t.first_herald, first_inhibitor: t.first_inhibitor,
-      bans: (t.bans || []).map(cid => {
-        const ch = champMap[cid];
-        return ch ? { id: cid, name: ch.name, image_url: ch.image_url }
-                  : { id: cid, name: '?', image_url: null };
+      bans: (bansByGameTeam[`${game.id}_${t.team_id}`] || []).map(b => {
+        const ch = champMap[b.champion_id];
+        return ch ? { id: b.champion_id, name: ch.name, image_url: ch.image_url }
+                  : { id: b.champion_id, name: '?', image_url: null };
       }),
     }));
 
@@ -168,20 +180,22 @@ export async function getMatchDetailPg(req, res) {
         for (const rr of runeRows) {
           const runeInfo = runeMap[rr.rune_id] || { id: rr.rune_id, name: '?', image_url: null };
           if (rr.tree === 'primary' && rr.slot === 0) keystone = runeInfo;
-          else if (rr.tree === 'primary') primaryPerks.push(runeInfo);
-          else if (rr.tree === 'secondary') secondaryPerks.push(runeInfo);
+          else if (rr.tree === 'primary' && rr.slot >= 1 && rr.slot <= 3) primaryPerks.push(runeInfo);
+          else if (rr.tree === 'secondary' && rr.slot >= 4 && rr.slot <= 5) secondaryPerks.push(runeInfo);
         }
         const primaryPath = runePathMap[gp.rune_primary_path_id] || null;
         const secondaryPath = runePathMap[gp.rune_secondary_path_id] || null;
-        // Shards: always read from rune_shards JSONB (same source as Record/SQLite)
+        // Shards from game_player_runes slots 6-8
         let shards = null;
-        if (gp.rune_shards) {
-          const rs = typeof gp.rune_shards === 'string' ? JSON.parse(gp.rune_shards) : gp.rune_shards;
-          const toInfo = (obj) => obj && obj.id ? { id: obj.id, name: obj.name || '?', image_url: obj.image_url || null } : null;
+        const offenseRune = runeRows.find(r => r.slot === 6);
+        const flexRune = runeRows.find(r => r.slot === 7);
+        const defenseRune = runeRows.find(r => r.slot === 8);
+        if (offenseRune || flexRune || defenseRune) {
+          const toInfo = (rr) => rr ? (runeMap[rr.rune_id] || { id: rr.rune_id, name: '?', image_url: null }) : null;
           shards = {
-            offense: toInfo(rs.offense),
-            flex: toInfo(rs.flex),
-            defense: toInfo(rs.defense),
+            offense: toInfo(offenseRune),
+            flex: toInfo(flexRune),
+            defense: toInfo(defenseRune),
           };
           if (!shards.offense && !shards.flex && !shards.defense) shards = null;
         }
@@ -325,13 +339,13 @@ export async function getMatchesPg(req, res) {
   if (!serieId) return res.json([]);
   const { sf: sfm, stageParams } = stageFilter(stageParam, 2, 'm');
 
-  // Get matches + all related data in 3 batch queries (instead of N+1)
+  // Get ALL matches (finished + running + not_started) in one query
   const { rows: matches } = await pgDb.query(`
     SELECT m.id, m.status, m.number_of_games, m.scheduled_at, m.begin_at, m.winner_id,
            m.slug, m.name AS match_name, t.has_bracket
     FROM matches m
     LEFT JOIN tournaments t ON t.id = m.tournament_id
-    WHERE m.serie_id = $1 ${sfm} AND m.status = 'finished'
+    WHERE m.serie_id = $1 ${sfm} AND m.status IN ('finished','running','not_started')
     ORDER BY m.begin_at DESC
   `, [serieId, ...stageParams]);
 
@@ -363,6 +377,62 @@ export async function getMatchesPg(req, res) {
   const gamesByMatch = {};
   for (const g of allGames) (gamesByMatch[g.match_id] ||= []).push(g);
 
+  // Build team form data: for each scheduled match, show 3 matches before it
+  // (finished → W/L, not_started → pending)
+  const upcomingTeamIds = new Set();
+  const upcomingMatches = [];
+  for (const m of matches) {
+    if (m.status !== 'finished') {
+      upcomingMatches.push(m);
+      const opps = oppsByMatch[m.id] || [];
+      for (const o of opps) upcomingTeamIds.add(o.team_id);
+    }
+  }
+
+  // Fetch ALL matches (finished + not_started) for these teams in this serie
+  // so we can compute form relative to each scheduled match's date
+  const teamMatchHistory = {}; // teamId → [{match_id, begin_at, status, winner_id, opp_acronym, opp_logo}]
+  if (upcomingTeamIds.size > 0) {
+    const teamIdArr = [...upcomingTeamIds];
+    const { rows: historyRows } = await pgDb.query(`
+      SELECT DISTINCT ON (mo.team_id, m.id)
+             mo.team_id, m.id AS match_id, m.winner_id, m.begin_at, m.status,
+             opp.team_id AS opp_team_id,
+             COALESCE(tb2.display_acronym, t2.acronym) AS opp_acronym,
+             COALESCE(tb2.display_logo, t2.dark_mode_image_url, t2.image_url) AS opp_logo
+      FROM match_opponents mo
+      JOIN matches m ON m.id = mo.match_id
+      JOIN match_opponents opp ON opp.match_id = m.id AND opp.team_id != mo.team_id
+      JOIN teams t2 ON t2.id = opp.team_id
+      JOIN series _s ON _s.id = m.serie_id
+      LEFT JOIN team_brands tb2 ON tb2.team_id = opp.team_id AND _s.year BETWEEN tb2.year_start AND tb2.year_end
+      WHERE mo.team_id = ANY($1::int[]) AND m.serie_id = $2 AND m.status IN ('finished','not_started','running')
+      ORDER BY mo.team_id, m.id, m.begin_at DESC
+    `, [teamIdArr, serieId]);
+
+    for (const r of historyRows) (teamMatchHistory[r.team_id] ||= []).push(r);
+    // Sort each team's history by date ascending
+    for (const rows of Object.values(teamMatchHistory)) {
+      rows.sort((a, b) => new Date(a.begin_at) - new Date(b.begin_at));
+    }
+  }
+
+  // Helper: get 3 matches before a given match for a team
+  function getFormForTeam(teamId, matchId, matchDate) {
+    const history = teamMatchHistory[teamId] || [];
+    // Find matches that are before this match (by date, or same date but different id)
+    const before = history.filter(h =>
+      h.match_id !== matchId && new Date(h.begin_at) < new Date(matchDate)
+    );
+    // Take last 3 (most recent first)
+    const last3 = before.slice(-3).reverse();
+    return last3.map(h => ({
+      status: h.status === 'finished' ? (h.winner_id === teamId ? 'win' : 'loss') : 'pending',
+      opp_acronym: h.opp_acronym,
+      opp_logo: h.opp_logo,
+    }));
+  }
+
   const result = matches.map(m => {
     const opps = oppsByMatch[m.id] || [];
     const gamesSummary = gamesByMatch[m.id] || [];
@@ -374,7 +444,7 @@ export async function getMatchesPg(req, res) {
     const winnerOpp = opps.find(o => o.team_id === m.winner_id);
     const dateStr = m.begin_at ? new Date(m.begin_at).toISOString().split('T')[0] : '';
 
-    return {
+    const base = {
       id: m.id, matchid: m.id, status: m.status,
       number_of_games: m.number_of_games, best_of: m.number_of_games,
       scheduled_at: m.scheduled_at, date: m.begin_at, date_str: dateStr, begin_at: m.begin_at,
@@ -391,6 +461,14 @@ export async function getMatchesPg(req, res) {
         winner: (() => { const wt = opps.find(o => o.team_id === g.winner_id); return wt ? { id: wt.team_id, name: wt.name, acronym: wt.acronym } : null; })(),
       })),
     };
+
+    // Add form data for non-finished matches (relative to this match's date)
+    if (m.status !== 'finished') {
+      base.teamA.form = getFormForTeam(tA.team_id, m.id, m.begin_at || m.scheduled_at);
+      base.teamB.form = getFormForTeam(tB.team_id, m.id, m.begin_at || m.scheduled_at);
+    }
+
+    return base;
   });
 
   res.json(result);

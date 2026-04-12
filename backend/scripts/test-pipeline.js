@@ -18,6 +18,7 @@
  * Exit code 0 = all pass, 1 = failures found.
  */
 
+import 'dotenv/config';
 import pg from 'pg';
 
 const DSN = process.env.PG_DSN;
@@ -376,12 +377,12 @@ async function testGameIntegrity() {
 
   // Finished games should have exactly 2 game_teams
   const { rows: badTeamCount } = await pool.query(`
-    SELECT g.id, COUNT(gt.id) AS team_count
+    SELECT g.id, COUNT(gt.team_id) AS team_count
     FROM games g
     LEFT JOIN game_teams gt ON gt.game_id = g.id
     WHERE g.finished = true
     GROUP BY g.id
-    HAVING COUNT(gt.id) != 2
+    HAVING COUNT(gt.team_id) != 2
     LIMIT 10
   `);
   test(badTeamCount.length === 0,

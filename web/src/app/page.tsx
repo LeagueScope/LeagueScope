@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { api } from '@/lib/api';
 import { teamImg, champImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import type {
-  HomeData, LeagueOverview, MetaSnapshot, MetaChampion,
+  HomeData, LeagueOverview, MetaSnapshot, MetaChampion, LiveMatch,
 } from '@/lib/types';
 import type { Metadata } from 'next';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
@@ -10,6 +10,7 @@ import './home.css';
 import InternationalEvents from './components/InternationalEvents';
 import Tier3Carousel from './components/Tier3Carousel';
 import McCarousel from './components/McCarousel';
+import HomeLivePoller from './components/HomeLivePoller';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';
 
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 // ── Data fetching (runs on server) ──────────────────────────────────────
 async function getHomeData(): Promise<HomeData | null> {
   try {
-    return await api<HomeData>('/pg/home', { revalidate: 120 });
+    return await api<HomeData>('/pg/home', { revalidate: 30 });
   } catch {
     return null;
   }
@@ -61,10 +62,14 @@ export default async function HomePage() {
   }
 
   const majorCards = data.leagueOverviews || [];
+  const hasLive = majorCards.some(l => l.liveMatches && l.liveMatches.length > 0)
+    || (data.tier3Leagues || []).some((l: any) => l.liveMatches?.length > 0)
+    || (data.tier4Leagues || []).some((l: any) => l.liveMatches?.length > 0);
 
   return (
     <>
     <BreadcrumbJsonLd items={[{ name: 'Inicio', href: '/' }]} />
+    <HomeLivePoller hasLive={hasLive} />
     <div className="home-editorial-container">
       {/* ==== TIER 2: INTERNATIONAL EVENTS ==== */}
       {/* <InternationalEvents /> */}
@@ -90,9 +95,15 @@ export default async function HomePage() {
       {data.metaSnapshot && (
         <div className="home-editorial-section">
           <div className="p1-section-header-editorial">
-            <span className="p1-section-title-text">
-              GLOBAL META SNAPSHOT{data.metaSnapshot.patch ? ` — PATCH ${data.metaSnapshot.patch}` : ''}
-              {data.metaSnapshot.totalGames ? ` (${data.metaSnapshot.totalGames} games)` : ''}
+            <div className="p1-section-title-row">
+              <span className="p1-section-title-text">GLOBAL META SNAPSHOT</span>
+              {data.metaSnapshot.patch && <span className="p1-bo-tag">PATCH {data.metaSnapshot.patch}</span>}
+            </div>
+            <span className="p1-section-subtitle">
+              {data.metaSnapshot.patchLeagues?.length
+                ? `${data.metaSnapshot.patchLeagues.join(' · ')} — ${data.metaSnapshot.totalGames} GAMES`
+                : `${data.metaSnapshot.totalGames} GAMES`
+              }
             </span>
           </div>
           <P1MetaSnapshot meta={data.metaSnapshot} />
@@ -147,6 +158,9 @@ function MajorCard({ league }: { league: LeagueOverview }) {
             {league.split && <span className="p1-major-split-editorial">{league.split}</span>}
           </div>
         </div>
+        <div className="p1-major-header-right">
+                    {league.isPlayoffs && <span className="p1-playoffs-tag">PLAYOFFS</span>}
+        </div>
       </div>
 
       {/* ROW 1: CORE STATS (3 Columns) */}
@@ -154,28 +168,58 @@ function MajorCard({ league }: { league: LeagueOverview }) {
         {/* Column 1: RANKING */}
         <div className="p1-major-column">
           <div className="p1-section-header-editorial">
-            <span className="p1-section-title-text">RANKING</span>
-            <span className="p1-section-subtitle">REGULAR SEASON</span>
-          </div>
-          <div className="p1-data-table">
-            <div className="p1-table-head">
-              <span className="p1-pos-fixed">#</span>
-              <span className="p1-table-cell-team">TEAM</span>
-              <span className="p1-table-cell-win">W</span>
-              <span className="p1-table-cell-loss">L</span>
+            <div className="p1-section-title-row">
+              <span className="p1-section-title-text">{league.isPlayoffs ? 'BRACKET' : 'RANKING'}</span>
+              <span className="p1-bo-tag">Bo{league.bestOf || 1}</span>
             </div>
-            {(league.miniStandings || []).slice(0, 5).map((t, i) => (
-              <div key={t.abbr} className={`p1-table-row ${getMedal(i)}`}>
-                <span className="p1-pos-fixed">{(i + 1).toString().padStart(2, '0')}</span>
-                <div className="p1-table-cell-team">
-                  <Image src={teamImg(t.logo_url, t.abbr, regionLower)} alt={t.abbr} className="p1-team-mini" width={24} height={24} />
-                  <span className="p1-abbr">{t.abbr}</span>
-                </div>
-                <span className="p1-table-cell-win">{t.wins}</span>
-                <span className="p1-table-cell-loss">{t.losses}</span>
-              </div>
-            ))}
+            <span className="p1-section-subtitle">{league.phaseName || (league.isPlayoffs ? 'PLAYOFFS' : 'REGULAR SEASON')}</span>
           </div>
+          {league.isPlayoffs ? (
+            /* Playoffs: Elimination tracker from recent results */
+            <div className="p1-data-table">
+              <div className="p1-table-head">
+                <span className="p1-table-cell-team" style={{ flex: 1 }}>MATCH</span>
+                <span className="p1-table-cell-val" style={{ width: '50px', textAlign: 'center' }}>SCORE</span>
+              </div>
+              {(league.recentMatches || []).slice(0, 5).map((m, i) => (
+                <div key={m.matchid} className="p1-table-row">
+                  <div className="p1-table-cell-team-editorial" style={{ flex: 1 }}>
+                    {m.blue.logo_url && <Image src={m.blue.logo_url} alt={m.blue.abbr} className="p1-team-mini" width={24} height={24} />}
+                    <span className={`p1-abbr ${m.winner === 'blue' ? 'p1-winner-text' : 'p1-loser-text'}`}>{m.blue.abbr}</span>
+                    <span className="p1-vs-divider">VS</span>
+                    <span className={`p1-abbr p1-abbr-right ${m.winner === 'red' ? 'p1-winner-text' : 'p1-loser-text'}`}>{m.red.abbr}</span>
+                    {m.red.logo_url && <Image src={m.red.logo_url} alt={m.red.abbr} className="p1-team-mini" width={24} height={24} />}
+                  </div>
+                  <div className="p1-table-cell-score" style={{ width: '50px' }}>
+                    <span className={m.winner === 'blue' ? 'p1-winner-text' : ''}>{m.blue.score}</span>
+                    <span style={{ opacity: 0.3 }}>-</span>
+                    <span className={m.winner === 'red' ? 'p1-winner-text' : ''}>{m.red.score}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Regular Season: W/L Standings */
+            <div className="p1-data-table">
+              <div className="p1-table-head">
+                <span className="p1-pos-fixed">#</span>
+                <span className="p1-table-cell-team">TEAM</span>
+                <span className="p1-table-cell-win">W</span>
+                <span className="p1-table-cell-loss">L</span>
+              </div>
+              {(league.miniStandings || []).slice(0, 5).map((t, i) => (
+                <div key={t.abbr} className={`p1-table-row ${getMedal(i)}`}>
+                  <span className="p1-pos-fixed">{(i + 1).toString().padStart(2, '0')}</span>
+                  <div className="p1-table-cell-team">
+                    <Image src={teamImg(t.logo_url, t.abbr, regionLower)} alt={t.abbr} className="p1-team-mini" width={24} height={24} />
+                    <span className="p1-abbr">{t.abbr}</span>
+                  </div>
+                  <span className="p1-table-cell-win">{t.wins}{t.gameWins != null && <span className="p1-game-wl"> ({t.gameWins})</span>}</span>
+                  <span className="p1-table-cell-loss">{t.losses}{t.gameLosses != null && <span className="p1-game-wl"> ({t.gameLosses})</span>}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Column 2: SIDE PERFORMANCE */}
@@ -212,7 +256,7 @@ function MajorCard({ league }: { league: LeagueOverview }) {
               <span className="p1-table-cell-champ">CHAMPION</span>
               <span className="p1-table-cell-val">G</span>
               <span className="p1-table-cell-val">B</span>
-              <span className="p1-table-cell-val">WR</span>
+              <span className="p1-table-cell-val p1-wr-col">WR</span>
             </div>
             {(league.championsPlayed || []).slice(0, 5).map((c, i) => (
               <div key={i} className={`p1-table-row ${getMedal(i)}`}>
@@ -222,7 +266,7 @@ function MajorCard({ league }: { league: LeagueOverview }) {
                 </div>
                 <span className="p1-table-cell-val">{c.games}</span>
                 <span className="p1-table-cell-val">{c.bans || 0}</span>
-                <span className={`p1-table-cell-val ${getWinRateClass(c.winRate)}`}>{c.winRate}%</span>
+                <span className={`p1-table-cell-val p1-wr-col ${getWinRateClass(c.winRate)}`}>{Number(c.winRate).toFixed(1)}%</span>
               </div>
             ))}
           </div>
@@ -263,8 +307,10 @@ function MajorCard({ league }: { league: LeagueOverview }) {
                         <span style={{ opacity: 0.4 }}>-</span>
                         <span className={m.winner === 'red' ? 'red-text' : ''}>{m.red.score}</span>
                       </>
+                    ) : (m.blue.kills || m.red.kills) ? (
+                      <><span className={m.winner === 'blue' ? 'blue-text' : ''}>{m.blue.kills}</span><span style={{ opacity: 0.4 }}>:</span><span className={m.winner === 'red' ? 'red-text' : ''}>{m.red.kills}</span></>
                     ) : (
-                      <>{m.blue.kills} : {m.red.kills}</>
+                      <span className={m.winner === 'blue' ? 'blue-text' : m.winner === 'red' ? 'red-text' : ''}>WIN</span>
                     )}
                   </div>
                 </div>
@@ -317,6 +363,41 @@ function MajorCard({ league }: { league: LeagueOverview }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ROW 3: LIVE MATCHES */}
+      <div className="p1-live-section">
+        <div className="p1-live-header">
+          <span className={`p1-live-dot ${league.liveMatches?.length ? '' : 'inactive'}`} />
+          <span className={`p1-live-title ${league.liveMatches?.length ? '' : 'inactive'}`}>LIVE</span>
+        </div>
+        {league.liveMatches && league.liveMatches.length > 0 ? (
+          <div className="p1-live-matches">
+            {league.liveMatches.map((m) => (
+              <div key={m.id} className="p1-live-card">
+                <div className="p1-live-team">
+                  {m.blue.logo_url && (
+                    <Image src={m.blue.logo_url} alt={m.blue.abbr} className="p1-live-logo" width={32} height={32} />
+                  )}
+                  <span className="p1-live-abbr">{m.blue.abbr}</span>
+                </div>
+                <div className="p1-live-score">
+                  <span className="p1-live-score-num">{m.blue.score}</span>
+                  <span className="p1-live-score-sep">-</span>
+                  <span className="p1-live-score-num">{m.red.score}</span>
+                </div>
+                <div className="p1-live-team">
+                  <span className="p1-live-abbr">{m.red.abbr}</span>
+                  {m.red.logo_url && (
+                    <Image src={m.red.logo_url} alt={m.red.abbr} className="p1-live-logo" width={32} height={32} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p1-live-empty">No hay partidos activos en este momento</div>
+        )}
       </div>
     </div>
   );

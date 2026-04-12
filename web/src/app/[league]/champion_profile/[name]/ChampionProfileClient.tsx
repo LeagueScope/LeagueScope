@@ -694,7 +694,7 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
               <span className="p60-players-hdr-r">WR</span>
             </div>
             {(champ.played_by?.length ?? 0) > 0
-              ? champ.played_by!.slice(0, 7).map((tp, i) => (
+              ? champ.played_by!.slice(0, 5).map((tp, i) => (
                 <div key={tp.name} className={`p60-player-row ${getMedal(i)}`}
                   onClick={() => router.push(`/${league}/player_profile/${encodeURIComponent(tp.name)}?team=${encodeURIComponent(tp.team_abbr || '')}`)}>
                   <span className="p60-pr-idx">{i + 1}</span>

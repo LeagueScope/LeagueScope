@@ -226,13 +226,18 @@ CREATE TABLE matches (
     draw                    BOOLEAN DEFAULT FALSE,
     rescheduled             BOOLEAN DEFAULT FALSE,
     detailed_stats          BOOLEAN DEFAULT TRUE,
-    stream_url              TEXT
+    stream_url              TEXT,
+    games_ingested_at       TIMESTAMPTZ   -- NULL = game data not yet dumped
 );
 CREATE INDEX idx_matches_tournament ON matches(tournament_id);
 CREATE INDEX idx_matches_serie ON matches(serie_id);
 CREATE INDEX idx_matches_league ON matches(league_id);
 CREATE INDEX idx_matches_begin ON matches(begin_at);
 CREATE INDEX idx_matches_winner ON matches(winner_id);
+CREATE INDEX idx_matches_pending_ingestion ON matches(status, games_ingested_at)
+  WHERE status = 'finished' AND games_ingested_at IS NULL;
+CREATE INDEX idx_matches_status_live ON matches(status)
+  WHERE status IN ('not_started', 'running');
 
 CREATE TABLE match_opponents (
     match_id        INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
@@ -302,10 +307,6 @@ CREATE TABLE game_teams (
     first_herald        BOOLEAN,
     first_voidgrub      BOOLEAN,
     first_atakhan       BOOLEAN,
-    -- Bans
-    bans                INTEGER[],        -- array de champion_ids baneados
-    -- Player IDs en este equipo
-    player_ids          INTEGER[],
     PRIMARY KEY (game_id, team_id)
 );
 CREATE INDEX idx_game_teams_team ON game_teams(team_id);
@@ -395,7 +396,7 @@ CREATE TABLE game_players (
     -- Runas
     rune_primary_path_id    INTEGER REFERENCES rune_paths(id) ON DELETE SET NULL,
     rune_secondary_path_id  INTEGER REFERENCES rune_paths(id) ON DELETE SET NULL,
-    rune_shards             JSONB,
+    -- rune_shards removed: data lives in game_player_runes slots 6-8
     -- Oponente (opponent is the opposing TEAM in PandaScore data, not a player)
     opponent_id             INTEGER REFERENCES teams(id) ON DELETE SET NULL,
     opponent_champion_id    INTEGER REFERENCES champion_aliases(pandascore_id),
@@ -426,12 +427,14 @@ CREATE INDEX idx_picks_bans_champion ON game_picks_bans(champion_id);
 CREATE INDEX idx_picks_bans_game_type ON game_picks_bans(game_id, type);
 
 -- Runas por jugador por game
+-- Slots: 0 = keystone, 1-3 = primary lesser, 4-5 = secondary lesser,
+--         6 = shard offense, 7 = shard flex, 8 = shard defense
 CREATE TABLE game_player_runes (
     game_player_id  BIGINT NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
     rune_id         INTEGER NOT NULL REFERENCES runes(id) ON DELETE CASCADE,
     tree            rune_tree,
-    slot            SMALLINT CHECK (slot BETWEEN 0 AND 6),
-    PRIMARY KEY (game_player_id, rune_id)
+    slot            SMALLINT CHECK (slot BETWEEN 0 AND 8),
+    PRIMARY KEY (game_player_id, slot)
 );
 CREATE INDEX idx_game_player_runes_rune ON game_player_runes(rune_id);
 
@@ -505,13 +508,21 @@ CREATE TABLE game_events (
     -- Victim
     victim_player_id    INTEGER,
     victim_champion_id  INTEGER,
-    -- Assists: array of {champion_id, player_id}
-    assistants          JSONB,
+    -- Assists stored in game_event_assists table
     -- Idempotency: prevents duplicates on re-run
     UNIQUE NULLS NOT DISTINCT (game_id, timestamp, type, killer_player_id, victim_player_id)
 );
 CREATE INDEX idx_events_game_ts ON game_events(game_id, timestamp);
 CREATE INDEX idx_events_game_type ON game_events(game_id, type);
+
+-- Assists on kill events (normalized from former JSONB assistants column)
+CREATE TABLE game_event_assists (
+    event_id            BIGINT NOT NULL REFERENCES game_events(id) ON DELETE CASCADE,
+    player_id           INTEGER NOT NULL,
+    champion_id         INTEGER,
+    PRIMARY KEY (event_id, player_id)
+);
+CREATE INDEX idx_event_assists_player ON game_event_assists(player_id);
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 5. STATS PRE-COMPUTADAS (importar directamente de PandaScore)
@@ -566,15 +577,83 @@ CREATE TABLE champion_global_stats (
     avg_wpm                 REAL,
     avg_wcpm                REAL,
     main_role               TEXT,
-    roles_json              JSONB,
-    top_players_json        JSONB,
-    matchups_json           JSONB,
-    items_json              JSONB,
-    keystones_json          JSONB,
-    patch_breakdown_json    JSONB,
     PRIMARY KEY (champion_id, serie_id)
 );
 CREATE INDEX idx_cgs_serie ON champion_global_stats(serie_id);
+
+-- Champion role distribution per serie (replaces roles_json JSONB)
+CREATE TABLE champion_role_stats (
+    champion_id     INTEGER NOT NULL,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    role            player_role NOT NULL,
+    games           INTEGER DEFAULT 0,
+    wins            INTEGER DEFAULT 0,
+    losses          INTEGER DEFAULT 0,
+    PRIMARY KEY (champion_id, serie_id, role),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
+
+-- Top players per champion per serie (replaces top_players_json JSONB)
+CREATE TABLE champion_top_players (
+    champion_id     INTEGER NOT NULL,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    player_id       INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    player_name     TEXT,
+    team_name       TEXT,
+    games           INTEGER DEFAULT 0,
+    wins            INTEGER DEFAULT 0,
+    kda             REAL,
+    PRIMARY KEY (champion_id, serie_id, player_id),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_ctp_player ON champion_top_players(player_id);
+
+-- Champion vs champion matchups per serie (replaces matchups_json JSONB)
+CREATE TABLE champion_matchups (
+    champion_id          INTEGER NOT NULL,
+    serie_id             INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    opponent_champion_id INTEGER NOT NULL,
+    opponent_name        TEXT,
+    games                INTEGER DEFAULT 0,
+    wins                 INTEGER DEFAULT 0,
+    PRIMARY KEY (champion_id, serie_id, opponent_champion_id),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
+
+-- Most common items per champion per serie (replaces items_json JSONB)
+CREATE TABLE champion_items (
+    champion_id     INTEGER NOT NULL,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    item_id         INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    count           INTEGER DEFAULT 0,
+    PRIMARY KEY (champion_id, serie_id, item_id),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_ci_item ON champion_items(item_id);
+
+-- Keystone rune usage per champion per serie (replaces keystones_json JSONB)
+CREATE TABLE champion_keystones (
+    champion_id     INTEGER NOT NULL,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    rune_id         INTEGER NOT NULL REFERENCES runes(id) ON DELETE CASCADE,
+    rune_name       TEXT,
+    games           INTEGER DEFAULT 0,
+    wins            INTEGER DEFAULT 0,
+    PRIMARY KEY (champion_id, serie_id, rune_id),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
+
+-- Champion performance per patch (replaces patch_breakdown_json JSONB)
+CREATE TABLE champion_patch_stats (
+    champion_id     INTEGER NOT NULL,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    patch           TEXT NOT NULL,
+    games           INTEGER DEFAULT 0,
+    wins            INTEGER DEFAULT 0,
+    bans            INTEGER DEFAULT 0,
+    PRIMARY KEY (champion_id, serie_id, patch),
+    FOREIGN KEY (champion_id, serie_id) REFERENCES champion_global_stats(champion_id, serie_id) ON DELETE CASCADE
+);
 
 -- Player career: 41,541 rows × 56 columnas
 -- PK = (player_id, serie_id)
@@ -634,11 +713,22 @@ CREATE TABLE player_career (
     avg_wpm                 REAL,
     avg_wkpm                REAL,
     avg_cwpm                REAL,
-    keystones_json          JSONB,
     PRIMARY KEY (player_id, serie_id)
 );
 CREATE INDEX idx_pc_serie ON player_career(serie_id);
 CREATE INDEX idx_pc_team ON player_career(team_id);
+
+-- Player keystone rune usage per serie (replaces keystones_json JSONB)
+CREATE TABLE player_keystones (
+    player_id       INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    serie_id        INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    rune_id         INTEGER NOT NULL REFERENCES runes(id) ON DELETE CASCADE,
+    rune_name       TEXT,
+    games           INTEGER DEFAULT 0,
+    wins            INTEGER DEFAULT 0,
+    PRIMARY KEY (player_id, serie_id, rune_id)
+);
+CREATE INDEX idx_pk_serie ON player_keystones(serie_id);
 
 -- Team career: 7,273 rows × 77 columnas
 -- PK = (team_id, serie_id)
@@ -706,7 +796,13 @@ CREATE TABLE team_career (
     avg_heralds             REAL,
     avg_voidgrubs           REAL,
     avg_atakhans            REAL,
-    drake_breakdown_json    JSONB,
+    -- Drake breakdown (replaces drake_breakdown_json JSONB)
+    avg_chemtech_drakes     REAL,
+    avg_cloud_drakes        REAL,
+    avg_hextech_drakes      REAL,
+    avg_infernal_drakes     REAL,
+    avg_mountain_drakes     REAL,
+    avg_ocean_drakes        REAL,
     first_blood_rate        REAL,
     first_tower_rate        REAL,
     first_dragon_rate       REAL,
@@ -760,81 +856,10 @@ CREATE TABLE player_champion_stats (
 CREATE INDEX idx_pcs_serie ON player_champion_stats(serie_id);
 CREATE INDEX idx_pcs_champion ON player_champion_stats(champion_id);
 
--- Match player stats: 411,836 rows — JSON con stats.averages y stats.totals
-CREATE TABLE match_player_stats (
-    match_id                INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    player_id               INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    team_id                 INTEGER REFERENCES teams(id) ON DELETE SET NULL,
-    games_count             INTEGER,
-    -- Importar como JSONB porque stats.averages y stats.totals tienen sub-objetos
-    -- (kill_counters{}, magic_damage{}, etc.) demasiado anidados para columnas
-    stats_averages          JSONB,
-    stats_totals            JSONB,
-    PRIMARY KEY (match_id, player_id)
-);
-CREATE INDEX idx_mps_player ON match_player_stats(player_id);
-
--- Tournament player stats: 65,197 rows — JSON rico
-CREATE TABLE tournament_player_stats (
-    tournament_id           INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-    player_id               INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    team_id                 INTEGER REFERENCES teams(id) ON DELETE SET NULL,
-    games_count             INTEGER,
-    stats_averages          JSONB,
-    stats_totals            JSONB,
-    favorite_champions      JSONB,
-    last_games              JSONB,
-    PRIMARY KEY (tournament_id, player_id)
-);
-CREATE INDEX idx_tps_player ON tournament_player_stats(player_id);
-
--- Tournament team stats: 12,295 rows — JSON con most_picked, most_banned, stats
-CREATE TABLE tournament_team_stats (
-    tournament_id           INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-    team_id                 INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    games_count             INTEGER,
-    stats_averages          JSONB,
-    stats_totals            JSONB,
-    most_picked             JSONB,
-    most_banned             JSONB,
-    most_banned_against     JSONB,
-    players                 JSONB,
-    PRIMARY KEY (tournament_id, team_id)
-);
-CREATE INDEX idx_tts_team ON tournament_team_stats(team_id);
-
--- Player stats: 41,480 rows — JSON con stats, favorite_champions, last_games, teams
-CREATE TABLE player_stats (
-    serie_id                INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
-    player_id               INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    team_id                 INTEGER REFERENCES teams(id) ON DELETE SET NULL,
-    games_count             INTEGER,
-    stats_averages          JSONB,
-    stats_totals            JSONB,
-    stats_serie             JSONB,
-    favorite_champions      JSONB,
-    last_games              JSONB,
-    teams_history           JSONB,
-    PRIMARY KEY (serie_id, player_id)
-);
-CREATE INDEX idx_ps_player ON player_stats(player_id);
-
--- Team stats: 7,757 rows — JSON con stats, most_picked/banned
-CREATE TABLE team_stats (
-    serie_id                INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
-    team_id                 INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    games_count             INTEGER,
-    stats_averages          JSONB,
-    stats_totals            JSONB,
-    stats_serie             JSONB,
-    most_picked             JSONB,
-    most_banned             JSONB,
-    most_banned_against     JSONB,
-    last_games              JSONB,
-    players                 JSONB,
-    PRIMARY KEY (serie_id, team_id)
-);
-CREATE INDEX idx_ts_team ON team_stats(team_id);
+-- REMOVED: match_player_stats, tournament_player_stats, tournament_team_stats,
+-- player_stats, team_stats — these were JSONB dumps from PandaScore API.
+-- All their data is computable from game_players, game_teams, player_career,
+-- team_career, player_champion_stats, and the new relational sub-tables.
 
 -- Team brands: historical team names for rebranded teams (year-range based)
 -- Only stores overrides for teams that actually rebranded (86 teams, ~188 rows).

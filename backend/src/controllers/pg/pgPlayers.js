@@ -405,7 +405,7 @@ export async function getPlayerByNamePg(req, res) {
   // 3. Parallel: champions played + match log + rune map + champ map + frame diffs + stage aggregation
   const hasStage = stageParam != null;
 
-  const [{ rows: champStats }, { rows: matchLogRows }, champMap, runeMap, spellMap, runePathMap, { rows: frameDiffRows }, stageAggResult, stageChampResult] = await Promise.all([
+  const [{ rows: champStats }, { rows: matchLogRows }, champMap, runeMap, spellMap, runePathMap, { rows: frameDiffRows }, stageAggResult, stageChampResult, { rows: keystoneRows }] = await Promise.all([
     // Champion stats (pre-aggregated per serie — will be overridden by stageChampResult when stage active)
     pgDb.query(`
       SELECT pcs.champion_id, pcs.champion_name,
@@ -424,7 +424,6 @@ export async function getPlayerByNamePg(req, res) {
         gp.champion_id,
         gp.kills, gp.deaths, gp.assists,
         gp.creep_score, gp.total_damage_dealt_to_champions, gp.gold_earned,
-        gp.rune_shards,
         gp.rune_primary_path_id, gp.rune_secondary_path_id,
         CASE WHEN g.winner_id = gp.team_id THEN 'W' ELSE 'L' END AS result,
         gt.color AS side,
@@ -517,7 +516,7 @@ export async function getPlayerByNamePg(req, res) {
         ROUND(AVG(CASE WHEN g.length > 60 THEN gp.kills_wards / (g.length / 60.0) END)::numeric, 2) AS wkpm,
         ROUND(AVG(CASE WHEN g.length > 60 THEN COALESCE(gp.vision_wards_bought_in_game, 0) / (g.length / 60.0) END)::numeric, 2) AS cwpm,
         ROUND(AVG(CASE WHEN g.length > 60 THEN (COALESCE(gp.wards_placed,0) + COALESCE(gp.kills_wards,0) + COALESCE(gp.vision_wards_bought_in_game,0)) / (g.length / 60.0) END)::numeric, 2) AS vspm,
-        NULL AS kill_participation,
+        ROUND(AVG(CASE WHEN gt.kills > 0 THEN (gp.kills + gp.assists)::numeric / gt.kills ELSE 0 END) * 100, 1) AS kill_participation,
         ROUND(AVG(g.length)::numeric, 0) AS avg_duration,
         SUM(CASE WHEN gt.color = 'blue' THEN 1 ELSE 0 END) AS blue_games,
         SUM(CASE WHEN gt.color = 'blue' AND g.winner_id = gp.team_id THEN 1 ELSE 0 END) AS blue_wins,
@@ -565,6 +564,21 @@ export async function getPlayerByNamePg(req, res) {
       GROUP BY gp.champion_id, ca.name
       ORDER BY COUNT(*) DESC
     `, [pc.player_id, serieId, ...stageParams]) : Promise.resolve({ rows: [] }),
+
+    // Player keystones computed live from game_player_runes (slot 0 = keystone)
+    pgDb.query(`
+      SELECT gpr.rune_id, r.name AS rune_name, COUNT(*) AS games,
+             SUM(CASE WHEN gp.team_id = g.winner_id THEN 1 ELSE 0 END) AS wins,
+             r.image_url
+      FROM game_players gp
+      JOIN games g ON g.id = gp.game_id
+      JOIN game_player_runes gpr ON gpr.game_player_id = gp.id AND gpr.slot = 0
+      LEFT JOIN runes r ON r.id = gpr.rune_id
+      WHERE gp.player_id = $1 AND g.serie_id = $2
+        AND g.finished = true AND g.length > 60
+      GROUP BY gpr.rune_id, r.name, r.image_url
+      ORDER BY COUNT(*) DESC
+    `, [pc.player_id, serieId]),
   ]);
 
   // Compute frame-based diffs (same as SQLite live aggregator)
@@ -580,6 +594,17 @@ export async function getPlayerByNamePg(req, res) {
   }
   const fdAvg = (arr) => arr.length > 0 ? rnd(arr.reduce((s, v) => s + v, 0) / arr.length, 1) : null;
   const fdAvg2 = (arr) => arr.length > 0 ? rnd(arr.reduce((s, v) => s + v, 0) / arr.length, 2) : null;
+  // For level diffs, only trust frame data if we have level for a meaningful portion of games
+  // (PandaScore often returns null for level in frame data, leading to sparse/misleading averages)
+  const fdLvl = (mk) => {
+    const csCount = frameDiffs[mk].cs.length;
+    const lvlArr = frameDiffs[mk].lvl;
+    // Only use frame-based level if we have level data for at least half the games that have CS data
+    if (lvlArr.length > 0 && (csCount === 0 || lvlArr.length >= csCount * 0.5)) {
+      return rnd(lvlArr.reduce((s, v) => s + v, 0) / lvlArr.length, 2);
+    }
+    return null;
+  };
 
   // Build stage-overridden data source: use live-aggregated stats when stage filter is active
   const st = hasStage && stageAggResult.rows.length > 0 ? stageAggResult.rows[0] : null;
@@ -636,21 +661,14 @@ export async function getPlayerByNamePg(req, res) {
     };
   });
 
-  // Keystones from player_career.keystones_json — enrich with image_url from runeMap
-  // (keystones_json only stores name/count/pct, not image_url)
-  const runeByName = {};
-  for (const [, rv] of Object.entries(runeMap)) {
-    runeByName[rv.name?.toLowerCase()] = rv;
-  }
-  const keystones = ensureArr(pc.keystones_json).map(k => {
-    const ri = runeByName[k.name?.toLowerCase()];
-    return {
-      name: k.name,
-      image_url: k.image_url || ri?.image_url || null,
-      count: k.count,
-      pct: rnd(k.pct ?? (k.count / (_games || 1) * 100), 1),
-    };
-  });
+  // Keystones from player_keystones table
+  const totalGamesForKs = pc.games || 1;
+  const keystones = keystoneRows.map(k => ({
+    name: k.rune_name || runeMap[k.rune_id]?.name || `Rune ${k.rune_id}`,
+    image_url: k.image_url || runeMap[k.rune_id]?.image_url || null,
+    count: Number(k.games),
+    pct: rnd(Number(k.games) / totalGamesForKs * 100, 1),
+  }));
 
   // Match log with runes
   const matchLog = matchLogRows.map(m => {
@@ -679,16 +697,22 @@ export async function getPlayerByNamePg(req, res) {
         secondaryPathInfo = { name: sp.name, image_url: sp.image_url };
       }
     }
-    // Shards: always from rune_shards JSONB (same source as Record/SQLite)
-    if (m.rune_shards) {
-      const rs = typeof m.rune_shards === 'string' ? JSON.parse(m.rune_shards) : m.rune_shards;
-      const toInfo = (obj) => obj && obj.id ? { id: obj.id, name: obj.name || '?', image_url: obj.image_url || null } : null;
-      shards = {
-        offense: toInfo(rs.offense),
-        flex: toInfo(rs.flex),
-        defense: toInfo(rs.defense),
-      };
-      if (!shards.offense && !shards.flex && !shards.defense) shards = null;
+    // Shards: from game_player_runes slots 6 (offense), 7 (flex), 8 (defense)
+    if (m.game_player_id && runesByGpId[m.game_player_id]) {
+      const shardRows = runesByGpId[m.game_player_id].filter(r => r.slot >= 6);
+      if (shardRows.length > 0) {
+        const toInfo = (row) => {
+          if (!row) return null;
+          const rd = runeMap[row.rune_id];
+          return rd ? { id: row.rune_id, name: rd.name, image_url: rd.image_url } : null;
+        };
+        shards = {
+          offense: toInfo(shardRows.find(r => r.slot === 6)),
+          flex: toInfo(shardRows.find(r => r.slot === 7)),
+          defense: toInfo(shardRows.find(r => r.slot === 8)),
+        };
+        if (!shards.offense && !shards.flex && !shards.defense) shards = null;
+      }
     }
 
     return {
@@ -775,12 +799,12 @@ export async function getPlayerByNamePg(req, res) {
     vision_wards_bought: visionWardsBought,
 
     // Frame diffs computed live from game_frames (matches SQLite aggregator behavior)
-    avg_cs_diff_13: fdAvg(frameDiffs[13].cs),
-    avg_cs_diff_20: fdAvg(frameDiffs[20].cs),
-    avg_cs_diff_25: fdAvg(frameDiffs[25].cs),
-    avg_level_diff_13: fdAvg2(frameDiffs[13].lvl),
-    avg_level_diff_20: fdAvg2(frameDiffs[20].lvl),
-    avg_level_diff_25: fdAvg2(frameDiffs[25].lvl),
+    avg_cs_diff_13: fdAvg(frameDiffs[13].cs) ?? rnd(pc.avg_cs_diff_13, 1),
+    avg_cs_diff_20: fdAvg(frameDiffs[20].cs) ?? rnd(pc.avg_cs_diff_20, 1),
+    avg_cs_diff_25: fdAvg(frameDiffs[25].cs) ?? rnd(pc.avg_cs_diff_25, 1),
+    avg_level_diff_13: fdLvl(13) ?? rnd(pc.avg_level_diff_13, 2),
+    avg_level_diff_20: fdLvl(20) ?? rnd(pc.avg_level_diff_20, 2),
+    avg_level_diff_25: fdLvl(25) ?? rnd(pc.avg_level_diff_25, 2),
     avg_gold_diff_15: st ? null : rnd(pc.avg_cs_diff_14 != null ? pc.avg_cs_diff_14 * 20 : null, 0),
 
     first_blood_kills: null,
@@ -788,22 +812,39 @@ export async function getPlayerByNamePg(req, res) {
     fb_rate: st ? rnd(Number(st.fb_rate), 0) : rnd(pc.first_blood_rate, 1),
     first_tower_rate: st ? rnd(Number(st.first_tower_rate), 0) : rnd(pc.first_tower_rate, 1),
     max_kills: st ? Number(st.max_kills || 0) : pc.max_kills,
+
+    // Combat
     double_kills: st ? Number(st.double_kills || 0) : pc.double_kills,
     triple_kills: st ? Number(st.triple_kills || 0) : pc.triple_kills,
     quadra_kills: st ? Number(st.quadra_kills || 0) : pc.quadra_kills,
     penta_kills: st ? Number(st.penta_kills || 0) : pc.penta_kills,
 
-    blue_wr: blueWr,
-    red_wr: redWr,
-    blue_games: blueGames,
-    red_games: redGames,
+    // Economy (not available in stage query — always from player_career)
+    avg_gold_spent: rnd(pc.avg_gold_spent, 0),
+    avg_cc_per_min: rnd(pc.avg_cc_per_min, 1),
+    avg_heal_per_min: rnd(pc.avg_heal_per_min, 0),
 
-    avg_duration: rnd(avgDurSec / 60, 1),
+    // General
+    avg_duration: rnd(avgDurSec, 1),
     avg_duration_formatted: avgDurFormatted,
-
     unique_champions: st ? Number(st.unique_champions || 0) : pc.unique_champions,
-    champions_played: championsPlayed,
-    keystones,
+
+    // Side
+    blue_games: blueGames,
+    blue_wr: blueWr,
+    red_games: redGames,
+    red_wr: redWr,
+
+    // Vision
+    avg_vspm: rnd(_vspm, 2),
+
+    // Match log (for streak)
     match_log: matchLog,
+
+    // Champions played
+    champions_played: championsPlayed,
+
+    // Keystones
+    keystones,
   });
 }

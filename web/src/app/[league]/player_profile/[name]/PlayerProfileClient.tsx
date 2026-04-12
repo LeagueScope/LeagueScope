@@ -815,7 +815,7 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
             </div>
             {(player.keystones?.length ?? 0) > 0 && (() => {
               const primary = player.keystones![0];
-              const secondary = player.keystones!.slice(1, 7);
+              const secondary = player.keystones!.slice(1, 6);
               return (
                 <div className="p40-keystones-section">
                   {primary && (

@@ -106,8 +106,11 @@ export async function getOverviewPg(req, res) {
         `, [serieId, ...stageParams])
       : pgDb.query(`
           SELECT cgs.champion_id, cgs.champion_name, cgs.picks, cgs.bans, cgs.wins, cgs.losses,
-                 cgs.win_rate, cgs.kills_avg, cgs.deaths_avg, cgs.assists_avg, cgs.kda,
-                 cgs.ban_rate_blue, cgs.ban_rate_red, cgs.bans_blue, cgs.bans_red,
+                 cgs.win_rate,
+                 cgs.kills_avg, cgs.deaths_avg, cgs.assists_avg, cgs.kda,
+                 cgs.ban_rate_blue,
+                 cgs.ban_rate_red,
+                 cgs.bans_blue, cgs.bans_red,
                  cgs.total_games_in_serie
           FROM champion_global_stats cgs
           WHERE cgs.serie_id = $1
@@ -144,18 +147,31 @@ export async function getOverviewPg(req, res) {
           ORDER BY COUNT(*) DESC
         `, [serieId, ...stageParams])
       : pgDb.query(`
-          SELECT pc.player_id, p.name, p.image_url AS player_image_url,
-                 pc.role, pc.team_id,
-                 COALESCE(tb.display_acronym, t.acronym) AS team_abbr, COALESCE(tb.display_logo, t.dark_mode_image_url, t.image_url) AS team_logo_url,
-                 pc.games, pc.wins, pc.kda, pc.kill_participation,
-                 pc.cspm AS avg_cspm, pc.dpm, pc.gpm,
-                 pc.dmg_share, pc.gold_share, pc.max_kills
-          FROM player_career pc
-          JOIN players p ON p.id = pc.player_id
-          LEFT JOIN teams t ON t.id = pc.team_id
-          LEFT JOIN team_brands tb ON tb.team_id = pc.team_id AND (SELECT year FROM series WHERE id = $1) BETWEEN tb.year_start AND tb.year_end
-          WHERE pc.serie_id = $1
-          ORDER BY pc.games DESC
+          SELECT
+            gp.player_id, p.name, p.image_url AS player_image_url,
+            MODE() WITHIN GROUP (ORDER BY gp.role) AS role, MAX(gp.team_id) AS team_id,
+            COALESCE(tb.display_acronym, t.acronym) AS team_abbr, COALESCE(tb.display_logo, t.dark_mode_image_url, t.image_url) AS team_logo_url,
+            COUNT(*) AS games,
+            SUM(CASE WHEN g.winner_id = gp.team_id THEN 1 ELSE 0 END) AS wins,
+            ROUND(((SUM(gp.kills) + SUM(gp.assists))::numeric / NULLIF(SUM(gp.deaths), 0)), 2) AS kda,
+            ROUND(AVG(CASE WHEN team_kills.tk > 0 THEN (gp.kills + gp.assists)::numeric / team_kills.tk * 100 ELSE 0 END), 1) AS kill_participation,
+            ROUND(AVG((gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_cspm,
+            ROUND(AVG(gp.total_damage_dealt_to_champions / NULLIF(g.length / 60.0, 0))::numeric, 0) AS dpm,
+            ROUND(AVG(gp.gold_earned / NULLIF(g.length / 60.0, 0))::numeric, 0) AS gpm,
+            ROUND(AVG(gp.total_damage_dealt_to_champions_percentage)::numeric, 1) AS dmg_share,
+            ROUND(AVG(gp.gold_percentage)::numeric, 1) AS gold_share,
+            MAX(gp.kills) AS max_kills
+          FROM game_players gp
+          JOIN games g ON g.id = gp.game_id
+          JOIN players p ON p.id = gp.player_id
+          LEFT JOIN teams t ON t.id = gp.team_id
+          LEFT JOIN team_brands tb ON tb.team_id = gp.team_id AND (SELECT year FROM series WHERE id = $1) BETWEEN tb.year_start AND tb.year_end
+          LEFT JOIN LATERAL (
+            SELECT SUM(gp2.kills) AS tk FROM game_players gp2 WHERE gp2.game_id = gp.game_id AND gp2.team_id = gp.team_id
+          ) team_kills ON true
+          WHERE g.serie_id = $1 AND g.finished = true AND g.length > 60
+          GROUP BY gp.player_id, p.name, p.image_url, gp.team_id, t.acronym, t.dark_mode_image_url, t.image_url, tb.display_acronym, tb.display_logo
+          ORDER BY COUNT(*) DESC
         `, [serieId]),
 
     // Team stats from game_teams (aggregated)
@@ -277,9 +293,9 @@ export async function getOverviewPg(req, res) {
     return {
       name: c.champion_name || champ.name,
       image_url: champ.image_url || null,
-      games: c.picks,
-      picks: c.picks,
-      bans: c.bans,
+      games: Number(c.picks) || 0,
+      picks: Number(c.picks) || 0,
+      bans: Number(c.bans) || 0,
       win_rate: rnd(c.win_rate, 1),
       ban_rate_blue: rnd(c.ban_rate_blue, 1),
       ban_rate_red: rnd(c.ban_rate_red, 1),
@@ -333,7 +349,7 @@ export async function getOverviewPg(req, res) {
     team_logo_url: p.team_logo_url,
     kda: rnd(p.kda),
     avg_cspm: rnd(p.avg_cspm, 1),
-    max_kills: p.max_kills,
+    max_kills: Number(p.max_kills) || 0,
     kill_participation: rnd(p.kill_participation, 1),
     avg_damage_share: rnd(p.dmg_share, 1),
     avg_gold_share: rnd(p.gold_share, 1),
@@ -396,12 +412,16 @@ export async function getOverviewPg(req, res) {
         GROUP BY gt.team_id, t.acronym, t.dark_mode_image_url, t.image_url
       `, [serieId, ...stageParams])
     : await pgDb.query(`
-        SELECT tc.team_id, t.acronym AS abbr,
+        SELECT gt.team_id, t.acronym AS abbr,
                COALESCE(t.dark_mode_image_url, t.image_url) AS logo_url,
-               tc.deaths_avg, tc.kills_avg
-        FROM team_career tc
-        JOIN teams t ON t.id = tc.team_id
-        WHERE tc.serie_id = $1
+               ROUND(AVG(opp.kills)::numeric, 1) AS deaths_avg,
+               ROUND(AVG(gt.kills)::numeric, 1) AS kills_avg
+        FROM game_teams gt
+        JOIN games g ON g.id = gt.game_id
+        JOIN teams t ON t.id = gt.team_id
+        LEFT JOIN game_teams opp ON opp.game_id = g.id AND opp.team_id != gt.team_id
+        WHERE g.serie_id = $1 AND g.finished = true AND g.length > 60
+        GROUP BY gt.team_id, t.acronym, t.dark_mode_image_url, t.image_url
       `, [serieId]);
 
   const topDeathsPerGame = [...teamCareerRows]
@@ -475,6 +495,9 @@ export async function getHomeOverviewPg(req, res) {
     { rows: sideRows },
     { rows: recentMatchRows },
     { rows: upcomingMatchRows },
+    { rows: bestOfRows },
+    { rows: matchStandingRows },
+    { rows: tournamentRows },
   ] = await Promise.all([
     // 2a. team_career for standings / performance / rankings
     pgDb.query(`
@@ -545,11 +568,41 @@ export async function getHomeOverviewPg(req, res) {
     // 2f. Upcoming matches (top 4 per serie)
     pgDb.query(`
       SELECT * FROM (
-        SELECT m.id, m.serie_id, m.begin_at, m.number_of_games,
+        SELECT m.id, m.serie_id, m.begin_at, m.number_of_games, m.status,
           ROW_NUMBER() OVER (PARTITION BY m.serie_id ORDER BY m.begin_at ASC) AS rn
         FROM matches m
         WHERE m.serie_id = ANY($1::int[]) AND m.status IN ('not_started', 'running')
       ) sub WHERE rn <= 4
+    `, [allSerieIds]),
+
+    // 2g. Best-of format per serie (mode of number_of_games from finished matches)
+    pgDb.query(`
+      SELECT serie_id,
+             mode() WITHIN GROUP (ORDER BY COALESCE(number_of_games, 1)) AS best_of
+      FROM matches
+      WHERE serie_id = ANY($1::int[]) AND status = 'finished'
+      GROUP BY serie_id
+    `, [allSerieIds]),
+
+    // 2h. Match-level standings (series W/L for BO3+ leagues)
+    pgDb.query(`
+      SELECT t.serie_id, mo.team_id,
+             COUNT(*) FILTER (WHERE m.winner_id = mo.team_id) AS match_wins,
+             COUNT(*) FILTER (WHERE m.winner_id IS NOT NULL AND m.winner_id != mo.team_id) AS match_losses
+      FROM matches m
+      JOIN tournaments t ON t.id = m.tournament_id
+      JOIN match_opponents mo ON mo.match_id = m.id
+      WHERE t.serie_id = ANY($1::int[]) AND m.status = 'finished'
+      GROUP BY t.serie_id, mo.team_id
+    `, [allSerieIds]),
+
+    // 2i. Current tournament per serie (latest by end_at) for phase detection
+    pgDb.query(`
+      SELECT DISTINCT ON (t.serie_id)
+        t.serie_id, t.name AS tournament_name, t.has_bracket
+      FROM tournaments t
+      WHERE t.serie_id = ANY($1::int[])
+      ORDER BY t.serie_id, t.end_at DESC NULLS LAST, t.begin_at DESC
     `, [allSerieIds]),
   ]);
 
@@ -612,6 +665,20 @@ export async function getHomeOverviewPg(req, res) {
   const upcomingBySerie = {};
   for (const m of upcomingMatchRows) (upcomingBySerie[m.serie_id] ||= []).push(m);
 
+  const bestOfBySerie = {};
+  for (const b of bestOfRows) bestOfBySerie[b.serie_id] = Number(b.best_of) || 1;
+
+  const tournamentBySerie = {};
+  for (const t of tournamentRows) tournamentBySerie[t.serie_id] = t;
+
+  const matchStandingsBySerie = {};
+  for (const ms of matchStandingRows) {
+    (matchStandingsBySerie[ms.serie_id] ||= {})[ms.team_id] = {
+      match_wins: Number(ms.match_wins) || 0,
+      match_losses: Number(ms.match_losses) || 0,
+    };
+  }
+
   // ── 5. Build overview per league (pure in-memory, no extra queries) ──
   function buildOverview(slug) {
     const info = serieMap[slug];
@@ -629,16 +696,29 @@ export async function getHomeOverviewPg(req, res) {
 
     if (!teams.length && !champs.length) return null;
 
-    // Mini standings (top 8 by wins then win_rate)
-    const miniStandings = teams.slice(0, 8).map(t => ({
-      abbr: t.abbr,
-      name: t.team_name,
-      logo_url: t.logo_url,
-      wins: Number(t.wins) || 0,
-      losses: Number(t.losses) || 0,
-      win_rate: rnd(Number(t.win_rate), 1),
-      games: Number(t.games) || 0,
-    }));
+    // Mini standings (top 8)
+    // For BO3+ leagues, use match-level W/L (series won/lost); for BO1, use game W/L
+    const bestOf = bestOfBySerie[serieId] || 1;
+    const matchStandings = matchStandingsBySerie[serieId] || {};
+    const useMatchWL = bestOf >= 3;
+
+    const miniStandings = teams.map(t => {
+      const ms = matchStandings[t.team_id];
+      const gameW = Number(t.wins) || 0;
+      const gameL = Number(t.losses) || 0;
+      return {
+        abbr: t.abbr,
+        name: t.team_name,
+        logo_url: t.logo_url,
+        wins: useMatchWL && ms ? ms.match_wins : gameW,
+        losses: useMatchWL && ms ? ms.match_losses : gameL,
+        ...(useMatchWL ? { gameWins: gameW, gameLosses: gameL } : {}),
+        win_rate: rnd(Number(t.win_rate), 1),
+        games: Number(t.games) || 0,
+      };
+    })
+      .sort((a, b) => b.wins - a.wins || a.losses - b.losses)
+      .slice(0, 8);
 
     // Champions played (top 5 by picks)
     const championsPlayed = champs.slice(0, 5).map(c => ({
@@ -723,12 +803,20 @@ export async function getHomeOverviewPg(req, res) {
       const opps = oppMap[m.id] || [];
       if (opps.length < 2) return null;
       const isSeries = (m.number_of_games || 1) > 1;
-      const winnerIsFirst = m.winner_id === opps[0].team_id;
+      // Determine winner: prefer scores (more reliable), fallback to winner_id
+      const s0 = Number(opps[0].result_score) || 0;
+      const s1 = Number(opps[1].result_score) || 0;
+      let winner;
+      if (s0 !== s1) {
+        winner = s0 > s1 ? 'blue' : 'red';
+      } else {
+        winner = m.winner_id === opps[0].team_id ? 'blue' : 'red';
+      }
       return {
         matchid: m.id,
         isSeries,
         numberOfGames: m.number_of_games || 1,
-        winner: winnerIsFirst ? 'blue' : 'red',
+        winner,
         dateStr: m.begin_at ? new Date(m.begin_at).toISOString().split('T')[0] : null,
         blue: {
           abbr: opps[0].abbr || '',
@@ -758,6 +846,28 @@ export async function getHomeOverviewPg(req, res) {
       };
     });
 
+    // Live matches (status = 'running')
+    const liveMatches = upcoming
+      .filter(m => m.status === 'running')
+      .map(m => {
+        const opps = oppMap[m.id] || [];
+        return {
+          id: m.id,
+          begin_at: m.begin_at,
+          number_of_games: m.number_of_games || 3,
+          blue: {
+            abbr: opps[0]?.abbr || 'TBD',
+            logo_url: opps[0]?.logo_url || null,
+            score: opps[0]?.result_score || 0,
+          },
+          red: {
+            abbr: opps[1]?.abbr || 'TBD',
+            logo_url: opps[1]?.logo_url || null,
+            score: opps[1]?.result_score || 0,
+          },
+        };
+      });
+
     // Best players (top 5 by KDA, min 2 games)
     const bestPlayers = [...players]
       .filter(p => (Number(p.games) || 0) >= 2 && p.kda != null)
@@ -778,6 +888,7 @@ export async function getHomeOverviewPg(req, res) {
       region: slug,
       split: season || fullName || null,
       upcoming: upcomingFormatted,
+      liveMatches,
       championsPlayed,
       blueVsRed,
       teamPerformance: { killsPerGame, deathsPerGame, dragonsPerGame },
@@ -785,6 +896,9 @@ export async function getHomeOverviewPg(req, res) {
       recentMatches,
       miniStandings,
       bestPlayers,
+      bestOf,
+      isPlayoffs: tournamentBySerie[serieId]?.has_bracket === true,
+      phaseName: tournamentBySerie[serieId]?.tournament_name || null,
       _serieId: serieId,
     };
   }
