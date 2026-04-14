@@ -1237,6 +1237,7 @@ export function MatchDetail({ matchId }: { matchId: number }): React.ReactElemen
 
   const games = detail.games || [];
   const currentGame = games[activeGame];
+  const hasAdvancedStats = !!(currentGame && Array.isArray(currentGame.players) && currentGame.players.length > 0);
 
   const tabKey = `${activeTab}-${activeGame}`;
 
@@ -1288,20 +1289,28 @@ export function MatchDetail({ matchId }: { matchId: number }): React.ReactElemen
       )}
 
       {/* Objectives Bar — horizontal, visible in all tabs */}
-      {currentGame && <ObjectivesBar game={currentGame} key={`obj-${activeGame}`} />}
+      {currentGame && hasAdvancedStats && <ObjectivesBar game={currentGame} key={`obj-${activeGame}`} />}
 
-      {/* Content Tabs */}
-      <div className="p21-content-tabs">
-        {CONTENT_TABS.map(tab => (
-          <button key={tab.id} className={`p21-ctab ${activeTab === tab.id ? 'p21-ctab-active' : ''}`} onClick={() => handleTabChange(tab.id)}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {hasAdvancedStats ? (
+        <>
+          {/* Content Tabs */}
+          <div className="p21-content-tabs">
+            {CONTENT_TABS.map(tab => (
+              <button key={tab.id} className={`p21-ctab ${activeTab === tab.id ? 'p21-ctab-active' : ''}`} onClick={() => handleTabChange(tab.id)}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      <div className={`p21-tab-anim ${tabAnim}`} key={tabKey}>
-        {renderTabContent()}
-      </div>
+          <div className={`p21-tab-anim ${tabAnim}`} key={tabKey}>
+            {renderTabContent()}
+          </div>
+        </>
+      ) : (
+        <div className="p22-no-stats">
+          Lo sentimos, no disponemos actualmente de estadísticas avanzadas.
+        </div>
+      )}
     </div>
   );
 }

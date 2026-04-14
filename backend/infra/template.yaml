@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  LeagueScope Auto-Ingest — Lambda + EventBridge for continuous PandaScore ingestion
+  LeagueScope Ingestion — Lambdas + EventBridge for PandaScore data pipeline
+  (auto-ingest = historical backfill; match-poller = real-time status polling)
 
 Parameters:
   PgDsn:
@@ -12,41 +13,58 @@ Parameters:
     Type: String
     NoEcho: true
     Description: PandaScore API token
-  ScheduleRate:
+  AutoIngestRate:
     Type: String
     Default: 'rate(15 minutes)'
-    Description: How often to trigger ingestion (EventBridge rate expression)
+    Description: Cadence for the auto-ingest (historical) Lambda
+  MatchPollerRate:
+    Type: String
+    Default: 'rate(1 minute)'
+    Description: Cadence for the real-time match-poller Lambda
+  LambdaSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnet IDs for Lambda ENIs (must have NAT route for internet)
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group for Lambda ENIs (must be allowed on RDS port 5432)
 
 Globals:
   Function:
     Runtime: nodejs22.x
-    Timeout: 900          # 15 minutes (Lambda max)
     MemorySize: 512       # 512 MB is enough for DB + API calls
+    Environment:
+      Variables:
+        PG_DSN: !Ref PgDsn
+        PANDASCORE_TOKEN: !Ref PandascoreToken
+        NODE_ENV: production
+        CURRENT_YEAR: '2026'
+    VpcConfig:
+      SubnetIds: !Ref LambdaSubnetIds
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroupId
 
 Resources:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AutoIngestFunction — Historical backfill (long-running, 15 min budget)
+  # ═══════════════════════════════════════════════════════════════════════════
   AutoIngestFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: leaguescope-auto-ingest
       Handler: scripts/auto-ingest.handler
       CodeUri: ../                    # backend/ root (includes scripts/, data/, node_modules/)
-      Description: Continuous PandaScore data ingestion for LeagueScope
-      Environment:
-        Variables:
-          PG_DSN: !Ref PgDsn
-          PANDASCORE_TOKEN: !Ref PandascoreToken
-          NODE_ENV: production
-          CURRENT_YEAR: '2026'
+      Description: Continuous PandaScore historical backfill for LeagueScope
+      Timeout: 900                    # 15 minutes (Lambda max)
       Events:
         ScheduledIngest:
           Type: Schedule
           Properties:
-            Schedule: !Ref ScheduleRate
-            Name: leaguescope-ingest-schedule
+            Schedule: !Ref AutoIngestRate
+            Name: leaguescope-auto-ingest-schedule
             Description: Trigger auto-ingest every 15 minutes
             Enabled: true
       Policies:
-        # CloudWatch Logs (auto-created by SAM but explicit for clarity)
+        - AWSLambdaVPCAccessExecutionRole        # ENI create/delete for VPC access
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -56,11 +74,43 @@ Resources:
                 - logs:PutLogEvents
               Resource: 'arn:aws:logs:*:*:*'
 
-  # CloudWatch alarm: alert if Lambda errors > 3 in 1 hour
-  IngestErrorAlarm:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MatchPollerFunction — Real-time status tracker (short-lived, 5 min budget)
+  # ═══════════════════════════════════════════════════════════════════════════
+  MatchPollerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: leaguescope-match-poller
+      Handler: scripts/match-poller.handler
+      CodeUri: ../
+      Description: Real-time upcoming/running/finished match status poller
+      Timeout: 300                    # 5 minutes per cycle (should be plenty)
+      Events:
+        ScheduledPoll:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref MatchPollerRate
+            Name: leaguescope-match-poller-schedule
+            Description: Trigger match-poller every 1 minute
+            Enabled: true
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: 'arn:aws:logs:*:*:*'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CloudWatch alarms: alert if a Lambda errors repeatedly
+  # ═══════════════════════════════════════════════════════════════════════════
+  AutoIngestErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: leaguescope-ingest-errors
+      AlarmName: leaguescope-auto-ingest-errors
       AlarmDescription: Auto-ingest Lambda is failing repeatedly
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -68,19 +118,39 @@ Resources:
         - Name: FunctionName
           Value: !Ref AutoIngestFunction
       Statistic: Sum
-      Period: 3600        # 1 hour
+      Period: 3600
       EvaluationPeriods: 1
       Threshold: 3
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 
+  MatchPollerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: leaguescope-match-poller-errors
+      AlarmDescription: Match-poller Lambda is failing repeatedly
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref MatchPollerFunction
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
 Outputs:
-  FunctionArn:
-    Description: Lambda function ARN
+  AutoIngestArn:
+    Description: Auto-ingest Lambda ARN
     Value: !GetAtt AutoIngestFunction.Arn
-  FunctionName:
-    Description: Lambda function name
+  AutoIngestName:
+    Description: Auto-ingest Lambda function name
     Value: !Ref AutoIngestFunction
-  ScheduleRule:
-    Description: EventBridge schedule rule
-    Value: leaguescope-ingest-schedule
+  MatchPollerArn:
+    Description: Match-poller Lambda ARN
+    Value: !GetAtt MatchPollerFunction.Arn
+  MatchPollerName:
+    Description: Match-poller Lambda function name
+    Value: !Ref MatchPollerFunction

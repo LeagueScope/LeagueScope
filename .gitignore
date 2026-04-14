@@ -12,6 +12,12 @@ dist/
 .env.production.local
 .env.*.local
 
+# AWS SAM
+.aws-sam/
+samconfig.toml
+backend/infra/.aws-sam/
+backend/infra/samconfig.toml
+
 # Database dumps & backups
 backups/
 *.dump

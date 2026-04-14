@@ -83,7 +83,7 @@ const LEAGUE_IDS = {
   // EMEA Masters
   EMEAMASTERS: 4996,
   // ERLs
-  LFL: 4292, PRM: 4302, LES: 5496, NLC: 4411, LIT: 5211, EBL: 4426,
+  LFL: 4292, PRM: 4302, LES: 5496, NLC: 4411, LIT: 5211, EBL: 4426, HLL: 5355,
   // International
   WORLDS: 297, MSI: 300, FIRSTSTAND: 5369, EWC: 5262,
   // Other
@@ -508,6 +508,15 @@ async function phase2_structure(leagueSlug, leagueId) {
       if (t.teams) {
         for (const team of t.teams) {
           allTeamIds.add(team.id);
+          // Ensure team exists in `teams` before inserting into tournament_teams (FK constraint).
+          // Uses DO NOTHING so step 2d can later overwrite with full team data from /series/{id}/teams.
+          await upsert(`
+            INSERT INTO teams (id, name, slug, acronym, location, image_url)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO NOTHING
+          `, [team.id, team.name || 'Unknown', team.slug || null,
+              team.acronym || null, team.location || null, team.image_url || null]);
+
           await upsert(`
             INSERT INTO tournament_teams (tournament_id, team_id)
             VALUES ($1, $2)
