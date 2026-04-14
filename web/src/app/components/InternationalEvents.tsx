@@ -176,7 +176,7 @@ export default function InternationalEvents() {
               ))}
             </div>
 
-            <a href="/firststand" className="ie-firststand-link">Ver First Stand 2026</a>
+            <a href="/firststand/overview" className="ie-firststand-link">Ver First Stand 2026</a>
 
             <div className="ie-prize-box-editorial">
               <div className="ie-prize-info">

@@ -23,7 +23,7 @@ import { getTeamsPg, getTeamByAbbrPg } from '../../controllers/pg/pgTeams.js';
 import { getPlayersPg, getPlayerByNamePg } from '../../controllers/pg/pgPlayers.js';
 import { getChampionsPg, getChampionByNamePg, getChampionHistoryPg } from '../../controllers/pg/pgChampions.js';
 import { getPlayerHistoryPg, getTeamHistoryPg } from '../../controllers/pg/pgHistory.js';
-import { getOverviewPg, getTournamentPg, getHomeOverviewPg } from '../../controllers/pg/pgHome.js';
+import { getOverviewPg, getTournamentPg, getHomeOverviewPg, getLiveStatusPg } from '../../controllers/pg/pgHome.js';
 import { getFilterYearsPg, getFilterSeriesPg, getFilterStagesPg, getFilterInitPg } from '../../controllers/pg/pgFilters.js';
 import { getHeadToHeadPg } from '../../controllers/pg/pgHeadToHead.js';
 import { compareTeamsPg, comparePlayersPg, getPlayerSeriesPg, getTeamSeriesPg } from '../../controllers/pg/pgCompare.js';
@@ -62,9 +62,10 @@ router.get('/pg/matches',            ...common,        asyncHandler(getMatchesPg
 router.get('/pg/matches/:id/detail', validateUrlParams, asyncHandler(getMatchDetailPg));
 
 // ── Home & Overview ─────────────────────────────────────────────────────────
-router.get('/pg/home',       asyncHandler(getHomeOverviewPg));
-router.get('/pg/overview',   ...common, asyncHandler(getOverviewPg));
-router.get('/pg/tournament', ...common, asyncHandler(getTournamentPg));
+router.get('/pg/home',        asyncHandler(getHomeOverviewPg));
+router.get('/pg/live-status', asyncHandler(getLiveStatusPg));
+router.get('/pg/overview',    ...common, asyncHandler(getOverviewPg));
+router.get('/pg/tournament',  ...common, asyncHandler(getTournamentPg));
 
 // ── Teams ───────────────────────────────────────────────────────────────────
 router.get('/pg/teams',       ...common,        asyncHandler(getTeamsPg));

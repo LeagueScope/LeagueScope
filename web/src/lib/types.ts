@@ -11,6 +11,8 @@ export interface MiniStanding {
   losses: number;
   win_rate: number;
   games: number;
+  gameWins?: number | null;
+  gameLosses?: number | null;
 }
 
 export interface ChampionPlayed {

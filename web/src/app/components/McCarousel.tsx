@@ -320,20 +320,30 @@ function McCard({ league }: { league: LeagueOverview }) {
       )}
 
       {/* LIVE MATCHES */}
-      <div className="p1-live-section">
+      <div
+        className="p1-live-section"
+        role="region"
+        aria-label="Partidos en directo"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <div className="p1-live-header">
-          <span className={`p1-live-dot ${league.liveMatches?.length ? '' : 'inactive'}`} />
+          <span className={`p1-live-dot ${league.liveMatches?.length ? '' : 'inactive'}`} aria-hidden="true" />
           <span className={`p1-live-title ${league.liveMatches?.length ? '' : 'inactive'}`}>LIVE</span>
         </div>
         {league.liveMatches && league.liveMatches.length > 0 ? (
           <div className="p1-live-matches">
             {league.liveMatches.map((m) => (
-              <div key={m.id} className="p1-live-card">
+              <div
+                key={m.id}
+                className="p1-live-card"
+                aria-label={`${m.blue.abbr} ${m.blue.score} a ${m.red.score} ${m.red.abbr}, en directo`}
+              >
                 <div className="p1-live-team">
                   {m.blue.logo_url && <Image src={m.blue.logo_url} alt={m.blue.abbr} className="p1-live-logo" width={32} height={32} />}
                   <span className="p1-live-abbr">{m.blue.abbr}</span>
                 </div>
-                <div className="p1-live-score">
+                <div className="p1-live-score" aria-hidden="true">
                   <span className="p1-live-score-num">{m.blue.score}</span>
                   <span className="p1-live-score-sep">-</span>
                   <span className="p1-live-score-num">{m.red.score}</span>

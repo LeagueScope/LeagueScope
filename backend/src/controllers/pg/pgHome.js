@@ -646,6 +646,50 @@ export async function getHomeOverviewPg(req, res) {
     }
   }
 
+  // ── 3b. Fetch ALL running matches across all tracked leagues (by league_id,
+  //        not serie_id) so live matches always appear even if they belong to
+  //        a serie that isn't the "latest" one resolved in step 1. ──
+  const leagueIdRows = await pgDb.query(`
+    SELECT l.id AS league_id, UPPER(l.name) AS slug
+    FROM leagues l
+    WHERE UPPER(l.name) = ANY($1::text[])
+  `, [ALL_LEAGUES]);
+  const slugByLeagueId = {};
+  for (const r of leagueIdRows.rows) slugByLeagueId[r.league_id] = r.slug;
+  const allLeagueIds = leagueIdRows.rows.map(r => r.league_id);
+
+  let globalLiveRows = [];
+  let globalLiveOppMap = {};
+  if (allLeagueIds.length > 0) {
+    const { rows: liveMatchRows } = await pgDb.query(`
+      SELECT m.id, m.league_id, m.begin_at, m.number_of_games, m.status
+      FROM matches m
+      WHERE m.league_id = ANY($1::int[]) AND m.status = 'running'
+    `, [allLeagueIds]);
+    globalLiveRows = liveMatchRows;
+
+    if (liveMatchRows.length > 0) {
+      const liveIds = liveMatchRows.map(r => r.id);
+      const { rows: liveOpps } = await pgDb.query(`
+        SELECT mo.match_id, mo.team_id, mo.result_score,
+               t.acronym AS abbr,
+               COALESCE(t.dark_mode_image_url, t.image_url) AS logo_url
+        FROM match_opponents mo
+        JOIN teams t ON t.id = mo.team_id
+        WHERE mo.match_id = ANY($1::int[])
+        ORDER BY mo.match_id, mo.side, mo.team_id
+      `, [liveIds]);
+      for (const o of liveOpps) (globalLiveOppMap[o.match_id] ||= []).push(o);
+    }
+  }
+
+  // Index live matches by league slug
+  const liveBySlug = {};
+  for (const m of globalLiveRows) {
+    const slug = slugByLeagueId[m.league_id];
+    if (slug) (liveBySlug[slug] ||= []).push(m);
+  }
+
   // ── 4. Index data by serie_id ──
   const teamsBySerie = {};
   for (const t of teamRows) (teamsBySerie[t.serie_id] ||= []).push(t);
@@ -846,27 +890,26 @@ export async function getHomeOverviewPg(req, res) {
       };
     });
 
-    // Live matches (status = 'running')
-    const liveMatches = upcoming
-      .filter(m => m.status === 'running')
-      .map(m => {
-        const opps = oppMap[m.id] || [];
-        return {
-          id: m.id,
-          begin_at: m.begin_at,
-          number_of_games: m.number_of_games || 3,
-          blue: {
-            abbr: opps[0]?.abbr || 'TBD',
-            logo_url: opps[0]?.logo_url || null,
-            score: opps[0]?.result_score || 0,
-          },
-          red: {
-            abbr: opps[1]?.abbr || 'TBD',
-            logo_url: opps[1]?.logo_url || null,
-            score: opps[1]?.result_score || 0,
-          },
-        };
-      });
+    // Live matches — use the global league-level query (not serie-filtered)
+    // so live matches always appear even if the match belongs to a different serie
+    const liveMatches = (liveBySlug[slug] || []).map(m => {
+      const opps = globalLiveOppMap[m.id] || [];
+      return {
+        id: m.id,
+        begin_at: m.begin_at,
+        number_of_games: m.number_of_games || 3,
+        blue: {
+          abbr: opps[0]?.abbr || 'TBD',
+          logo_url: opps[0]?.logo_url || null,
+          score: opps[0]?.result_score || 0,
+        },
+        red: {
+          abbr: opps[1]?.abbr || 'TBD',
+          logo_url: opps[1]?.logo_url || null,
+          score: opps[1]?.result_score || 0,
+        },
+      };
+    });
 
     // Best players (top 5 by KDA, min 2 games)
     const bestPlayers = [...players]
@@ -1001,6 +1044,58 @@ export async function getHomeOverviewPg(req, res) {
     tier4Leagues: tier4Overviews.map(strip),
     metaSnapshot,
     teamHighlights: null,
+  });
+}
+
+// ── getLiveStatusPg ──────────────────────────────────────────────────────────
+// Lightweight endpoint that returns a fingerprint of the current live-match
+// state.  The frontend polls this every ~15s and only triggers a full
+// router.refresh() when the fingerprint changes (match started/ended/score
+// changed).  Runs a single fast query on the matches table.
+
+export async function getLiveStatusPg(_req, res) {
+  const MAJOR_LEAGUES  = ['LEC', 'LCS', 'LCK', 'LPL'];
+  const TIER3_LEAGUES  = ['CBLOL', 'LCP', 'VCS', 'LJL', 'TCL'];
+  const TIER4_LEAGUES  = ['LFL', 'PRM', 'LES', 'NLC', 'LIT', 'EBL', 'ROADOFLEGENDS', 'LCKCL', 'NACL', 'CIRCUITODESAF', 'LRN', 'LRS'];
+  const INTL_LEAGUES   = ['WORLDS', 'MSI', 'FIRSTSTAND', 'EWC'];
+  const EXTRA_LEAGUES  = ['EMEAMASTERS'];
+  const ALL_LEAGUES    = [...MAJOR_LEAGUES, ...TIER3_LEAGUES, ...TIER4_LEAGUES, ...INTL_LEAGUES, ...EXTRA_LEAGUES];
+
+  // 1. Resolve league IDs by name
+  const { rows: leagueRows } = await pgDb.query(`
+    SELECT id FROM leagues WHERE UPPER(name) = ANY($1::text[])
+  `, [ALL_LEAGUES]);
+
+  if (!leagueRows.length) {
+    return res.json({ liveCount: 0, fingerprint: '0' });
+  }
+
+  const allLeagueIds = leagueRows.map(r => r.id);
+
+  // 2. Get running matches with their opponent scores (by league_id, not serie)
+  const { rows: liveRows } = await pgDb.query(`
+    SELECT m.id, mo.team_id, mo.result_score
+    FROM matches m
+    JOIN match_opponents mo ON mo.match_id = m.id
+    WHERE m.league_id = ANY($1::int[]) AND m.status = 'running'
+    ORDER BY m.id, mo.side
+  `, [allLeagueIds]);
+
+  // 3. Build fingerprint: sorted list of "matchId:score1-score2"
+  const matchMap = {};
+  for (const r of liveRows) {
+    if (!matchMap[r.id]) matchMap[r.id] = [];
+    matchMap[r.id].push(r.result_score || 0);
+  }
+  const parts = Object.entries(matchMap)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([id, scores]) => `${id}:${scores.join('-')}`);
+
+  const fingerprint = parts.length > 0 ? parts.join('|') : '0';
+
+  res.json({
+    liveCount: Object.keys(matchMap).length,
+    fingerprint,
   });
 }
 

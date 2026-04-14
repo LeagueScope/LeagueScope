@@ -7,37 +7,38 @@ export class ApiError extends Error {
     this.statusCode = statusCode;
     this.isOperational = true;
   }
-  
+
   static badRequest(message) {
     return new ApiError(message, 400);
   }
-  
+
   static notFound(resource = 'Resource') {
     return new ApiError(`${resource} not found`, 404);
   }
-  
+
   static internal(message = 'Internal server error') {
     return new ApiError(message, 500);
   }
 }
 
-export function notFoundHandler(req, res, next) {
-  res.status(404).json({ error: 'Not found' });
+export function notFoundHandler(req, res) {
+  res.status(404).json({ error: 'Not found', reqId: req.id });
 }
 
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   log.error('Error', {
+    reqId: req.id,
     message: err.message,
     stack: err.stack,
-    path: req.path
+    path: req.path,
   });
-  
+
   if (err.isOperational) {
-    return res.status(err.statusCode).json({ error: err.message });
+    return res.status(err.statusCode).json({ error: err.message, reqId: req.id });
   }
 
   const message = config.isDev() ? err.message : 'Internal server error';
-  return res.status(500).json({ error: message });
+  return res.status(500).json({ error: message, reqId: req.id });
 }
 
 export function asyncHandler(fn) {

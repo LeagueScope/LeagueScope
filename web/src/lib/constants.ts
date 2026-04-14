@@ -151,7 +151,9 @@ export const TIER3_LEAGUES: LeagueDef[] = [
 ];
 
 export const INTL_LEAGUES: LeagueDef[] = [
+  { id: 'firststand', name: 'First Stand', color: '#ff5722', region: 'International' },
   { id: 'msi', name: 'MSI', color: '#c0c0c0', region: 'International' },
+  { id: 'ewc', name: 'EWC', color: '#00bcd4', region: 'International' },
   { id: 'worlds', name: 'Worlds', color: '#ffd700', region: 'International' },
 ];
 
@@ -187,7 +189,6 @@ export const EXTINCT_TIER3: LeagueDef[] = [
 
 export const EXTINCT_INTL: LeagueDef[] = [
   { id: 'allstar', name: 'All-Star', color: '#ffd700', region: 'International', note: 'Sin edición' },
-  { id: 'ewc', name: 'EWC', color: '#00bcd4', region: 'International', note: 'Esports World Cup' },
   { id: 'iem', name: 'IEM', color: '#00bcd4', region: 'International', note: 'Intel Extreme Masters' },
   { id: 'intwildcard', name: 'IWCI', color: '#9c27b0', region: 'International', note: 'Wildcard Invitational' },
   { id: 'seasonkickoff', name: 'Season Kickoff', color: '#ff5722', region: 'International', note: '→ First Stand' },
@@ -232,7 +233,6 @@ export const LEAGUES: LeagueDef[] = [
   ...TIER2_LEAGUES,
   ...TIER3_LEAGUES,
   ...INTL_LEAGUES,
-  { id: 'firststand', name: 'First Stand', color: '#ff5722', region: 'International' },
   { id: 'riftlegends', name: 'Rift Legends', color: '#01e4be', region: 'EMEA' },
   { id: 'americascup', name: 'Americas Cup', color: '#007bff', region: 'Americas' },
   ...ALL_EXTINCT,

@@ -39,9 +39,13 @@ export const metadata: Metadata = {
 };
 
 // ── Data fetching (runs on server) ──────────────────────────────────────
+// NOTE: revalidate=0 (no-store) — we rely on HomeLivePoller + router.refresh()
+// for freshness.  Data Cache is per-Lambda on AWS Amplify, so revalidateTag()
+// does not propagate across instances.  router.refresh() only fires when the
+// /pg/live-status fingerprint changes, so backend load stays low.
 async function getHomeData(): Promise<HomeData | null> {
   try {
-    return await api<HomeData>('/pg/home', { revalidate: 30 });
+    return await api<HomeData>('/pg/home', { revalidate: 0 });
   } catch {
     return null;
   }
@@ -62,14 +66,22 @@ export default async function HomePage() {
   }
 
   const majorCards = data.leagueOverviews || [];
-  const hasLive = majorCards.some(l => l.liveMatches && l.liveMatches.length > 0)
-    || (data.tier3Leagues || []).some((l: any) => l.liveMatches?.length > 0)
-    || (data.tier4Leagues || []).some((l: any) => l.liveMatches?.length > 0);
+  // Build initial fingerprint matching the /pg/live-status format:
+  // "matchId:score1-score2|matchId:score1-score2" sorted by id, or "0"
+  const allLeagues = [...majorCards, ...(data.tier3Leagues || []), ...(data.tier4Leagues || [])];
+  const liveParts: string[] = [];
+  for (const lg of allLeagues) {
+    for (const m of lg.liveMatches || []) {
+      liveParts.push(`${m.id}:${m.blue.score}-${m.red.score}`);
+    }
+  }
+  liveParts.sort((a, b) => Number(a.split(':')[0]) - Number(b.split(':')[0]));
+  const initialFingerprint = liveParts.length > 0 ? liveParts.join('|') : '0';
 
   return (
     <>
     <BreadcrumbJsonLd items={[{ name: 'Inicio', href: '/' }]} />
-    <HomeLivePoller hasLive={hasLive} />
+    <HomeLivePoller initialFingerprint={initialFingerprint} />
     <div className="home-editorial-container">
       {/* ==== TIER 2: INTERNATIONAL EVENTS ==== */}
       {/* <InternationalEvents /> */}

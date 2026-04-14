@@ -606,7 +606,6 @@ export default function Navbar() {
   ];
 
   const isLeaguePage = pathParts.length > 0 && LEAGUES.some(l => l.id === pathParts[0]);
-  const isFirstStand = pathname.startsWith('/firststand');
 
   // Helper: is current path active?
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
@@ -689,6 +688,7 @@ export default function Navbar() {
           >
             H2H
           </Link>
+
         </div>
 
         {/* Global Search */}
@@ -701,31 +701,9 @@ export default function Navbar() {
         <LeagueDropdown label="Tier 1" leagues={TIER1_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
         <LeagueDropdown label="Tier 2" leagues={TIER2_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
         <LeagueDropdown label="Tier 3" leagues={TIER3_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        <LeagueDropdown label="Internacional" leagues={INTL_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
 
         <div className="arcane-nav-separator" />
-
-        {/* First Stand */}
-        <button
-          className={`arcane-intl-btn ${isFirstStand ? 'active' : ''}`}
-          onClick={() => onNav('/firststand')}
-          aria-label="First Stand"
-          aria-current={isFirstStand ? 'page' : undefined}
-        >
-          <span>First Stand</span>
-        </button>
-
-        {/* International Buttons (MSI / Worlds) */}
-        {INTL_LEAGUES.map(league => (
-          <button
-            key={league.id}
-            className={`arcane-intl-btn ${currentLeague === league.id ? 'active' : ''}`}
-            onClick={() => onNav(`/${league.id}/overview`)}
-            aria-label={league.name}
-            aria-current={currentLeague === league.id ? 'page' : undefined}
-          >
-            <span>{league.name}</span>
-          </button>
-        ))}
 
         {/* Extintas Mega-Dropdown */}
         <ExtinctasDropdown currentLeague={currentLeague} onNav={onNav} />

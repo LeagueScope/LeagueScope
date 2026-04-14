@@ -21,9 +21,11 @@ export const log = {
   debug: (msg, data = {}) => logger.debug(data, msg),
   fatal: (msg, data = {}) => logger.fatal(data, msg),
 
-  // HTTP request logging (used by requestLogger middleware)
+  // HTTP request logging (used by requestLogger middleware).
+  // Includes the correlation id (req.id) if the requestId middleware ran.
   request: (req, res, duration) => {
     logger.info({
+      reqId: req.id,
       method: req.method,
       url: req.url,
       status: res.statusCode,

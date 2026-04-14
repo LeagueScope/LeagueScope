@@ -11,29 +11,13 @@ import rateLimit from 'express-rate-limit';
 import http from 'http';
 // path and fileURLToPath removed — no longer serving static files
 
-// ── Environment validation ────────────────────────────────────────────────────
-// Must run before any other import that reads process.env
-const REQUIRED_ENV = ['PANDASCORE_TOKEN'];
-const MISSING_ENV = REQUIRED_ENV.filter(k => !process.env[k]);
-if (MISSING_ENV.length > 0) {
-  console.error('');
-  console.error('[FATAL] Missing required environment variables:');
-  MISSING_ENV.forEach(k => console.error(`  ✗  ${k}`));
-  console.error('');
-  console.error('  Create a .env file in backend/ with:');
-  MISSING_ENV.forEach(k => console.error(`  ${k}=your_value_here`));
-  console.error('');
-  process.exit(1);
-}
-
-// Optional — warn if PANDASCORE_PLAN is not set (defaults to Tier 2 behaviour)
-if (!process.env.PANDASCORE_PLAN) {
-  console.warn('[WARN] PANDASCORE_PLAN not set — timeline frames will be unavailable (Tier 2 mode).');
-}
-
+// Env validation is performed inside ./config/index.js at import time.
+// Importing config first ensures the process crashes with a clear message
+// before any other module tries to read process.env.
 import config from './config/index.js';
 import routes from './routes/index.js';
 import { log } from './utils/logger.js';
+import { requestId } from './middleware/requestId.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
@@ -47,13 +31,20 @@ let io = null;
 function createApp() {
   const app = express();
 
+  // ── Correlation ID — first, so every subsequent log/error carries it ────────
+  app.use(requestId);
+
   // ── Security headers (helmet + CSP) ────────────────────────────────────────
+  // NOTE: the backend serves only JSON API responses (no HTML). The CSP here
+  // is defence-in-depth against a hypothetical future regression where an
+  // endpoint leaks HTML. 'unsafe-inline' has been removed from styleSrc
+  // because the backend never renders pages.
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc:  ["'self'"],
-        styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        styleSrc:   ["'self'", "https://fonts.googleapis.com"],
         fontSrc:    ["'self'", "https://fonts.gstatic.com"],
         imgSrc:     ["'self'", "data:", "https://cdn.pandascore.co", "https://raw.githubusercontent.com", "https://flagcdn.com"],
         connectSrc: ["'self'", config.frontendUrl || "http://localhost:5173"],
@@ -132,10 +123,17 @@ function createApp() {
     next();
   };
 
+  // Realtime endpoints — never cache (live match polling relies on this)
+  const cacheNone = (req, res, next) => {
+    res.set('Cache-Control', 'no-store, must-revalidate');
+    next();
+  };
+
   // Filter endpoints — change rarely
   app.use('/api/v1/pg/filters', cacheStatic);
-  // Home overview — moderate freshness
-  app.use('/api/v1/pg/home', cacheMedium);
+  // Home overview — realtime (fingerprint-driven refresh)
+  app.use('/api/v1/pg/home', cacheNone);
+  app.use('/api/v1/pg/live-status', cacheNone);
   // Search — moderate freshness
   app.use('/api/v1/pg/search', cacheMedium);
   // Data endpoints — short cache

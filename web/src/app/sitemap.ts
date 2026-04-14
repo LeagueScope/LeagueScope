@@ -31,7 +31,6 @@ const ALL_LEAGUE_IDS = [
   ...TIER2_LEAGUES,
   ...TIER3_LEAGUES,
   ...INTL_LEAGUES,
-  { id: 'firststand' },
   { id: 'riftlegends' },
   { id: 'americascup' },
   ...EXTINCT_TIER1,
