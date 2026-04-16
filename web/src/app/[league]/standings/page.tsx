@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { getLeagueColors } from '@/lib/leagueColors';
+import LeaguePagePoller from '@/app/components/LeaguePagePoller';
 import './standings.css';
 
 const StandingsClient = dynamic(() => import('./StandingsClient'));
@@ -140,10 +141,13 @@ export default async function StandingsPage({
   const teams = await getTeams(league);
 
   return (
-    <StandingsClient
-      league={league}
-      accent={accent}
-      initialTeams={teams}
-    />
+    <>
+      <StandingsClient
+        league={league}
+        accent={accent}
+        initialTeams={teams}
+      />
+      <LeaguePagePoller league={league} />
+    </>
   );
 }

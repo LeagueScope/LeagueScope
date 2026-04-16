@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { getLeagueColors } from '@/lib/leagueColors';
+import LeaguePagePoller from '@/app/components/LeaguePagePoller';
 import './record.css';
 
 const RecordClient = dynamic(() => import('./RecordClient'));
@@ -122,11 +123,14 @@ export default async function RecordPage({
   ]);
 
   return (
-    <RecordClient
-      league={league}
-      accent={accent}
-      initialMatches={matches}
-      tournament={tournament}
-    />
+    <>
+      <RecordClient
+        league={league}
+        accent={accent}
+        initialMatches={matches}
+        tournament={tournament}
+      />
+      <LeaguePagePoller league={league} />
+    </>
   );
 }

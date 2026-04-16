@@ -195,6 +195,50 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
     ['First Baron', blue.first_baron_rate || 0, red.first_baron_rate || 0],
   ];
 
+  // ── Detect "no advanced stats" case: torneo sin telemetría detallada ──
+  // Si no hay champions, ni jugadores, ni bans, ni side_stats con valores reales,
+  // mostramos un mensaje informativo en lugar de los bloques vacíos.
+  const hasChamps = (topChamps || []).length > 0;
+  const hasPlayers = (topKills || []).length > 0 || (topCS || []).length > 0 || (topKDAPlayers || []).length > 0;
+  const hasTeamStats = (topKillsPerGame || []).length > 0;
+  const hasBans = (blueBans || []).length > 0 || (redBans || []).length > 0;
+  const hasSideStats = (blue.win_rate || 0) > 0 || (red.win_rate || 0) > 0;
+  const hasAdvancedStats = hasChamps || hasPlayers || hasTeamStats || hasBans || hasSideStats;
+
+  if (!hasAdvancedStats) {
+    return (
+      <div className="p50-container" style={{ '--p50-accent': accent, '--p2-league-accent': accent } as React.CSSProperties}>
+        <div className="p2-league-header">
+          <div className="p2-header-info">
+            <div className="p2-header-logo-container">
+              <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
+            </div>
+            <div className="p2-header-text">
+              <div className="p2-header-league-name">{league.toUpperCase()} OVERVIEW</div>
+              <div className="p2-header-season">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
+            </div>
+          </div>
+        </div>
+        <div
+          className="p50-card"
+          style={{
+            gridColumn: 'span 3',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 360,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ color: '#e6edf3', fontSize: 16, fontWeight: 700, letterSpacing: 0.3, maxWidth: 520, lineHeight: 1.5 }}>
+            Lo sentimos, actualmente no disponemos de información detallada de este torneo.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p50-container" style={{ '--p50-accent': accent, '--p2-league-accent': accent } as React.CSSProperties}>
 

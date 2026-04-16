@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { getLeagueColors } from '@/lib/leagueColors';
 import OverviewClient from './OverviewClient';
 import type { OverviewData } from './OverviewClient';
+import LeaguePagePoller from '@/app/components/LeaguePagePoller';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Overview — Next.js SSR wrapper
@@ -66,5 +67,10 @@ export default async function OverviewPage({
   const { accent } = getLeagueColors(league);
   const data = await getOverviewData(league);
 
-  return <OverviewClient league={league} accent={accent} initialData={data} />;
+  return (
+    <>
+      <OverviewClient league={league} accent={accent} initialData={data} />
+      <LeaguePagePoller league={league} />
+    </>
+  );
 }

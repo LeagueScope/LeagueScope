@@ -19,7 +19,7 @@ Parameters:
     Description: Cadence for the auto-ingest (historical) Lambda
   MatchPollerRate:
     Type: String
-    Default: 'rate(1 minute)'
+    Default: 'rate(2 minutes)'
     Description: Cadence for the real-time match-poller Lambda
   LambdaSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -117,7 +117,7 @@ Resources:
           Properties:
             Schedule: !Ref MatchPollerRate
             Name: leaguescope-match-poller-schedule
-            Description: Trigger match-poller every 1 minute
+            Description: Trigger match-poller every 2 minutes
             Enabled: true
       Policies:
         - AWSLambdaVPCAccessExecutionRole

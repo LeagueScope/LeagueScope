@@ -1053,7 +1053,7 @@ export async function getHomeOverviewPg(req, res) {
 // router.refresh() when the fingerprint changes (match started/ended/score
 // changed).  Runs a single fast query on the matches table.
 
-export async function getLiveStatusPg(_req, res) {
+export async function getLiveStatusPg(req, res) {
   const MAJOR_LEAGUES  = ['LEC', 'LCS', 'LCK', 'LPL'];
   const TIER3_LEAGUES  = ['CBLOL', 'LCP', 'VCS', 'LJL', 'TCL'];
   const TIER4_LEAGUES  = ['LFL', 'PRM', 'LES', 'NLC', 'LIT', 'EBL', 'ROADOFLEGENDS', 'LCKCL', 'NACL', 'CIRCUITODESAF', 'LRN', 'LRS'];
@@ -1061,10 +1061,20 @@ export async function getLiveStatusPg(_req, res) {
   const EXTRA_LEAGUES  = ['EMEAMASTERS'];
   const ALL_LEAGUES    = [...MAJOR_LEAGUES, ...TIER3_LEAGUES, ...TIER4_LEAGUES, ...INTL_LEAGUES, ...EXTRA_LEAGUES];
 
+  // Optional ?league=XXX filter: returns fingerprint only for matches of that
+  // league (used by per-league pages like /[league]/record or /[league]/standings
+  // to avoid unnecessary re-renders when live-matches change in unrelated leagues).
+  const leagueFilter = typeof req?.query?.league === 'string'
+    ? req.query.league.trim().toUpperCase()
+    : null;
+  const leaguesToQuery = leagueFilter && ALL_LEAGUES.includes(leagueFilter)
+    ? [leagueFilter]
+    : ALL_LEAGUES;
+
   // 1. Resolve league IDs by name
   const { rows: leagueRows } = await pgDb.query(`
     SELECT id FROM leagues WHERE UPPER(name) = ANY($1::text[])
-  `, [ALL_LEAGUES]);
+  `, [leaguesToQuery]);
 
   if (!leagueRows.length) {
     return res.json({ liveCount: 0, fingerprint: '0' });

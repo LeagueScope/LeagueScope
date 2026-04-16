@@ -112,9 +112,9 @@ function McCard({ league }: { league: LeagueOverview }) {
                     {m.red.logo_url && <Image src={m.red.logo_url} alt={m.red.abbr} className="p1-team-mini" width={24} height={24} />}
                   </div>
                   <div className="p1-table-cell-score">
-                    <span className={m.winner === 'blue' ? 'p1-winner-text' : ''}>{m.blue.score}</span>
+                    <span className={m.winner === 'blue' ? 'blue-text' : ''}>{m.blue.score}</span>
                     <span style={{ opacity: 0.3 }}>-</span>
-                    <span className={m.winner === 'red' ? 'p1-winner-text' : ''}>{m.red.score}</span>
+                    <span className={m.winner === 'red' ? 'red-text' : ''}>{m.red.score}</span>
                   </div>
                 </div>
               ))}
