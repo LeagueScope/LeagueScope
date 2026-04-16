@@ -24,6 +24,8 @@
     "poller:test": "node scripts/match-poller.js --once --leagues LEC,LCK"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.650.0",
+    "@aws-sdk/client-sesv2": "^3.650.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

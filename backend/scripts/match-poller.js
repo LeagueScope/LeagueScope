@@ -90,7 +90,7 @@ const LEAGUE_IDS = {
   // EMEA Masters
   EMEAMASTERS: 4996,
   // ERLs
-  LFL: 4292, PRM: 4302, LES: 5496, NLC: 4411, LIT: 5211, EBL: 4426,
+  LFL: 4292, PRM: 4302, LES: 5496, NLC: 4411, LIT: 5211, EBL: 4426, HLL: 5355,
   // International
   WORLDS: 297, MSI: 300, FIRSTSTAND: 5369, EWC: 5262,
   // Other
@@ -1878,6 +1878,80 @@ async function autoBackfillIncomplete(pool) {
   }
 }
 
+// Auto-heal: matches marked as finished with at least one finished game that
+// has 0 rows in game_players. Root cause: PandaScore marks the match finished
+// before its telemetry pipeline has published player-per-game data (frequent
+// for tier-3 ERLs like LES/LFL/LRS). Detects both fully broken matches (no
+// telemetry on any game) and partial ones (e.g. game 1 has data, game 2 does
+// not). We retry up to 7 days after kickoff — anything older is treated as
+// permanent data rot and left alone.
+async function autoHealBrokenMatches(pool) {
+  try {
+    const { rows: broken } = await pool.query(`
+      SELECT m.id AS match_id, m.name
+      FROM matches m
+      WHERE m.status = 'finished'
+        AND m.games_ingested_at IS NOT NULL
+        AND m.games_ingested_at < NOW() - INTERVAL '5 minutes'
+        AND m.begin_at > NOW() - INTERVAL '7 days'
+        AND m.detailed_stats = true
+        AND EXISTS (
+          SELECT 1 FROM games g
+          WHERE g.match_id = m.id
+            AND g.finished = true
+            AND g.length > 60
+            AND NOT EXISTS (
+              SELECT 1 FROM game_players gp WHERE gp.game_id = g.id
+            )
+        )
+      ORDER BY m.begin_at DESC
+      LIMIT 20
+    `);
+
+    if (broken.length === 0) return;
+
+    log(`  Auto-heal: ${broken.length} recent match(es) without player telemetry`);
+    for (const m of broken) {
+      log(`    Re-ingesting match ${m.match_id} (${m.name})...`);
+
+      // Count player rows before retry
+      const before = await pool.query(
+        `SELECT COUNT(*)::int AS n FROM games g
+         JOIN game_players gp ON gp.game_id = g.id
+         WHERE g.match_id = $1`,
+        [m.match_id]
+      );
+      const nBefore = before.rows[0].n;
+
+      const result = await runFetchForMatch(m.match_id);
+
+      if (result.success) {
+        await pool.query(`UPDATE matches SET games_ingested_at = NOW() WHERE id = $1`, [m.match_id]);
+
+        // Count player rows after retry
+        const after = await pool.query(
+          `SELECT COUNT(*)::int AS n FROM games g
+           JOIN game_players gp ON gp.game_id = g.id
+           WHERE g.match_id = $1`,
+          [m.match_id]
+        );
+        const nAfter = after.rows[0].n;
+        const delta = nAfter - nBefore;
+
+        if (delta > 0) {
+          logOk(`    match ${m.match_id}: auto-healed +${delta} players (total ${nAfter})`);
+        } else {
+          log(`    match ${m.match_id}: re-ingested but PandaScore still has no player data (will retry)`);
+        }
+      } else {
+        logWarn(`    match ${m.match_id}: auto-heal failed — will retry next cycle`);
+      }
+    }
+  } catch (err) {
+    logWarn(`  Auto-heal check error: ${err.message}`);
+  }
+}
+
 async function pollCycle(pool) {
   const cycleStart = Date.now();
   requestCount = 0;
@@ -1907,6 +1981,9 @@ async function pollCycle(pool) {
 
     // Step 5: Auto-backfill recent games with missing runes (PandaScore delay fix)
     await autoBackfillIncomplete(pool);
+
+    // Step 6: Auto-heal recent matches with 0 game_players (PandaScore telemetry delay)
+    await autoHealBrokenMatches(pool);
 
     const elapsed = ((Date.now() - cycleStart) / 1000).toFixed(1);
     log(`${BOLD}─── Cycle done: ${requestCount} API calls, ${elapsed}s ───${RST}\n`);

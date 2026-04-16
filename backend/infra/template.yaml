@@ -27,6 +27,22 @@ Parameters:
   LambdaSecurityGroupId:
     Type: AWS::EC2::SecurityGroup::Id
     Description: Security group for Lambda ENIs (must be allowed on RDS port 5432)
+  AlertsFromAddress:
+    Type: String
+    Default: 'LeagueScope Alerts <alerts@leaguescope.com>'
+    Description: Verified SES sender (name + address) for alert emails
+  AlertsRecipient:
+    Type: String
+    Default: 'leaguescopeweb@gmail.com'
+    Description: Recipient email for CloudWatch alerts (must be SES-verified while in sandbox)
+  DigestSchedule:
+    Type: String
+    Default: 'cron(0 9 * * ? *)'
+    Description: Cron for daily digest in Europe/Madrid timezone (default 09:00)
+  PandascoreHourlyLimit:
+    Type: Number
+    Default: 10000
+    Description: PandaScore API hourly call limit (for quota reference in digest)
 
 Globals:
   Function:
@@ -34,14 +50,8 @@ Globals:
     MemorySize: 512       # 512 MB is enough for DB + API calls
     Environment:
       Variables:
-        PG_DSN: !Ref PgDsn
-        PANDASCORE_TOKEN: !Ref PandascoreToken
         NODE_ENV: production
         CURRENT_YEAR: '2026'
-    VpcConfig:
-      SubnetIds: !Ref LambdaSubnetIds
-      SecurityGroupIds:
-        - !Ref LambdaSecurityGroupId
 
 Resources:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -55,6 +65,14 @@ Resources:
       CodeUri: ../                    # backend/ root (includes scripts/, data/, node_modules/)
       Description: Continuous PandaScore historical backfill for LeagueScope
       Timeout: 900                    # 15 minutes (Lambda max)
+      Environment:
+        Variables:
+          PG_DSN: !Ref PgDsn
+          PANDASCORE_TOKEN: !Ref PandascoreToken
+      VpcConfig:
+        SubnetIds: !Ref LambdaSubnetIds
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
       Events:
         ScheduledIngest:
           Type: Schedule
@@ -85,6 +103,14 @@ Resources:
       CodeUri: ../
       Description: Real-time upcoming/running/finished match status poller
       Timeout: 300                    # 5 minutes per cycle (should be plenty)
+      Environment:
+        Variables:
+          PG_DSN: !Ref PgDsn
+          PANDASCORE_TOKEN: !Ref PandascoreToken
+      VpcConfig:
+        SubnetIds: !Ref LambdaSubnetIds
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
       Events:
         ScheduledPoll:
           Type: Schedule
@@ -105,6 +131,132 @@ Resources:
               Resource: 'arn:aws:logs:*:*:*'
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # AlertsTopic + AlertNotifierFunction — Pretty HTML alerts via SES
+  # Flow: CloudWatch Alarm → SNS → Lambda (formats HTML) → SES → Gmail
+  # ═══════════════════════════════════════════════════════════════════════════
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: leaguescope-alerts
+      DisplayName: LeagueScope Alerts
+
+  AlertNotifierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: leaguescope-alert-notifier
+      Handler: scripts/alert-notifier.handler
+      CodeUri: ../
+      Description: Formats CloudWatch alarm SNS messages as HTML email via SES
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          ALERTS_FROM: !Ref AlertsFromAddress
+          ALERTS_TO: !Ref AlertsRecipient
+          SES_CONFIG_SET: leaguescope-default
+      # No VpcConfig: the notifier only talks to SES (public API) — keep cold starts fast
+      Events:
+        SnsTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref AlertsTopic
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: 'arn:aws:logs:*:*:*'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DailyDigestFunction — 09:00 Madrid summary (DB + CloudWatch → HTML email)
+  # ═══════════════════════════════════════════════════════════════════════════
+  DailyDigestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: leaguescope-daily-digest
+      Handler: scripts/daily-digest.handler
+      CodeUri: ../
+      Description: Daily system + ingestion digest email (09:00 Europe/Madrid)
+      Timeout: 120
+      MemorySize: 512
+      Environment:
+        Variables:
+          PG_DSN: !Ref PgDsn
+          ALERTS_FROM: !Ref AlertsFromAddress
+          ALERTS_TO: !Ref AlertsRecipient
+          SES_CONFIG_SET: leaguescope-default
+          AUTO_INGEST_FN: leaguescope-auto-ingest
+          MATCH_POLLER_FN: leaguescope-match-poller
+          PANDASCORE_HOURLY_LIMIT: !Ref PandascoreHourlyLimit
+      VpcConfig:
+        SubnetIds: !Ref LambdaSubnetIds
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - cloudwatch:GetMetricStatistics
+                - cloudwatch:DescribeAlarms
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: 'arn:aws:logs:*:*:*'
+
+  # IAM role for EventBridge Scheduler to invoke the digest Lambda
+  DailyDigestSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeDailyDigest
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt DailyDigestFunction.Arn
+
+  # EventBridge Scheduler with native Europe/Madrid timezone support
+  DailyDigestSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: leaguescope-daily-digest-schedule
+      Description: Daily digest at 09:00 Europe/Madrid (DST-aware)
+      ScheduleExpression: !Ref DigestSchedule
+      ScheduleExpressionTimezone: Europe/Madrid
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      State: ENABLED
+      Target:
+        Arn: !GetAtt DailyDigestFunction.Arn
+        RoleArn: !GetAtt DailyDigestSchedulerRole.Arn
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # CloudWatch alarms: alert if a Lambda errors repeatedly
   # ═══════════════════════════════════════════════════════════════════════════
   AutoIngestErrorAlarm:
@@ -123,6 +275,10 @@ Resources:
       Threshold: 3
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+      OKActions:
+        - !Ref AlertsTopic
 
   MatchPollerErrorAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -140,6 +296,31 @@ Resources:
       Threshold: 5
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+      OKActions:
+        - !Ref AlertsTopic
+
+  AutoIngestStaleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: leaguescope-auto-ingest-stale
+      AlarmDescription: Auto-ingest Lambda has not run in the last 2 hours
+      MetricName: Invocations
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AutoIngestFunction
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        - !Ref AlertsTopic
+      OKActions:
+        - !Ref AlertsTopic
 
 Outputs:
   AutoIngestArn:
@@ -154,3 +335,12 @@ Outputs:
   MatchPollerName:
     Description: Match-poller Lambda function name
     Value: !Ref MatchPollerFunction
+  AlertsTopicArn:
+    Description: SNS topic ARN for CloudWatch alerts
+    Value: !Ref AlertsTopic
+  AlertNotifierName:
+    Description: Alert notifier Lambda function name
+    Value: !Ref AlertNotifierFunction
+  DailyDigestName:
+    Description: Daily digest Lambda function name
+    Value: !Ref DailyDigestFunction

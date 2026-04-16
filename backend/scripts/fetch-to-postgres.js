@@ -602,18 +602,27 @@ async function phase2_structure(leagueSlug, leagueId) {
           m.detailed_stats ?? false, m.streams_list?.[0]?.raw_url || null]);
 
       // Match opponents
+      // NOTE: m.results[] is NOT always ordered the same as m.opponents[].
+      // Each result has a team_id, so we must match by team_id, not by array index.
+      // (Bug fix: previously used m.results[i] which sometimes swapped scores in playoffs.)
       if (m.opponents) {
+        const resultsByTeamId = {};
+        for (const r of (m.results || [])) {
+          if (r?.team_id != null) resultsByTeamId[r.team_id] = r.score;
+        }
         for (let i = 0; i < m.opponents.length; i++) {
           const opp = m.opponents[i];
           const team = opp.opponent || opp;
           if (!team.id) continue;
           allTeamIds.add(team.id);
-          const result = m.results?.[i];
+          const score = resultsByTeamId[team.id] ?? null;
           await upsert(`
             INSERT INTO match_opponents (match_id, team_id, side, result_score)
             VALUES ($1,$2,$3,$4)
-            ON CONFLICT DO NOTHING
-          `, [m.id, team.id, i + 1, result?.score ?? null]);
+            ON CONFLICT (match_id, team_id) DO UPDATE
+              SET side = EXCLUDED.side,
+                  result_score = EXCLUDED.result_score
+          `, [m.id, team.id, i + 1, score]);
         }
       }
 
@@ -634,6 +643,16 @@ async function phase2_structure(leagueSlug, leagueId) {
     const { data: players } = await apiGet('/lol/players', { 'filter[id]': batch.join(','), per_page: 50 });
     if (players && Array.isArray(players)) {
       for (const p of players) {
+        // Ensure current_team exists in `teams` before inserting player (FK players_current_team_fkey).
+        if (p.current_team?.id) {
+          await upsert(`
+            INSERT INTO teams (id, name, slug, acronym, location, image_url)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO NOTHING
+          `, [p.current_team.id, p.current_team.name || 'Unknown',
+              p.current_team.slug || null, p.current_team.acronym || null,
+              p.current_team.location || null, p.current_team.image_url || null]);
+        }
         await upsert(`
           INSERT INTO players (id, name, first_name, last_name, slug, role, nationality, birthday,
             image_url, active, current_team_id)
