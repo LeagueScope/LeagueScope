@@ -51,7 +51,7 @@ export type { OverviewData };
 // ── Data fetching ─────────────────────────────────────────────────────────
 async function getOverviewData(league: string): Promise<OverviewData | null> {
   try {
-    return await api<OverviewData>(`/pg/overview?league=${league}`, { revalidate: 120 });
+    return await api<OverviewData>(`/pg/overview?league=${league}&full=1`, { revalidate: 120 });
   } catch {
     return null;
   }

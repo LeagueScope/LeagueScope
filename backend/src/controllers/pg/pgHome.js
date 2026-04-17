@@ -34,7 +34,8 @@ export async function getTournamentPg(req, res) {
 // Returns tournament overview with champions, players, teams, and side stats
 
 export async function getOverviewPg(req, res) {
-  const { league = 'LEC', year, split, stage } = req.query;
+  const { league = 'LEC', year, split, stage, full } = req.query;
+  const isFull = full === '1' || full === 'true';
 
   // 1. Resolve serie
   const { serieId, stageParam } = await resolveSerie({ league, year, split, stage });
@@ -102,7 +103,7 @@ export async function getOverviewPg(req, res) {
           FROM pick_stats p
           FULL OUTER JOIN ban_stats b ON b.champion_name = p.champion_name
           CROSS JOIN total t
-          ORDER BY COALESCE(p.picks, 0) DESC
+          ORDER BY COALESCE(p.picks, 0) DESC, COALESCE(b.bans, 0) DESC
         `, [serieId, ...stageParams])
       : pgDb.query(`
           SELECT cgs.champion_id, cgs.champion_name, cgs.picks, cgs.bans, cgs.wins, cgs.losses,
@@ -114,7 +115,7 @@ export async function getOverviewPg(req, res) {
                  cgs.total_games_in_serie
           FROM champion_global_stats cgs
           WHERE cgs.serie_id = $1
-          ORDER BY cgs.picks DESC
+          ORDER BY cgs.picks DESC, cgs.bans DESC
         `, [serieId]),
 
     // Player career stats — live from game_players when stage, precalculated otherwise
@@ -128,7 +129,7 @@ export async function getOverviewPg(req, res) {
             SUM(CASE WHEN g.winner_id = gp.team_id THEN 1 ELSE 0 END) AS wins,
             ROUND(((SUM(gp.kills) + SUM(gp.assists))::numeric / NULLIF(SUM(gp.deaths), 0)), 2) AS kda,
             ROUND(AVG(CASE WHEN team_kills.tk > 0 THEN (gp.kills + gp.assists)::numeric / team_kills.tk * 100 ELSE 0 END), 1) AS kill_participation,
-            ROUND(AVG((gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_cspm,
+            ROUND(AVG(COALESCE(gp.creep_score, gp.minions_killed) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_cspm,
             ROUND(AVG(gp.total_damage_dealt_to_champions / NULLIF(g.length / 60.0, 0))::numeric, 0) AS dpm,
             ROUND(AVG(gp.gold_earned / NULLIF(g.length / 60.0, 0))::numeric, 0) AS gpm,
             ROUND(AVG(gp.total_damage_dealt_to_champions_percentage)::numeric, 1) AS dmg_share,
@@ -155,7 +156,7 @@ export async function getOverviewPg(req, res) {
             SUM(CASE WHEN g.winner_id = gp.team_id THEN 1 ELSE 0 END) AS wins,
             ROUND(((SUM(gp.kills) + SUM(gp.assists))::numeric / NULLIF(SUM(gp.deaths), 0)), 2) AS kda,
             ROUND(AVG(CASE WHEN team_kills.tk > 0 THEN (gp.kills + gp.assists)::numeric / team_kills.tk * 100 ELSE 0 END), 1) AS kill_participation,
-            ROUND(AVG((gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_cspm,
+            ROUND(AVG(COALESCE(gp.creep_score, gp.minions_killed) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_cspm,
             ROUND(AVG(gp.total_damage_dealt_to_champions / NULLIF(g.length / 60.0, 0))::numeric, 0) AS dpm,
             ROUND(AVG(gp.gold_earned / NULLIF(g.length / 60.0, 0))::numeric, 0) AS gpm,
             ROUND(AVG(gp.total_damage_dealt_to_champions_percentage)::numeric, 1) AS dmg_share,
@@ -286,8 +287,8 @@ export async function getOverviewPg(req, res) {
     dragons_by_type,
   };
 
-  // 6. Top champions (top 11 by picks)
-  const topChamps = champRows.slice(0, 11).map(c => {
+  // 6. Top champions (top 11 by picks, or all if full)
+  const topChamps = (isFull ? champRows : champRows.slice(0, 11)).map(c => {
     const champ = champMap[c.champion_id] || {};
     const tg = c.total_games_in_serie || 1;
     return {
@@ -302,30 +303,34 @@ export async function getOverviewPg(req, res) {
     };
   });
 
-  // 7. Blue/red bans (top 5 each)
-  const blueBans = [...champRows]
+  // 7. Blue/red bans (top 5 each, or all if full)
+  const blueBansSorted = [...champRows]
     .filter(c => c.bans_blue > 0)
-    .sort((a, b) => (b.ban_rate_blue || 0) - (a.ban_rate_blue || 0))
-    .slice(0, 5)
+    .sort((a, b) => (b.ban_rate_blue || 0) - (a.ban_rate_blue || 0));
+  const blueBans = (isFull ? blueBansSorted : blueBansSorted.slice(0, 5))
     .map(c => {
       const champ = champMap[c.champion_id] || {};
       return {
         name: c.champion_name || champ.name,
         image_url: champ.image_url || null,
         ban_rate_blue: rnd(c.ban_rate_blue, 1),
+        bans_blue: Number(c.bans_blue) || 0,
+        bans_red: Number(c.bans_red) || 0,
       };
     });
 
-  const redBans = [...champRows]
+  const redBansSorted = [...champRows]
     .filter(c => c.bans_red > 0)
-    .sort((a, b) => (b.ban_rate_red || 0) - (a.ban_rate_red || 0))
-    .slice(0, 5)
+    .sort((a, b) => (b.ban_rate_red || 0) - (a.ban_rate_red || 0));
+  const redBans = (isFull ? redBansSorted : redBansSorted.slice(0, 5))
     .map(c => {
       const champ = champMap[c.champion_id] || {};
       return {
         name: c.champion_name || champ.name,
         image_url: champ.image_url || null,
         ban_rate_red: rnd(c.ban_rate_red, 1),
+        bans_blue: Number(c.bans_blue) || 0,
+        bans_red: Number(c.bans_red) || 0,
       };
     });
 
@@ -355,33 +360,29 @@ export async function getOverviewPg(req, res) {
     avg_gold_share: rnd(p.gold_share, 1),
   });
 
-  const topKills = [...playerRows]
-    .sort((a, b) => (b.max_kills || 0) - (a.max_kills || 0))
-    .slice(0, 12).map(mapPlayer);
+  const cap = (arr, n) => (isFull ? arr : arr.slice(0, n));
 
-  const topCS = [...playerRows]
-    .sort((a, b) => (b.avg_cspm || 0) - (a.avg_cspm || 0))
-    .slice(0, 12).map(mapPlayer);
+  const topKills = cap([...playerRows]
+    .sort((a, b) => (b.max_kills || 0) - (a.max_kills || 0)), 12).map(mapPlayer);
 
-  const topKDAPlayers = [...playerRows]
+  const topCS = cap([...playerRows]
+    .sort((a, b) => (b.avg_cspm || 0) - (a.avg_cspm || 0)), 12).map(mapPlayer);
+
+  const topKDAPlayers = cap([...playerRows]
     .filter(p => p.games >= 3)
-    .sort((a, b) => (b.kda || 0) - (a.kda || 0))
-    .slice(0, 12).map(mapPlayer);
+    .sort((a, b) => (b.kda || 0) - (a.kda || 0)), 12).map(mapPlayer);
 
-  const topKillParticipation = [...playerRows]
+  const topKillParticipation = cap([...playerRows]
     .filter(p => p.games >= 3)
-    .sort((a, b) => (b.kill_participation || 0) - (a.kill_participation || 0))
-    .slice(0, 3).map(mapPlayer);
+    .sort((a, b) => (b.kill_participation || 0) - (a.kill_participation || 0)), 3).map(mapPlayer);
 
-  const topDamageShare = [...playerRows]
+  const topDamageShare = cap([...playerRows]
     .filter(p => p.games >= 3)
-    .sort((a, b) => (b.dmg_share || 0) - (a.dmg_share || 0))
-    .slice(0, 3).map(mapPlayer);
+    .sort((a, b) => (b.dmg_share || 0) - (a.dmg_share || 0)), 3).map(mapPlayer);
 
-  const topGoldShare = [...playerRows]
+  const topGoldShare = cap([...playerRows]
     .filter(p => p.games >= 3)
-    .sort((a, b) => (b.gold_share || 0) - (a.gold_share || 0))
-    .slice(0, 3).map(mapPlayer);
+    .sort((a, b) => (b.gold_share || 0) - (a.gold_share || 0)), 3).map(mapPlayer);
 
   // 9. Team rankings
   const mapTeam = (t) => ({
@@ -392,9 +393,8 @@ export async function getOverviewPg(req, res) {
     avg_dragons: Number(t.avg_dragons),
   });
 
-  const topKillsPerGame = [...teamRows]
-    .sort((a, b) => Number(b.avg_kills) - Number(a.avg_kills))
-    .slice(0, 3).map(mapTeam);
+  const topKillsPerGame = cap([...teamRows]
+    .sort((a, b) => Number(b.avg_kills) - Number(a.avg_kills)), 3).map(mapTeam);
 
   // Deaths: team with fewest avg_kills_received (approx from opponent kills)
   // Deaths per game per team — use team_career precalculated or recalculate from opponent kills
@@ -424,18 +424,16 @@ export async function getOverviewPg(req, res) {
         GROUP BY gt.team_id, t.acronym, t.dark_mode_image_url, t.image_url
       `, [serieId]);
 
-  const topDeathsPerGame = [...teamCareerRows]
-    .sort((a, b) => (a.deaths_avg || 999) - (b.deaths_avg || 999))
-    .slice(0, 3)
+  const topDeathsPerGame = cap([...teamCareerRows]
+    .sort((a, b) => (a.deaths_avg || 999) - (b.deaths_avg || 999)), 3)
     .map(t => ({
       abbr: t.abbr,
       logo_url: t.logo_url,
       avg_deaths: rnd(t.deaths_avg, 1),
     }));
 
-  const topDragonsPerGame = [...teamRows]
-    .sort((a, b) => Number(b.avg_dragons) - Number(a.avg_dragons))
-    .slice(0, 3).map(mapTeam);
+  const topDragonsPerGame = cap([...teamRows]
+    .sort((a, b) => Number(b.avg_dragons) - Number(a.avg_dragons)), 3).map(mapTeam);
 
   res.json({
     tournament,

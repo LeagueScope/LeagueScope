@@ -7,6 +7,7 @@ import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
 import DragonChart from './DragonChart';
 import { useFilters } from '@/context/FilterContext';
+import { ExpandableGrid, ExpandableCard } from './ExpandableCard';
 import './overview.css';
 import './p50.css';
 
@@ -53,6 +54,8 @@ interface BanChamp {
   image_url?: string;
   ban_rate_blue?: number;
   ban_rate_red?: number;
+  bans_blue?: number;
+  bans_red?: number;
 }
 
 interface TeamStat {
@@ -142,6 +145,7 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
     if (!filters.ready) return;
     const qs = new URLSearchParams();
     qs.set('league', league.toUpperCase());
+    qs.set('full', '1');
     if (filters.year) qs.set('year', String(filters.year));
     if (filters.split) qs.set('split', filters.split);
     if (filters.stage && filters.stage !== 'all') qs.set('stage', filters.stage);
@@ -255,33 +259,37 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
         </div>
       </div>
 
+      <ExpandableGrid>
+
       {/* ═══════ CHAMPIONS PLAYED ═══════ */}
-      <div className="p50-card p50-card-stretch">
-        <div className="p50-card-head">
-          <span className="p50-card-title">CHAMPIONS PLAYED</span>
-        </div>
-        <div className="p50-card-body p50-body-spread">
-          <div className="p50-table-hdr">
-            <span>CHAMPION</span>
-            <span className="p50-hdr-stat">P</span>
-            <span className="p50-hdr-stat">B</span>
-            <span className="p50-hdr-stat">WR</span>
+      <ExpandableCard cardId="champions" className="p50-card-stretch">
+        {(isExpanded) => (<>
+          <div className="p50-card-head">
+            <span className="p50-card-title">CHAMPIONS PLAYED</span>
           </div>
-          {(topChamps || []).slice(0, 10).map((c, i) => (
-            <div key={i} className={`p50-table-row ${getMedal(i)}`}>
-              <div className="p50-row-info">
-                <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                <span className="p50-row-name">{c.name}</span>
-              </div>
-              <div className="p50-row-stats">
-                <span className="p50-row-val"><AnimNum value={c.games || c.picks || 0} /></span>
-                <span className="p50-row-val"><AnimNum value={c.bans ?? 0} /></span>
-                <span className={`p50-row-val p50-wr ${getWinRateClass(c.win_rate)}`}><AnimNum value={c.win_rate || 0} decimals={1} suffix="%" /></span>
-              </div>
+          <div className="p50-card-body p50-body-spread">
+            <div className="p50-table-hdr">
+              <span>CHAMPION</span>
+              <span className="p50-hdr-stat">P</span>
+              <span className="p50-hdr-stat">B</span>
+              <span className="p50-hdr-stat">WR</span>
             </div>
-          ))}
-        </div>
-      </div>
+            {(topChamps || []).slice(0, isExpanded ? undefined : 10).map((c, i) => (
+              <div key={i} className={`p50-table-row ${getMedal(i)}`}>
+                <div className="p50-row-info">
+                  <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                  <span className="p50-row-name">{c.name}</span>
+                </div>
+                <div className="p50-row-stats">
+                  <span className="p50-row-val"><AnimNum value={c.games || c.picks || 0} /></span>
+                  <span className="p50-row-val"><AnimNum value={c.bans ?? 0} /></span>
+                  <span className={`p50-row-val p50-wr ${getWinRateClass(c.win_rate)}`}><AnimNum value={c.win_rate || 0} decimals={1} suffix="%" /></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ SIDE COMPARISON ═══════ */}
       <div className="p50-card p50-card-stretch">
@@ -306,204 +314,222 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
       </div>
 
       {/* ═══════ BAN RATE ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head">
-          <span className="p50-card-title">BAN RATE</span>
-        </div>
-        <div className="p50-card-body">
-          <div className="p50-sections">
-            <div className="p50-section">
-              <div className="p50-section-title blue">BLUE SIDE BANS</div>
-              {(blueBans || []).map((c, i) => (
-                <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                    <span className="p50-row-name">{c.name}</span>
+      <ExpandableCard cardId="bans" expandedClassName="p50-expanded-split2">
+        {(isExpanded) => (<>
+          <div className="p50-card-head">
+            <span className="p50-card-title">BAN RATE</span>
+          </div>
+          <div className="p50-card-body">
+            <div className="p50-sections">
+              <div className="p50-section">
+                <div className="p50-section-title blue">BLUE SIDE BANS</div>
+                {(blueBans || []).slice(0, isExpanded ? undefined : 5).map((c, i) => (
+                  <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                      <span className="p50-row-name">{c.name}</span>
+                    </div>
+                    <span className="p50-bans-cell">
+                      <span className="p50-bans-main blue"><AnimNum value={c.bans_blue || 0} /></span>
+                      <span className="p50-bans-ghost red">(<AnimNum value={c.bans_red || 0} />)</span>
+                    </span>
+                    <span className="p50-row-val accent"><AnimNum value={c.ban_rate_blue || 0} decimals={1} suffix="%" /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={c.ban_rate_blue || 0} decimals={1} suffix="%" /></span>
-                </div>
-              ))}
-            </div>
-            <div className="p50-section">
-              <div className="p50-section-title red">RED SIDE BANS</div>
-              {(redBans || []).map((c, i) => (
-                <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                    <span className="p50-row-name">{c.name}</span>
+                ))}
+              </div>
+              <div className="p50-section">
+                <div className="p50-section-title red">RED SIDE BANS</div>
+                {(redBans || []).slice(0, isExpanded ? undefined : 5).map((c, i) => (
+                  <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                      <span className="p50-row-name">{c.name}</span>
+                    </div>
+                    <span className="p50-bans-cell">
+                      <span className="p50-bans-main red"><AnimNum value={c.bans_red || 0} /></span>
+                      <span className="p50-bans-ghost blue">(<AnimNum value={c.bans_blue || 0} />)</span>
+                    </span>
+                    <span className="p50-row-val accent"><AnimNum value={c.ban_rate_red || 0} decimals={1} suffix="%" /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={c.ban_rate_red || 0} decimals={1} suffix="%" /></span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ PEAK KILLS ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head"><span className="p50-card-title">PEAK KILLS</span></div>
-        <div className="p50-card-body">
-          {/* Podium top 3 — order: 2nd | 1st | 3rd */}
-          <div className="p50-podium">
-            {[1, 0, 2].map(idx => {
-              const p = (topKills || [])[idx];
-              if (!p) return <div key={idx} className="p50-podium-slot" />;
-              const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-              const champImg2 = p.top_champion_image || '';
-              return (
-                <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                  {/* Background: player 55% + champion 45% */}
-                  <div className="p50-podium-bg-layer">
-                    <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                    {champImg2 && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${champImg2})` }} />}
+      <ExpandableCard cardId="peak-kills">
+        {(isExpanded) => (<>
+          <div className="p50-card-head"><span className="p50-card-title">PEAK KILLS</span></div>
+          <div className="p50-card-body">
+            {/* Podium top 3 — order: 2nd | 1st | 3rd */}
+            <div className="p50-podium">
+              {[1, 0, 2].map(idx => {
+                const p = (topKills || [])[idx];
+                if (!p) return <div key={idx} className="p50-podium-slot" />;
+                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
+                const champImg2 = p.top_champion_image || '';
+                return (
+                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
+                    {/* Background: player 55% + champion 45% */}
+                    <div className="p50-podium-bg-layer">
+                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
+                      {champImg2 && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${champImg2})` }} />}
+                    </div>
+                    <span className="p50-podium-name">{p.name}</span>
+                    <span className="p50-podium-val"><AnimNum value={p.max_kills || 0} /></span>
                   </div>
-                  <span className="p50-podium-name">{p.name}</span>
-                  <span className="p50-podium-val"><AnimNum value={p.max_kills || 0} /></span>
-                </div>
-              );
-            })}
-          </div>
-          {/* Rest of the list */}
-          {(topKills || []).slice(3, 10).map((p, i) => (
-            <div key={`${p.name}-${i}`} className="p50-table-row">
-              <div className="p50-row-info">
-                <span className="p50-row-rank">{i + 4}</span>
-                <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                <span className="p50-row-name">{p.name}</span>
-              </div>
-              <div className="p50-row-stat-group">
-                {p.top_champion_image && <div className="p50-row-champ-icon"><Image src={p.top_champion_image} alt={p.top_champion || ''} width={40} height={40} /></div>}
-                <span className="p50-row-val accent"><AnimNum value={p.max_kills || 0} /></span>
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      </div>
+            {/* Rest of the list */}
+            {(topKills || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
+              <div key={`${p.name}-${i}`} className="p50-table-row">
+                <div className="p50-row-info">
+                  <span className="p50-row-rank">{i + 4}</span>
+                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
+                  <span className="p50-row-name">{p.name}</span>
+                </div>
+                <div className="p50-row-stat-group">
+                  {p.top_champion_image && <div className="p50-row-champ-icon"><Image src={p.top_champion_image} alt={p.top_champion || ''} width={40} height={40} /></div>}
+                  <span className="p50-row-val accent"><AnimNum value={p.max_kills || 0} /></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ AVG FARMING ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head"><span className="p50-card-title">AVG FARMING</span></div>
-        <div className="p50-card-body">
-          <div className="p50-podium">
-            {[1, 0, 2].map(idx => {
-              const p = (topCS || [])[idx];
-              if (!p) return <div key={idx} className="p50-podium-slot" />;
-              const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-              const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
-              return (
-                <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                  <div className="p50-podium-bg-layer">
-                    <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                    <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
+      <ExpandableCard cardId="farming">
+        {(isExpanded) => (<>
+          <div className="p50-card-head"><span className="p50-card-title">AVG FARMING</span></div>
+          <div className="p50-card-body">
+            <div className="p50-podium">
+              {[1, 0, 2].map(idx => {
+                const p = (topCS || [])[idx];
+                if (!p) return <div key={idx} className="p50-podium-slot" />;
+                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
+                const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
+                return (
+                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
+                    <div className="p50-podium-bg-layer">
+                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
+                      <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
+                    </div>
+                    <span className="p50-podium-name">{p.name}</span>
+                    <span className="p50-podium-val"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
                   </div>
-                  <span className="p50-podium-name">{p.name}</span>
-                  <span className="p50-podium-val"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
-                </div>
-              );
-            })}
-          </div>
-          {(topCS || []).slice(3, 10).map((p, i) => (
-            <div key={`${p.name}-${i}`} className="p50-table-row">
-              <div className="p50-row-info">
-                <span className="p50-row-rank">{i + 4}</span>
-                <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                <span className="p50-row-name">{p.name}</span>
-              </div>
-              <div className="p50-row-stat-group">
-                <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
-                <span className="p50-row-val accent"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      </div>
+            {(topCS || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
+              <div key={`${p.name}-${i}`} className="p50-table-row">
+                <div className="p50-row-info">
+                  <span className="p50-row-rank">{i + 4}</span>
+                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
+                  <span className="p50-row-name">{p.name}</span>
+                </div>
+                <div className="p50-row-stat-group">
+                  <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
+                  <span className="p50-row-val accent"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ KDA RATIO ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head"><span className="p50-card-title">KDA RATIO</span></div>
-        <div className="p50-card-body">
-          <div className="p50-podium">
-            {[1, 0, 2].map(idx => {
-              const p = (topKDAPlayers || [])[idx];
-              if (!p) return <div key={idx} className="p50-podium-slot" />;
-              const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-              const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
-              return (
-                <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                  <div className="p50-podium-bg-layer">
-                    <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                    <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
+      <ExpandableCard cardId="kda">
+        {(isExpanded) => (<>
+          <div className="p50-card-head"><span className="p50-card-title">KDA RATIO</span></div>
+          <div className="p50-card-body">
+            <div className="p50-podium">
+              {[1, 0, 2].map(idx => {
+                const p = (topKDAPlayers || [])[idx];
+                if (!p) return <div key={idx} className="p50-podium-slot" />;
+                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
+                const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
+                return (
+                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
+                    <div className="p50-podium-bg-layer">
+                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
+                      <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
+                    </div>
+                    <span className="p50-podium-name">{p.name}</span>
+                    <span className="p50-podium-val"><AnimNum value={p.kda || 0} decimals={1} /></span>
                   </div>
-                  <span className="p50-podium-name">{p.name}</span>
-                  <span className="p50-podium-val"><AnimNum value={p.kda || 0} decimals={1} /></span>
-                </div>
-              );
-            })}
-          </div>
-          {(topKDAPlayers || []).slice(3, 10).map((p, i) => (
-            <div key={`${p.name}-${i}`} className="p50-table-row">
-              <div className="p50-row-info">
-                <span className="p50-row-rank">{i + 4}</span>
-                <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                <span className="p50-row-name">{p.name}</span>
-              </div>
-              <div className="p50-row-stat-group">
-                <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
-                <span className="p50-row-val accent"><AnimNum value={p.kda || 0} decimals={1} /></span>
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      </div>
+            {(topKDAPlayers || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
+              <div key={`${p.name}-${i}`} className="p50-table-row">
+                <div className="p50-row-info">
+                  <span className="p50-row-rank">{i + 4}</span>
+                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
+                  <span className="p50-row-name">{p.name}</span>
+                </div>
+                <div className="p50-row-stat-group">
+                  <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
+                  <span className="p50-row-val accent"><AnimNum value={p.kda || 0} decimals={1} /></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ PLAYER PERFORMANCE ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head"><span className="p50-card-title">PLAYER PERFORMANCE</span></div>
-        <div className="p50-card-body">
-          <div className="p50-sections">
-            <div className="p50-section">
-              <div className="p50-section-title">KILL PARTICIPATION</div>
-              {(topKillParticipation || []).map((p, i) => (
-                <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                    <span className="p50-row-name">{p.name}</span>
+      <ExpandableCard cardId="player-perf" expandedClassName="p50-expanded-split3">
+        {(isExpanded) => (<>
+          <div className="p50-card-head"><span className="p50-card-title">PLAYER PERFORMANCE</span></div>
+          <div className="p50-card-body">
+            <div className="p50-sections">
+              <div className="p50-section">
+                <div className="p50-section-title">KILL PARTICIPATION</div>
+                {(topKillParticipation || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
+                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
+                      <span className="p50-row-name">{p.name}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={p.kill_participation || 0} decimals={1} suffix="%" /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={p.kill_participation || 0} decimals={1} suffix="%" /></span>
-                </div>
-              ))}
-            </div>
-            <div className="p50-section">
-              <div className="p50-section-title">DAMAGE SHARE %</div>
-              {(topDamageShare || []).map((p, i) => (
-                <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                    <span className="p50-row-name">{p.name}</span>
+                ))}
+              </div>
+              <div className="p50-section">
+                <div className="p50-section-title">DAMAGE SHARE %</div>
+                {(topDamageShare || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
+                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
+                      <span className="p50-row-name">{p.name}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={p.avg_damage_share || 0} decimals={1} suffix="%" /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={p.avg_damage_share || 0} decimals={1} suffix="%" /></span>
-                </div>
-              ))}
-            </div>
-            <div className="p50-section">
-              <div className="p50-section-title">GOLD SHARE %</div>
-              {(topGoldShare || []).map((p, i) => (
-                <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                    <span className="p50-row-name">{p.name}</span>
+                ))}
+              </div>
+              <div className="p50-section">
+                <div className="p50-section-title">GOLD SHARE %</div>
+                {(topGoldShare || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
+                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
+                      <span className="p50-row-name">{p.name}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={p.avg_gold_share || 0} decimals={1} suffix="%" /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={p.avg_gold_share || 0} decimals={1} suffix="%" /></span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>)}
+      </ExpandableCard>
 
       {/* ═══════ ELEMENTAL DRAGONS ═══════ */}
       <div className="p50-card">
@@ -527,52 +553,56 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
       </div>
 
       {/* ═══════ TEAM PERFORMANCE ═══════ */}
-      <div className="p50-card">
-        <div className="p50-card-head"><span className="p50-card-title">TEAM PERFORMANCE</span></div>
-        <div className="p50-card-body">
-          <div className="p50-sections">
-            <div className="p50-section">
-              <div className="p50-section-title">KILLS / GAME</div>
-              {(topKillsPerGame || []).map((tm, i) => (
-                <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
-                    <span className="p50-row-name">{tm.abbr}</span>
+      <ExpandableCard cardId="team-perf" expandedClassName="p50-expanded-split3">
+        {(isExpanded) => (<>
+          <div className="p50-card-head"><span className="p50-card-title">TEAM PERFORMANCE</span></div>
+          <div className="p50-card-body">
+            <div className="p50-sections">
+              <div className="p50-section">
+                <div className="p50-section-title">KILLS / GAME</div>
+                {(topKillsPerGame || []).slice(0, isExpanded ? undefined : 3).map((tm, i) => (
+                  <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
+                      <span className="p50-row-name">{tm.abbr}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={tm.avg_kills || 0} decimals={1} /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={tm.avg_kills || 0} decimals={1} /></span>
-                </div>
-              ))}
-            </div>
-            <div className="p50-section">
-              <div className="p50-section-title">DEATHS / GAME</div>
-              {(topDeathsPerGame || []).map((tm, i) => (
-                <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
-                    <span className="p50-row-name">{tm.abbr}</span>
+                ))}
+              </div>
+              <div className="p50-section">
+                <div className="p50-section-title">DEATHS / GAME</div>
+                {(topDeathsPerGame || []).slice(0, isExpanded ? undefined : 3).map((tm, i) => (
+                  <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
+                      <span className="p50-row-name">{tm.abbr}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={tm.avg_deaths || 0} decimals={1} /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={tm.avg_deaths || 0} decimals={1} /></span>
-                </div>
-              ))}
-            </div>
-            <div className="p50-section">
-              <div className="p50-section-title">DRAGONS / GAME</div>
-              {(topDragonsPerGame || []).map((tm, i) => (
-                <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
-                  <div className="p50-row-info">
-                    <span className="p50-row-rank">{i + 1}</span>
-                    <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
-                    <span className="p50-row-name">{tm.abbr}</span>
+                ))}
+              </div>
+              <div className="p50-section">
+                <div className="p50-section-title">DRAGONS / GAME</div>
+                {(topDragonsPerGame || []).slice(0, isExpanded ? undefined : 3).map((tm, i) => (
+                  <div key={tm.abbr} className={`p50-table-row ${getMedal(i)}`}>
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{i + 1}</span>
+                      <div className="p50-team-logo"><Image src={teamImg(tm.logo_url, tm.abbr, league)} alt={tm.abbr} width={24} height={24} /></div>
+                      <span className="p50-row-name">{tm.abbr}</span>
+                    </div>
+                    <span className="p50-row-val accent"><AnimNum value={tm.avg_dragons || 0} decimals={1} /></span>
                   </div>
-                  <span className="p50-row-val accent"><AnimNum value={tm.avg_dragons || 0} decimals={1} /></span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>)}
+      </ExpandableCard>
+
+      </ExpandableGrid>
     </div>
   );
 }
