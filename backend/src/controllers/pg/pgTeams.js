@@ -75,7 +75,7 @@ export async function getTeamsPg(req, res) {
         g.length,
         SUM(gp.gold_earned)                                                AS gold,
         SUM(gp.gold_spent)                                                 AS gold_spent,
-        SUM(gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0))     AS cs,
+        SUM(COALESCE(gp.creep_score, gp.minions_killed))                   AS cs,
         SUM(gp.assists)                                                    AS assists,
         SUM(gp.total_damage_dealt_to_champions)                            AS dmg,
         SUM(gp.magic_damage_dealt_to_champions)                            AS magic_dmg,
@@ -160,7 +160,7 @@ export async function getTeamsPg(req, res) {
     WITH team_game AS (
       SELECT gp.team_id, gp.game_id, g.length,
         SUM(gp.gold_earned) AS gold,
-        SUM(gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) AS cs
+        SUM(COALESCE(gp.creep_score, gp.minions_killed)) AS cs
       FROM game_players gp
       JOIN games g ON g.id = gp.game_id
       WHERE g.serie_id = $1 ${sf} AND g.finished = true AND g.length > 60
@@ -540,7 +540,7 @@ export async function getTeamByAbbrPg(req, res) {
             SUM(gp.magic_damage_dealt_to_champions) AS magic_dmg,
             SUM(gp.physical_damage_dealt_to_champions) AS phys_dmg,
             SUM(gp.true_damage_dealt_to_champions) AS true_dmg,
-            SUM(gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) AS cs,
+            SUM(COALESCE(gp.creep_score, gp.minions_killed)) AS cs,
             SUM(gp.wards_placed) AS wards, SUM(gp.kills_wards) AS ward_kills,
             SUM(COALESCE(gp.vision_wards_bought_in_game, 0)) AS cw,
             SUM(gp.kills) AS kills, SUM(gp.deaths) AS deaths, SUM(gp.assists) AS assists,

@@ -68,7 +68,7 @@ export async function getPlayerHistoryPg(req, res) {
     pgDb.query(`
       SELECT
         gp.game_id, gp.champion_id, gp.kills, gp.deaths, gp.assists,
-        gp.minions_killed, COALESCE(gp.kills_neutral_minions, 0) AS neutral_cs,
+        COALESCE(gp.creep_score, gp.minions_killed) AS cs,
         gp.total_damage_dealt_to_champions AS dmg_dealt,
         gp.gold_earned, gp.gold_spent,
         gp.team_id AS player_team_id, gp.items, gp.spell_1_id, gp.spell_2_id,
@@ -200,7 +200,7 @@ export async function getPlayerHistoryPg(req, res) {
     const serieGames = gamesBySerie[pc.serie_id] || [];
     const match_log = serieGames.map(g => {
       const dur = (g.length || 1) / 60;
-      const cs = (g.minions_killed || 0) + (g.neutral_cs || 0);
+      const cs = g.cs || 0;
       const isWin = g.winner_id === g.player_team_id;
       const champInfo = champs[g.champion_id] || {};
 
@@ -272,7 +272,7 @@ export async function getPlayerHistoryPg(req, res) {
     let sumCspm = 0, sumDpm = 0, sumGpm = 0, sumKp = 0, kpCount = 0;
     for (const g of serieGames) {
       const dur = (g.length || 1) / 60;
-      const cs = (g.minions_killed || 0) + (g.neutral_cs || 0);
+      const cs = g.cs || 0;
       sumCspm += cs / Math.max(dur, 1);
       sumDpm  += (g.dmg_dealt || 0) / Math.max(dur, 1);
       sumGpm  += (g.gold_earned || 0) / Math.max(dur, 1);

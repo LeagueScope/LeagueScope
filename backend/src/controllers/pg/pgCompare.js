@@ -117,7 +117,7 @@ export async function comparePlayersPg(req, res) {
         ROUND(((SUM(gp.kills) + SUM(gp.assists))::numeric / NULLIF(SUM(gp.deaths), 0)), 2) AS kda,
         ROUND(AVG(CASE WHEN gt_kills.team_kills > 0 THEN (gp.kills + gp.assists)::numeric / gt_kills.team_kills * 100 ELSE 0 END), 0) AS kill_participation,
         ROUND(AVG(gp.gold_earned / NULLIF(g.length / 60.0, 0))::numeric, 0) AS gpm,
-        ROUND(AVG((gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS cspm,
+        ROUND(AVG(COALESCE(gp.creep_score, gp.minions_killed) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS cspm,
         ROUND(AVG(gp.total_damage_dealt_to_champions / NULLIF(g.length / 60.0, 0))::numeric, 0) AS dpm,
         ROUND(AVG(gp.total_damage_taken / NULLIF(g.length / 60.0, 0))::numeric, 0) AS avg_dtaken_pm,
         ROUND(AVG(gp.wards_placed / NULLIF(g.length / 60.0, 0))::numeric, 1) AS avg_wpm,
@@ -484,7 +484,7 @@ export async function compareTeamsPg(req, res) {
           g.length,
           SUM(gp.gold_earned)                                                AS gold,
           SUM(gp.gold_spent)                                                 AS gold_spent,
-          SUM(gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0))     AS cs,
+          SUM(COALESCE(gp.creep_score, gp.minions_killed))                   AS cs,
           SUM(gp.assists)                                                    AS assists,
           SUM(gp.total_damage_dealt_to_champions)                            AS dmg,
           SUM(gp.magic_damage_dealt_to_champions)                            AS magic_dmg,
@@ -568,7 +568,7 @@ export async function compareTeamsPg(req, res) {
       WITH team_game AS (
         SELECT gp.team_id, gp.game_id, g.length,
           SUM(gp.gold_earned) AS gold,
-          SUM(gp.minions_killed + COALESCE(gp.kills_neutral_minions, 0)) AS cs
+          SUM(COALESCE(gp.creep_score, gp.minions_killed)) AS cs
         FROM game_players gp
         JOIN games g ON g.id = gp.game_id
         WHERE g.serie_id = $1 AND g.finished = true AND g.length > 60
