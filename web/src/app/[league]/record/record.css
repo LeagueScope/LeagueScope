@@ -1559,16 +1559,16 @@
 }
 
 /* ===========================================================================
-   EDITORIAL REDESIGN (tr-*) — ported from /test-record sandbox.
-   Coexists with the legacy p21-*/p22-* styles above so DetailCollapse keeps
+   EDITORIAL REDESIGN (tr-) — ported from /test-record sandbox.
+   Coexists with the legacy p21- and p22- styles above so DetailCollapse keeps
    rendering, and is re-themed via the `.tr-detail-wrap` scope at the bottom.
    =========================================================================== */
 
 /* ===========================================================================
    Test Record — Editorial redesign (SANDBOX)
-   Prefix: tr-*  (to prevent any collision with p22-* / p21-*)
-   Mirrors the visual language used in standings (p20-ed-*), players (p24-ed-*)
-   and champions (p25-ed-*).
+   Prefix: tr-  (to prevent any collision with p22- and p21-)
+   Mirrors the visual language used in standings (p20-ed-), players (p24-ed-)
+   and champions (p25-ed-).
    =========================================================================== */
 
 .tr-page {
