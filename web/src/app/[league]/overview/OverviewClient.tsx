@@ -105,6 +105,39 @@ function getMedal(i: number): string {
 
 const PODIUM_CLASS = ['p50-podium-gold', 'p50-podium-silver', 'p50-podium-bronze'];
 
+// ── Editorial header (mirrors p20-ed-hdr / p24-ed-hdr / p25-ed-hdr / tr-ed-hdr)
+interface EditorialHeaderProps {
+  league: string;
+  leagueName: string;
+  year?: number | null;
+  split?: string | null;
+}
+function EditorialHeader({ league, leagueName, year, split }: EditorialHeaderProps) {
+  return (
+    <div className="p50-ed-card">
+      <Image
+        src={LEAGUE_LOGO(league)}
+        alt=""
+        className="p50-ed-watermark"
+        aria-hidden="true"
+        width={280}
+        height={280}
+      />
+      <div className="p50-ed-hdr">
+        <div className="p50-ed-hdr-left">
+          <Image src={LEAGUE_LOGO(league)} alt={league} className="p50-ed-logo" width={64} height={64} />
+          <div className="p50-ed-hdr-text">
+            <span className="p50-ed-hero">{leagueName} OVERVIEW</span>
+            <span className="p50-ed-subhero">
+              SEASON {year || ''} · {(split || '').toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Animated number counter (ease-out cubic) ──────────────────────────────
 function AnimNum({ value, duration = 2000, decimals = 0, suffix = '' }: {
   value: number; duration?: number; decimals?: number; suffix?: string;
@@ -161,16 +194,12 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
   if (!data || !data.tournament) {
     return (
       <div className="p50-container" style={{ '--p50-accent': accent, '--p2-league-accent': accent } as React.CSSProperties}>
-        <div className="p2-league-header">
-          <div className="p2-header-info">
-            <div className="p2-header-logo-container">
-              <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
-            </div>
-            <div className="p2-header-text">
-              <div className="p2-header-league-name">{league.toUpperCase()} OVERVIEW</div>
-            </div>
-          </div>
-        </div>
+        <EditorialHeader
+          league={league}
+          leagueName={league.toUpperCase()}
+          year={filters.year}
+          split={filters.split}
+        />
         <div className="p50-card" style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
           <span style={{ color: '#8d9db3', fontSize: 14, fontWeight: 700 }}>No hay datos del torneo</span>
         </div>
@@ -212,17 +241,12 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
   if (!hasAdvancedStats) {
     return (
       <div className="p50-container" style={{ '--p50-accent': accent, '--p2-league-accent': accent } as React.CSSProperties}>
-        <div className="p2-league-header">
-          <div className="p2-header-info">
-            <div className="p2-header-logo-container">
-              <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
-            </div>
-            <div className="p2-header-text">
-              <div className="p2-header-league-name">{league.toUpperCase()} OVERVIEW</div>
-              <div className="p2-header-season">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
-            </div>
-          </div>
-        </div>
+        <EditorialHeader
+          league={league}
+          leagueName={league.toUpperCase()}
+          year={filters.year}
+          split={filters.split}
+        />
         <div
           className="p50-card"
           style={{
@@ -247,17 +271,12 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
     <div className="p50-container" style={{ '--p50-accent': accent, '--p2-league-accent': accent } as React.CSSProperties}>
 
       {/* ═══════ HEADER ═══════ */}
-      <div className="p2-league-header">
-        <div className="p2-header-info">
-          <div className="p2-header-logo-container">
-            <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
-          </div>
-          <div className="p2-header-text">
-            <div className="p2-header-league-name">{league.toUpperCase()} OVERVIEW</div>
-            <div className="p2-header-season">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
-          </div>
-        </div>
-      </div>
+      <EditorialHeader
+        league={league}
+        leagueName={league.toUpperCase()}
+        year={filters.year}
+        split={filters.split}
+      />
 
       <ExpandableGrid>
 

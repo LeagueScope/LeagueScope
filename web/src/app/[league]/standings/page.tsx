@@ -57,6 +57,12 @@ export interface TeamData {
   games: number;
   win_rate: number;
   match_history?: { result: boolean }[];
+  // Series-level fields (present only when the serie is BO3+)
+  best_of?: number;
+  match_wins?: number;
+  match_losses?: number;
+  match_wr?: number;
+  series_history?: { result: boolean }[];
   // General
   avg_duration_formatted?: string;
   unique_champions?: number;
@@ -139,7 +145,6 @@ export default async function StandingsPage({
   const { league } = await params;
   const { accent } = getLeagueColors(league);
   const teams = await getTeams(league);
-
   return (
     <>
       <StandingsClient

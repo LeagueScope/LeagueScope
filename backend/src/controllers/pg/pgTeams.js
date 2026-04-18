@@ -178,85 +178,74 @@ export async function getTeamsPg(req, res) {
   const diffMap = {};
   for (const d of diffs) diffMap[d.team_id] = d;
 
-  // 7. Timeline diffs @13, @20, @25 (gold, kills, towers from game_frames + CS from game_frame_players)
+  // 7. Timeline diffs @13/@20/@25 — SIMPLE: for each game & target minute, pick the
+  //     closest frame within ±180s. Read gold/kills/towers directly from game_frames
+  //     (denormalized per team color). CS comes from game_frame_players summed by color.
   const { rows: tlDiffs } = await pgDb.query(`
-    WITH snapshots AS (
-      SELECT
-        gf.id AS frame_id,
-        gf.game_id,
-        gf.blue_team_id, gf.red_team_id,
-        gf.timestamp AS ts,
-        gf.blue_gold, gf.red_gold,
-        gf.blue_kills, gf.red_kills,
-        gf.blue_towers, gf.red_towers,
-        ROW_NUMBER() OVER (PARTITION BY gf.game_id, CASE
-          WHEN gf.timestamp BETWEEN 720 AND 840 THEN 13
-          WHEN gf.timestamp BETWEEN 1140 AND 1260 THEN 20
-          WHEN gf.timestamp BETWEEN 1440 AND 1560 THEN 25
-        END ORDER BY ABS(gf.timestamp - CASE
-          WHEN gf.timestamp BETWEEN 720 AND 840 THEN 780
-          WHEN gf.timestamp BETWEEN 1140 AND 1260 THEN 1200
-          WHEN gf.timestamp BETWEEN 1440 AND 1560 THEN 1500
-          ELSE 0 END)) AS rn,
-        CASE
-          WHEN gf.timestamp BETWEEN 720 AND 840 THEN 13
-          WHEN gf.timestamp BETWEEN 1140 AND 1260 THEN 20
-          WHEN gf.timestamp BETWEEN 1440 AND 1560 THEN 25
-        END AS minute_bucket
+    WITH targets AS (
+      SELECT * FROM (VALUES (13, 780), (20, 1200), (25, 1500)) AS t(minute_key, target_sec)
+    ),
+    closest AS (
+      SELECT gf.id AS frame_id, gf.game_id, gf.timestamp,
+             gf.blue_team_id, gf.red_team_id,
+             gf.blue_gold, gf.red_gold,
+             gf.blue_kills, gf.red_kills,
+             gf.blue_towers, gf.red_towers,
+             t.minute_key,
+             ROW_NUMBER() OVER (PARTITION BY gf.game_id, t.minute_key
+                                ORDER BY ABS(gf.timestamp - t.target_sec)) AS rn
       FROM game_frames gf
       JOIN games g ON g.id = gf.game_id
-      WHERE g.serie_id = $1 ${sf} AND g.finished = true AND g.length > 60
+      CROSS JOIN targets t
+      WHERE g.serie_id = $1 ${sf} AND g.finished = true AND g.length >= (t.target_sec + 60)
         AND (gf.blue_team_id = ANY($${teamIdx}::int[]) OR gf.red_team_id = ANY($${teamIdx}::int[]))
-        AND (gf.timestamp BETWEEN 720 AND 840
-          OR gf.timestamp BETWEEN 1140 AND 1260
-          OR gf.timestamp BETWEEN 1440 AND 1560)
+        AND ABS(gf.timestamp - t.target_sec) <= 180
     ),
     frame_cs AS (
-      SELECT s.frame_id,
-        COALESCE(SUM(CASE WHEN fp.team_color = 'blue' THEN fp.cs ELSE 0 END), 0) AS blue_cs,
-        COALESCE(SUM(CASE WHEN fp.team_color = 'red'  THEN fp.cs ELSE 0 END), 0) AS red_cs
-      FROM snapshots s
-      JOIN game_frame_players fp ON fp.frame_id = s.frame_id
-      WHERE s.rn = 1 AND s.minute_bucket IS NOT NULL
-      GROUP BY s.frame_id
+      SELECT fp.frame_id,
+             SUM(CASE WHEN fp.team_color = 'blue' THEN fp.cs ELSE 0 END) AS blue_cs,
+             SUM(CASE WHEN fp.team_color = 'red'  THEN fp.cs ELSE 0 END) AS red_cs
+      FROM game_frame_players fp
+      WHERE fp.frame_id IN (SELECT frame_id FROM closest WHERE rn = 1)
+      GROUP BY fp.frame_id
+    ),
+    per_game AS (
+      SELECT c.*, fc.blue_cs, fc.red_cs
+      FROM closest c
+      LEFT JOIN frame_cs fc ON fc.frame_id = c.frame_id
+      WHERE c.rn = 1
     )
-    SELECT
-      team_id,
-      minute_bucket,
-      ROUND(AVG(gold_diff)::numeric) AS avg_gold_diff,
-      ROUND(AVG(kills_diff)::numeric, 1) AS avg_kills_diff,
-      ROUND(AVG(tower_diff)::numeric, 1) AS avg_tower_diff,
-      ROUND(AVG(cs_diff)::numeric, 1) AS avg_cs_diff
+    SELECT team_id, minute_key,
+           ROUND(AVG(gold_diff)::numeric) AS avg_gold_diff,
+           ROUND(AVG(kills_diff)::numeric, 1) AS avg_kills_diff,
+           ROUND(AVG(tower_diff)::numeric, 1) AS avg_tower_diff,
+           ROUND(AVG(cs_diff)::numeric, 1)   AS avg_cs_diff
     FROM (
-      SELECT s.blue_team_id AS team_id, s.minute_bucket,
-        (s.blue_gold - s.red_gold) AS gold_diff,
-        (s.blue_kills - s.red_kills) AS kills_diff,
-        (s.blue_towers - s.red_towers) AS tower_diff,
-        (fc.blue_cs - fc.red_cs) AS cs_diff
-      FROM snapshots s
-      LEFT JOIN frame_cs fc ON fc.frame_id = s.frame_id
-      WHERE s.rn = 1 AND s.minute_bucket IS NOT NULL AND s.blue_team_id = ANY($${teamIdx}::int[])
+      SELECT blue_team_id AS team_id, minute_key,
+             (blue_gold - red_gold)     AS gold_diff,
+             (blue_kills - red_kills)   AS kills_diff,
+             (blue_towers - red_towers) AS tower_diff,
+             (blue_cs - red_cs)         AS cs_diff
+      FROM per_game WHERE blue_team_id = ANY($${teamIdx}::int[])
       UNION ALL
-      SELECT s.red_team_id AS team_id, s.minute_bucket,
-        (s.red_gold - s.blue_gold) AS gold_diff,
-        (s.red_kills - s.blue_kills) AS kills_diff,
-        (s.red_towers - s.blue_towers) AS tower_diff,
-        (fc.red_cs - fc.blue_cs) AS cs_diff
-      FROM snapshots s
-      LEFT JOIN frame_cs fc ON fc.frame_id = s.frame_id
-      WHERE s.rn = 1 AND s.minute_bucket IS NOT NULL AND s.red_team_id = ANY($${teamIdx}::int[])
-    ) sub
-    GROUP BY team_id, minute_bucket
+      SELECT red_team_id AS team_id, minute_key,
+             (red_gold - blue_gold)     AS gold_diff,
+             (red_kills - blue_kills)   AS kills_diff,
+             (red_towers - blue_towers) AS tower_diff,
+             (red_cs - blue_cs)         AS cs_diff
+      FROM per_game WHERE red_team_id = ANY($${teamIdx}::int[])
+    ) s
+    GROUP BY team_id, minute_key
   `, [serieId, ...stageParams, teamIds]);
 
   const tlMap = {};
   for (const r of tlDiffs) {
     if (!tlMap[r.team_id]) tlMap[r.team_id] = {};
-    const mb = r.minute_bucket;
-    tlMap[r.team_id][`avg_gold_diff_${mb}`] = Number(r.avg_gold_diff);
-    tlMap[r.team_id][`avg_kills_diff_${mb}`] = Number(r.avg_kills_diff);
-    tlMap[r.team_id][`avg_tower_diff_${mb}`] = Number(r.avg_tower_diff);
-    if (r.avg_cs_diff != null) tlMap[r.team_id][`avg_cs_diff_${mb}`] = Number(r.avg_cs_diff);
+    const mb = r.minute_key;
+    if (r.avg_gold_diff  != null) tlMap[r.team_id][`avg_gold_diff_${mb}`]  = Number(r.avg_gold_diff);
+    if (r.avg_kills_diff != null) tlMap[r.team_id][`avg_kills_diff_${mb}`] = Number(r.avg_kills_diff);
+    if (r.avg_tower_diff != null) tlMap[r.team_id][`avg_tower_diff_${mb}`] = Number(r.avg_tower_diff);
+    if (r.avg_cs_diff    != null) tlMap[r.team_id][`avg_cs_diff_${mb}`]    = Number(r.avg_cs_diff);
   }
 
   // 8. CS diff @14 from game_players (fallback for @13 if frame_players data is missing)
@@ -274,6 +263,123 @@ export async function getTeamsPg(req, res) {
   `, [serieId, ...stageParams, teamIds]);
   const csDiffMap = {};
   for (const r of csDiffs) csDiffMap[r.team_id] = Number(r.avg_cs_diff_13);
+
+  // 8b. team_career fallback for GD/KD/TWD @13, @20, @25 + CSD @20/@25 — used when
+  //     game_frames hasn't been populated yet (PandaScore aggregates come from
+  //     /lol/series/{id}/teams/stats and are ingested by fetch-to-postgres).
+  const { rows: tcDiffs } = await pgDb.query(`
+    SELECT team_id,
+           avg_gold_diff_13, avg_gold_diff_20, avg_gold_diff_25,
+           avg_cs_diff_13,   avg_cs_diff_20,   avg_cs_diff_25,
+           avg_kills_diff_13, avg_kills_diff_20, avg_kills_diff_25,
+           avg_tower_diff_13, avg_tower_diff_20, avg_tower_diff_25
+    FROM team_career
+    WHERE serie_id = $1 AND team_id = ANY($2::int[])
+  `, [serieId, teamIds]);
+  const tcDiffMap = {};
+  for (const r of tcDiffs) {
+    tcDiffMap[r.team_id] = {
+      avg_gold_diff_13:  r.avg_gold_diff_13  != null ? Number(r.avg_gold_diff_13)  : null,
+      avg_gold_diff_20:  r.avg_gold_diff_20  != null ? Number(r.avg_gold_diff_20)  : null,
+      avg_gold_diff_25:  r.avg_gold_diff_25  != null ? Number(r.avg_gold_diff_25)  : null,
+      avg_cs_diff_13:    r.avg_cs_diff_13    != null ? Number(r.avg_cs_diff_13)    : null,
+      avg_cs_diff_20:    r.avg_cs_diff_20    != null ? Number(r.avg_cs_diff_20)    : null,
+      avg_cs_diff_25:    r.avg_cs_diff_25    != null ? Number(r.avg_cs_diff_25)    : null,
+      avg_kills_diff_13: r.avg_kills_diff_13 != null ? Number(r.avg_kills_diff_13) : null,
+      avg_kills_diff_20: r.avg_kills_diff_20 != null ? Number(r.avg_kills_diff_20) : null,
+      avg_kills_diff_25: r.avg_kills_diff_25 != null ? Number(r.avg_kills_diff_25) : null,
+      avg_tower_diff_13: r.avg_tower_diff_13 != null ? Number(r.avg_tower_diff_13) : null,
+      avg_tower_diff_20: r.avg_tower_diff_20 != null ? Number(r.avg_tower_diff_20) : null,
+      avg_tower_diff_25: r.avg_tower_diff_25 != null ? Number(r.avg_tower_diff_25) : null,
+    };
+  }
+
+  // 8c. CS diff @13/@20/@25 derived from player_career — AVG across the team's
+  //     players multiplied by 5 (since each player's avg_cs_diff is a per-role
+  //     duel, and 5 duels summed = team CS diff). AVG ignores NULLs so @20/@25
+  //     come through even if only a subset of players has that field.
+  const { rows: pcCs } = await pgDb.query(`
+    SELECT team_id,
+      ROUND((AVG(avg_cs_diff_13) * 5)::numeric, 1) AS cs_diff_13,
+      ROUND((AVG(avg_cs_diff_20) * 5)::numeric, 1) AS cs_diff_20,
+      ROUND((AVG(avg_cs_diff_25) * 5)::numeric, 1) AS cs_diff_25
+    FROM player_career
+    WHERE serie_id = $1 AND team_id = ANY($2::int[])
+    GROUP BY team_id
+  `, [serieId, teamIds]);
+  const pcCsMap = {};
+  for (const r of pcCs) {
+    pcCsMap[r.team_id] = {
+      avg_cs_diff_13: r.cs_diff_13 != null ? Number(r.cs_diff_13) : null,
+      avg_cs_diff_20: r.cs_diff_20 != null ? Number(r.cs_diff_20) : null,
+      avg_cs_diff_25: r.cs_diff_25 != null ? Number(r.cs_diff_25) : null,
+    };
+  }
+
+  // 8d. KD and TWD @13/@20/@25 derived from game_events — counts player_kill and
+  //     tower_kill events by the team's players with timestamp ≤ T*60 seconds,
+  //     subtracts the opponent's count, and averages across games that actually
+  //     reached that minute mark (length-based filter).
+  //     Caveat: tower_kill events without a killer_player_id (minion executes)
+  //     are not attributed to either team and get dropped.
+  const { rows: evRows } = await pgDb.query(`
+    WITH team_bucket_counts AS (
+      SELECT
+        ge.game_id,
+        gp.team_id,
+        SUM(CASE WHEN ge.type='player_kill' AND ge.timestamp <= 780  THEN 1 ELSE 0 END) AS k13,
+        SUM(CASE WHEN ge.type='player_kill' AND ge.timestamp <= 1200 THEN 1 ELSE 0 END) AS k20,
+        SUM(CASE WHEN ge.type='player_kill' AND ge.timestamp <= 1500 THEN 1 ELSE 0 END) AS k25,
+        SUM(CASE WHEN ge.type='tower_kill'  AND ge.timestamp <= 780  THEN 1 ELSE 0 END) AS t13,
+        SUM(CASE WHEN ge.type='tower_kill'  AND ge.timestamp <= 1200 THEN 1 ELSE 0 END) AS t20,
+        SUM(CASE WHEN ge.type='tower_kill'  AND ge.timestamp <= 1500 THEN 1 ELSE 0 END) AS t25
+      FROM game_events ge
+      JOIN game_players gp ON gp.game_id = ge.game_id AND gp.player_id = ge.killer_player_id
+      JOIN games g ON g.id = ge.game_id
+      WHERE g.serie_id = $1 ${sf}
+        AND g.finished = true
+        AND ge.type IN ('player_kill','tower_kill')
+      GROUP BY ge.game_id, gp.team_id
+    ),
+    diffs AS (
+      SELECT
+        gt.team_id, g.length,
+        COALESCE(m.k13,0) - COALESCE(o.k13,0) AS kd13,
+        COALESCE(m.k20,0) - COALESCE(o.k20,0) AS kd20,
+        COALESCE(m.k25,0) - COALESCE(o.k25,0) AS kd25,
+        COALESCE(m.t13,0) - COALESCE(o.t13,0) AS td13,
+        COALESCE(m.t20,0) - COALESCE(o.t20,0) AS td20,
+        COALESCE(m.t25,0) - COALESCE(o.t25,0) AS td25
+      FROM game_teams gt
+      JOIN games g ON g.id = gt.game_id
+      JOIN game_teams gt2 ON gt2.game_id = gt.game_id AND gt2.team_id != gt.team_id
+      LEFT JOIN team_bucket_counts m ON m.game_id = gt.game_id AND m.team_id = gt.team_id
+      LEFT JOIN team_bucket_counts o ON o.game_id = gt.game_id AND o.team_id = gt2.team_id
+      WHERE g.serie_id = $1 ${sf}
+        AND g.finished = true AND g.length > 60
+        AND gt.team_id = ANY($${teamIdx}::int[])
+    )
+    SELECT team_id,
+      ROUND((AVG(kd13) FILTER (WHERE length >= 780))::numeric, 1)  AS kd13,
+      ROUND((AVG(kd20) FILTER (WHERE length >= 1200))::numeric, 1) AS kd20,
+      ROUND((AVG(kd25) FILTER (WHERE length >= 1500))::numeric, 1) AS kd25,
+      ROUND((AVG(td13) FILTER (WHERE length >= 780))::numeric, 1)  AS td13,
+      ROUND((AVG(td20) FILTER (WHERE length >= 1200))::numeric, 1) AS td20,
+      ROUND((AVG(td25) FILTER (WHERE length >= 1500))::numeric, 1) AS td25
+    FROM diffs
+    GROUP BY team_id
+  `, [serieId, ...stageParams, teamIds]);
+  const evMap = {};
+  for (const r of evRows) {
+    evMap[r.team_id] = {
+      avg_kills_diff_13: r.kd13 != null ? Number(r.kd13) : null,
+      avg_kills_diff_20: r.kd20 != null ? Number(r.kd20) : null,
+      avg_kills_diff_25: r.kd25 != null ? Number(r.kd25) : null,
+      avg_tower_diff_13: r.td13 != null ? Number(r.td13) : null,
+      avg_tower_diff_20: r.td20 != null ? Number(r.td20) : null,
+      avg_tower_diff_25: r.td25 != null ? Number(r.td25) : null,
+    };
+  }
 
   // 9. Match history (for streaks) — last 50 games
   const { rows: matchHist } = await pgDb.query(`
@@ -302,12 +408,79 @@ export async function getTeamsPg(req, res) {
     }
   }
 
+  // 10. BO3+ detection — if serie plays best-of-3+, surface series-level W/L
+  //     (so standings show 4-2 series like Riot publishes instead of 10-5 games)
+  const { rows: bestOfRows } = await pgDb.query(`
+    SELECT mode() WITHIN GROUP (ORDER BY COALESCE(number_of_games, 1)) AS best_of
+    FROM matches WHERE serie_id = $1 AND status = 'finished'
+  `, [serieId]);
+  const serieBestOf = Number(bestOfRows[0]?.best_of) || 1;
+  const useMatchWL = serieBestOf >= 3;
+
+  // Match-level standings (series W/L) + series history — only when BO3+
+  const matchStandingsMap = {};
+  const seriesHistMap = {};
+  if (useMatchWL) {
+    // Stage filter for matches.tournament_id (matches table, not games)
+    // stageParams = [] or [tournamentId]; $1 = serieId; then stageParams; then teamIds
+    const mTourIdx = stageParams.length ? 2 : null;
+    const mTeamIdx = stageParams.length ? 3 : 2;
+    const mf = mTourIdx ? `AND m.tournament_id = $${mTourIdx}` : '';
+    const matchParams = stageParams.length
+      ? [serieId, ...stageParams, teamIds]
+      : [serieId, teamIds];
+
+    const { rows: ms } = await pgDb.query(`
+      SELECT mo.team_id,
+             COUNT(*) FILTER (WHERE m.winner_id = mo.team_id) AS match_wins,
+             COUNT(*) FILTER (WHERE m.winner_id IS NOT NULL AND m.winner_id != mo.team_id) AS match_losses
+      FROM matches m
+      JOIN match_opponents mo ON mo.match_id = m.id
+      WHERE m.serie_id = $1 ${mf} AND m.status = 'finished'
+        AND mo.team_id = ANY($${mTeamIdx}::int[])
+      GROUP BY mo.team_id
+    `, matchParams);
+    for (const r of ms) {
+      matchStandingsMap[r.team_id] = {
+        match_wins: Number(r.match_wins) || 0,
+        match_losses: Number(r.match_losses) || 0,
+      };
+    }
+
+    // Series history (for series-level streak calculation in the client)
+    const { rows: sh } = await pgDb.query(`
+      SELECT mo.team_id, m.id AS match_id, m.winner_id, m.begin_at,
+             opp_t.acronym AS opponent_acronym
+      FROM matches m
+      JOIN match_opponents mo ON mo.match_id = m.id
+      JOIN match_opponents opp ON opp.match_id = m.id AND opp.team_id != mo.team_id
+      JOIN teams opp_t ON opp_t.id = opp.team_id
+      WHERE m.serie_id = $1 ${mf} AND m.status = 'finished'
+        AND mo.team_id = ANY($${mTeamIdx}::int[])
+      ORDER BY m.begin_at DESC
+    `, matchParams);
+    for (const r of sh) {
+      if (!seriesHistMap[r.team_id]) seriesHistMap[r.team_id] = [];
+      if (seriesHistMap[r.team_id].length < 50) {
+        seriesHistMap[r.team_id].push({
+          match_id: r.match_id,
+          result: r.winner_id === r.team_id,
+          opponent: r.opponent_acronym,
+          date: r.begin_at,
+        });
+      }
+    }
+  }
+
   // ── Build result array ────────────────────────────────────────────────────
   const result = teamStats.map(t => {
     const pa = playerAggMap[t.team_id] || {};
     const rv = rivalMap[t.team_id] || {};
     const df = diffMap[t.team_id] || {};
     const tl = tlMap[t.team_id] || {};
+    const tc = tcDiffMap[t.team_id] || {};
+    const pcc = pcCsMap[t.team_id] || {};
+    const ev = evMap[t.team_id] || {};
     const n = Number(t.games);
     const wins = Number(t.wins);
     const losses = Number(t.losses);
@@ -402,22 +575,40 @@ export async function getTeamsPg(req, res) {
       avg_neutral_minions_enemy: n > 0 ? rnd(Number(pa.total_neutral_enemy || 0) / n, 1) : null,
       avg_neutral_minions_team: n > 0 ? rnd(Number(pa.total_neutral_team || 0) / n, 1) : null,
 
-      // Timeline diffs (CS from frame_players, fallback to cs_diff_at_14 for @13)
-      avg_gold_diff_13: tl.avg_gold_diff_13 ?? null,
-      avg_cs_diff_13: tl.avg_cs_diff_13 ?? csDiffMap[t.team_id] ?? null,
-      avg_kills_diff_13: tl.avg_kills_diff_13 ?? null,
-      avg_tower_diff_13: tl.avg_tower_diff_13 ?? null,
-      avg_gold_diff_20: tl.avg_gold_diff_20 ?? null,
-      avg_cs_diff_20: tl.avg_cs_diff_20 ?? null,
-      avg_kills_diff_20: tl.avg_kills_diff_20 ?? null,
-      avg_tower_diff_20: tl.avg_tower_diff_20 ?? null,
-      avg_gold_diff_25: tl.avg_gold_diff_25 ?? null,
-      avg_cs_diff_25: tl.avg_cs_diff_25 ?? null,
-      avg_kills_diff_25: tl.avg_kills_diff_25 ?? null,
-      avg_tower_diff_25: tl.avg_tower_diff_25 ?? null,
+      // Timeline diffs — cascade of fallbacks (prefer most computed-on-the-fly):
+      //  CSD: game_frames → SUM player_career (5 role-starters) → game_players @14 (only @13) → team_career
+      //  KD:  game_frames → game_events (count @T) → team_career
+      //  TWD: game_frames → game_events (count @T) → team_career
+      //  GD:  game_frames → team_career   (gold is continuous, no event source)
+      avg_gold_diff_13:  tl.avg_gold_diff_13  ?? tc.avg_gold_diff_13  ?? null,
+      avg_cs_diff_13:    tl.avg_cs_diff_13    ?? pcc.avg_cs_diff_13    ?? csDiffMap[t.team_id] ?? tc.avg_cs_diff_13 ?? null,
+      avg_kills_diff_13: tl.avg_kills_diff_13 ?? ev.avg_kills_diff_13  ?? tc.avg_kills_diff_13 ?? null,
+      avg_tower_diff_13: tl.avg_tower_diff_13 ?? ev.avg_tower_diff_13  ?? tc.avg_tower_diff_13 ?? null,
+      avg_gold_diff_20:  tl.avg_gold_diff_20  ?? tc.avg_gold_diff_20   ?? null,
+      avg_cs_diff_20:    tl.avg_cs_diff_20    ?? pcc.avg_cs_diff_20    ?? tc.avg_cs_diff_20    ?? null,
+      avg_kills_diff_20: tl.avg_kills_diff_20 ?? ev.avg_kills_diff_20  ?? tc.avg_kills_diff_20 ?? null,
+      avg_tower_diff_20: tl.avg_tower_diff_20 ?? ev.avg_tower_diff_20  ?? tc.avg_tower_diff_20 ?? null,
+      avg_gold_diff_25:  tl.avg_gold_diff_25  ?? tc.avg_gold_diff_25   ?? null,
+      avg_cs_diff_25:    tl.avg_cs_diff_25    ?? pcc.avg_cs_diff_25    ?? tc.avg_cs_diff_25    ?? null,
+      avg_kills_diff_25: tl.avg_kills_diff_25 ?? ev.avg_kills_diff_25  ?? tc.avg_kills_diff_25 ?? null,
+      avg_tower_diff_25: tl.avg_tower_diff_25 ?? ev.avg_tower_diff_25  ?? tc.avg_tower_diff_25 ?? null,
 
       // Match history (for streaks)
       match_history: histMap[t.team_id] || [],
+
+      // Series-level fields (BO3+ only): keeps Pro Vision (game-level) untouched
+      ...(useMatchWL ? {
+        best_of: serieBestOf,
+        match_wins: matchStandingsMap[t.team_id]?.match_wins ?? 0,
+        match_losses: matchStandingsMap[t.team_id]?.match_losses ?? 0,
+        match_wr: matchStandingsMap[t.team_id]
+          ? pct(
+              matchStandingsMap[t.team_id].match_wins,
+              matchStandingsMap[t.team_id].match_wins + matchStandingsMap[t.team_id].match_losses
+            )
+          : 0,
+        series_history: seriesHistMap[t.team_id] || [],
+      } : {}),
     };
   });
 

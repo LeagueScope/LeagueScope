@@ -641,9 +641,9 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
           </div>
           <div className="p40-card-body">
             {[
-              { label: 'BEG', desc: 'Best Early Game', value: beg, tags: ['GD@15 40%', 'CSD@15 35%', 'LVL 25%'] },
-              { label: 'BMG', desc: 'Best Mid Game', value: bmg, tags: ['KDA 30%', 'DPM 35%', 'CSPM 35%'] },
-              { label: 'BLG', desc: 'Best Late Game', value: blg, tags: ['WR 40%', 'KDA 35%', 'MK 25%'] },
+              { label: 'BEG', desc: 'Próximamente', value: beg },
+              { label: 'BMG', desc: 'Próximamente', value: bmg },
+              { label: 'BLG', desc: 'Próximamente', value: blg },
             ].map(s => (
               <div key={s.label} className="p40-score-row">
                 <div className="p40-score-header">
@@ -651,18 +651,15 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
                     <span className="p40-score-name">{s.label}</span>
                     <span className="p40-score-desc">{s.desc}</span>
                   </div>
-                  <span className="p40-score-num" style={{ color: scoreColor(s.value) }}>
-                    {s.value != null ? <AnimatedNumber value={s.value} decimals={1} /> : '—'}
+                  <span className="p40-score-num" style={{ color: scoreColor(0) }}>
+                    0
                   </span>
                 </div>
                 <div className="p40-score-track">
                   <div
                     className="p40-score-fill"
-                    style={{ width: `${s.value ?? 0}%`, background: scoreColor(s.value) }}
+                    style={{ width: '0%', background: scoreColor(0) }}
                   />
-                </div>
-                <div className="p40-score-tags">
-                  {s.tags.map(t => <span key={t} className="p40-tag">{t}</span>)}
                 </div>
               </div>
             ))}

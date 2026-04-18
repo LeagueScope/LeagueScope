@@ -106,6 +106,11 @@ export interface PlayerData {
   // Side
   blue_wr?: number;
   red_wr?: number;
+  // Series-level (BO3+ only)
+  best_of?: number;
+  match_wins?: number;
+  match_losses?: number;
+  match_wr?: number;
   [key: string]: unknown;
 }
 

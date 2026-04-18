@@ -236,6 +236,46 @@ export async function getPlayersPg(req, res) {
     e.vspmSum += ((row.wards_placed || 0) + (row.kills_wards || 0) + (row.vision_wards || 0)) / mins;
   }
 
+  // 5b. BO3+ detection — if serie plays best-of-3+, surface series-level W/L
+  //     per player (so "4-2" shows series won, mirroring standings)
+  const { rows: bestOfRows } = await pgDb.query(`
+    SELECT mode() WITHIN GROUP (ORDER BY COALESCE(number_of_games, 1)) AS best_of
+    FROM matches WHERE serie_id = $1 AND status = 'finished'
+  `, [serieId]);
+  const serieBestOf = Number(bestOfRows[0]?.best_of) || 1;
+  const useMatchWL = serieBestOf >= 3;
+
+  // Match-level W/L per player (only when BO3+)
+  const matchStandingsMap = {};
+  if (useMatchWL) {
+    // stage filter on matches.tournament_id
+    const mTourIdx = stageParams.length ? 2 : null;
+    const mPlayerIdx = stageParams.length ? 3 : 2;
+    const mf = mTourIdx ? `AND m.tournament_id = $${mTourIdx}` : '';
+    const matchParams = stageParams.length
+      ? [serieId, ...stageParams, playerIds]
+      : [serieId, playerIds];
+
+    const { rows: ms } = await pgDb.query(`
+      SELECT gp.player_id, gp.team_id,
+             COUNT(DISTINCT m.id) FILTER (WHERE m.winner_id = gp.team_id) AS match_wins,
+             COUNT(DISTINCT m.id) FILTER (WHERE m.winner_id IS NOT NULL AND m.winner_id != gp.team_id) AS match_losses
+      FROM game_players gp
+      JOIN games g ON g.id = gp.game_id
+      JOIN matches m ON m.id = g.match_id
+      WHERE g.serie_id = $1 ${mf} AND m.status = 'finished'
+        AND gp.player_id = ANY($${mPlayerIdx}::int[])
+      GROUP BY gp.player_id, gp.team_id
+    `, matchParams);
+    for (const r of ms) {
+      const key = `${r.player_id}-${r.team_id}`;
+      matchStandingsMap[key] = {
+        match_wins: Number(r.match_wins) || 0,
+        match_losses: Number(r.match_losses) || 0,
+      };
+    }
+  }
+
   // 6. Build player objects matching the frontend expected shape
   const players = careerRows.map(pc => {
     const games = gamesByPlayer[pc.player_id] || [];
@@ -347,6 +387,19 @@ export async function getPlayersPg(req, res) {
 
       // Match log (for streak)
       match_log: matchLog,
+
+      // Series-level fields (BO3+ only): keep Pro Vision game-level untouched
+      ...(useMatchWL ? (() => {
+        const key = `${pc.player_id}-${pc.team_id}`;
+        const ms = matchStandingsMap[key] || { match_wins: 0, match_losses: 0 };
+        const mTotal = ms.match_wins + ms.match_losses;
+        return {
+          best_of: serieBestOf,
+          match_wins: ms.match_wins,
+          match_losses: ms.match_losses,
+          match_wr: mTotal > 0 ? rnd(ms.match_wins / mTotal * 100, 1) : 0,
+        };
+      })() : {}),
     };
   });
 

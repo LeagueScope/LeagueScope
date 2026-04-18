@@ -841,6 +841,16 @@ export default function GlobalH2HClient() {
           )}
         </div>
 
+        {/* ═══════ WELCOME / INTRO ═══════ */}
+        {selected.length === 0 && !loadingComparison && (
+          <div className="gh2h-empty-state gh2h-welcome">
+            <p className="gh2h-empty-title">Compara a tus jugadores y equipos favoritos</p>
+            <p className="gh2h-empty-sub">
+              Enfréntalos contra otros rivales ( o incluso consigo mismos ) para ver cómo rinden en diferentes splits.
+            </p>
+          </div>
+        )}
+
         {/* ═══════ COMPARISON ═══════ */}
         {loadingComparison && (
           <div className="gh2h-loading">
@@ -870,7 +880,7 @@ export default function GlobalH2HClient() {
           </>
         )}
 
-        {/* Empty state — only when user selected 2+ but API returned nothing */}
+               {/* Empty state — only when user selected 2+ but API returned nothing */}
         {selected.length >= 2 && !loadingComparison && !selected.some(s => s.loadingSeries) && comparisonData.length === 0 && (
           <div className="gh2h-empty-state">
             <p className="gh2h-empty-title">No se encontraron datos para esta comparación</p>

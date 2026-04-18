@@ -101,7 +101,6 @@ const GROUPS: GroupDef[] = [
   {
     label: 'EARLY GAME @13',
     cols: [
-      { key: 'avg_gold_diff_13', label: 'GD', type: 'diff_big', tip: 'Gold Diff medio @13 min' },
       { key: 'avg_cs_diff_13', label: 'CSD', type: 'diff_f', tip: 'CS Diff medio @13 min' },
       { key: 'avg_kills_diff_13', label: 'KD', type: 'diff_f', tip: 'Kills Diff medio @13 min' },
       { key: 'avg_tower_diff_13', label: 'TWD', type: 'diff_f', tip: 'Tower Diff medio @13 min' },
@@ -110,7 +109,6 @@ const GROUPS: GroupDef[] = [
   {
     label: 'MID GAME @20',
     cols: [
-      { key: 'avg_gold_diff_20', label: 'GD', type: 'diff_big', tip: 'Gold Diff medio @20 min' },
       { key: 'avg_cs_diff_20', label: 'CSD', type: 'diff_f', tip: 'CS Diff medio @20 min' },
       { key: 'avg_kills_diff_20', label: 'KD', type: 'diff_f', tip: 'Kills Diff medio @20 min' },
       { key: 'avg_tower_diff_20', label: 'TWD', type: 'diff_f', tip: 'Tower Diff medio @20 min' },
@@ -119,7 +117,6 @@ const GROUPS: GroupDef[] = [
   {
     label: 'LATE GAME @25',
     cols: [
-      { key: 'avg_gold_diff_25', label: 'GD', type: 'diff_big', tip: 'Gold Diff medio @25 min' },
       { key: 'avg_cs_diff_25', label: 'CSD', type: 'diff_f', tip: 'CS Diff medio @25 min' },
       { key: 'avg_kills_diff_25', label: 'KD', type: 'diff_f', tip: 'Kills Diff medio @25 min' },
       { key: 'avg_tower_diff_25', label: 'TWD', type: 'diff_f', tip: 'Tower Diff medio @25 min' },
@@ -158,9 +155,9 @@ const GLOSSARY = [
   { group: 'AVG / GAME', desc: 'Promedios por partida acumulados a lo largo de la temporada.', stats: ['K / D / A — Kills, Deaths, Assists', 'KDA — Ratio (K+A)/D'] },
   { group: 'OBJECTIVES', desc: 'Control de objetivos neutros y estructuras por partida.', stats: ['TW+ / TW- — Torres destruidas/perdidas', 'DR — Dragones', 'BR — Barones', 'HR — Heraldos', 'VG — Voidgrubs', 'INH — Inhibidores', 'ATK — Atakhans'] },
   { group: 'DAMAGE', desc: 'Desglose del daño infligido y recibido por tipo, normalizado por minuto.', stats: ['MDPM — Daño mágico/min', 'PDPM — Daño físico/min', 'TDPM — Daño verdadero/min', 'MDTPM — Daño mágico recibido/min', 'PDTPM — Daño físico recibido/min'] },
-  { group: 'EARLY @13', desc: 'Diferenciales de recursos al minuto 13 (fase de carriles).', stats: ['GD — Gold Diff', 'CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
-  { group: 'MID @20', desc: 'Diferenciales de recursos al minuto 20 (rotaciones y objetivos).', stats: ['GD — Gold Diff', 'CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
-  { group: 'LATE @25', desc: 'Diferenciales de recursos al minuto 25 (teamfights y cierre).', stats: ['GD — Gold Diff', 'CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
+  { group: 'EARLY @13', desc: 'Diferenciales de recursos al minuto 13 (fase de carriles).', stats: ['CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
+  { group: 'MID @20', desc: 'Diferenciales de recursos al minuto 20 (rotaciones y objetivos).', stats: ['CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
+  { group: 'LATE @25', desc: 'Diferenciales de recursos al minuto 25 (teamfights y cierre).', stats: ['CSD — CS Diff', 'KD — Kills Diff', 'TWD — Tower Diff'] },
   { group: 'ECONOMY', desc: 'Métricas avanzadas de economía, control de jungla y utilidad del equipo.', stats: ['GSPENT — Gold gastado por partida', 'NMENEMY — Neutral minions jungla enemiga', 'NMTEAM — Neutral minions jungla propia', 'CCPM — CC dealt por minuto', 'HPM — Curación por minuto'] },
   { group: 'SIDE', desc: 'Rendimiento diferenciado según el lado del mapa asignado.', stats: ['BLUE% — Win Rate en lado azul', 'RED% — Win Rate en lado rojo'] },
 ];
@@ -251,9 +248,15 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  const defaultSorted = [...teams].sort((a, b) =>
-    b.wins !== a.wins ? b.wins - a.wins : b.win_rate - a.win_rate
-  );
+  // Default sort: use series W/L + series WR when available (BO3+), else games
+  const defaultSorted = [...teams].sort((a, b) => {
+    const aw = a.match_wins ?? a.wins;
+    const bw = b.match_wins ?? b.wins;
+    if (bw !== aw) return bw - aw;
+    const awr = a.match_wr ?? a.win_rate;
+    const bwr = b.match_wr ?? b.win_rate;
+    return bwr - awr;
+  });
 
   const sorted = sortKey
     ? [...defaultSorted].sort((a, b) => {
@@ -265,11 +268,13 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
       })
     : defaultSorted;
 
+  // Streak — prefer series_history (BO3+) over game match_history
   const getStreak = (team: TeamData): { type: string; count: number } => {
-    if (!team.match_history?.length) return { type: 'W', count: 0 };
-    const first = team.match_history[0]?.result;
+    const hist = team.series_history?.length ? team.series_history : team.match_history;
+    if (!hist?.length) return { type: 'W', count: 0 };
+    const first = hist[0]?.result;
     let count = 0;
-    for (const m of team.match_history) {
+    for (const m of hist) {
       if (m.result === first) count++; else break;
     }
     return { type: first ? 'W' : 'L', count };
@@ -277,135 +282,163 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
 
   const leagueName = league.toUpperCase();
 
+  // BO3+ detection (shared by both views)
+  const isBo3 = sorted.some(t => t.match_wins != null);
+  const serieBo = sorted.find(t => t.best_of)?.best_of;
+
   return (
     <div className="p20-page" style={{ '--p20-accent': accent } as React.CSSProperties}>
 
-      {/* ── HEADER (p22-style) ── */}
-      <div className="p20-header">
-        <div className="p20-header-info">
-          <div className="p20-header-logo">
-            <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
-          </div>
-          <div>
-            <div className="p20-header-title">{leagueName} STANDINGS</div>
-            <div className="p20-header-sub">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
-          </div>
-        </div>
-        <div className="p20-header-actions">
-          <button
-            className={`p20-btn p20-btn-pv ${proVision ? 'p20-btn-active' : ''}`}
-            onClick={() => setProVision(v => !v)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            PRO VISION
-            {proVision && <span className="p20-pv-dot" />}
-          </button>
-          <div className="p20-header-stat">
-            <span className="p20-hstat-val">{teams.length}</span>
-            <span className="p20-hstat-lbl">Equipos</span>
-          </div>
-        </div>
-      </div>
+      {/* ── Editorial card: header unificado + body según modo ── */}
+      <div className={`p20-ed-card ${proVision ? 'p20-ed-card-pro' : ''}`} data-league={league.toLowerCase()}>
+        <Image
+          src={LEAGUE_LOGO(league)}
+          alt=""
+          className="p20-ed-watermark"
+          aria-hidden="true"
+          width={280}
+          height={280}
+        />
 
-      {/* ── NORMAL TABLE ── */}
-      {!proVision && (
-        <div className="p20-table-card">
-          <div className="p20-table-hdr">
-            <span className="p20-col-pos">#</span>
-            <span className="p20-col-team">Equipo</span>
-            <span className="p20-col-stat">Victorias</span>
-            <span className="p20-col-stat">Derrotas</span>
-            <span className="p20-col-stat">Partidas</span>
-            <span className="p20-col-stat">Win Rate %</span>
-            <span className="p20-col-streak">Racha</span>
+        <div className="p20-ed-hdr">
+          <div className="p20-ed-hdr-left">
+            <Image src={LEAGUE_LOGO(league)} alt={league} className="p20-ed-logo" width={64} height={64} />
+            <div className="p20-ed-hdr-text">
+              <span className="p20-ed-hero">{leagueName} STANDINGS</span>
+              <span className="p20-ed-subhero">
+                SEASON {filters.year || ''} · {(filters.split || '').toUpperCase()}
+              </span>
+            </div>
           </div>
-          <div className="p20-table-body">
-            {sorted.map((t, i) => {
-              const streak = getStreak(t);
-              const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
-              return (
-                <div
-                  key={t.abbr}
-                  className={`p20-row ${medal ? `p20-row-${medal}` : ''}`}
-                  onClick={() => router.push(`/${league}/team_profile/${t.slug || t.abbr}`)}
-                >
-                  <span className={`p20-pos ${medal ? `p20-pos-${medal}` : ''}`}>{i + 1}</span>
-                  <div className="p20-team-cell">
-                    <Image src={teamImg(t.logo_url, t.abbr, league)} className="p20-team-logo" alt={t.abbr} width={24} height={24} />
-                    <div className="p20-team-text">
-                      <span className={`p20-team-name ${medal ? `p20-name-${medal}` : ''}`}>{t.team}</span>
-                      <span className="p20-team-abbr">{t.abbr}</span>
-                    </div>
-                  </div>
-                  <span className="p20-stat p20-stat-w">{t.wins}</span>
-                  <span className="p20-stat p20-stat-l">{t.losses}</span>
-                  <span className="p20-stat">{t.games}</span>
-                  <span className={`p20-stat p20-wr ${getWinRateClass(t.win_rate)}`}>{t.win_rate}%</span>
-                  <span className={`p20-streak p20-streak-${streak.type.toLowerCase()}`}>{streak.count}</span>
-                </div>
-              );
-            })}
+          <div className="p20-ed-hdr-right">
+            <button
+              className={`p20-btn p20-btn-pv ${proVision ? 'p20-btn-active' : ''}`}
+              onClick={() => setProVision(v => !v)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              PRO VISION
+              {proVision && <span className="p20-pv-dot" />}
+            </button>
+            <div className="p20-ed-teamstat">
+              <span className="p20-ed-teamcount">{teams.length}</span>
+              <span className="p20-ed-teamlbl">Equipos</span>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* ── PRO VISION TABLE ── */}
-      {proVision && (
-        <div className="p20-pro-wrap">
-          <table className="p20-pro-table">
-            <thead>
-              <tr className="p20-pro-groups">
-                <th className="p20-th p20-th-pos p20-sticky-pos" rowSpan={2}>#</th>
-                <th className="p20-th p20-th-team p20-sticky-team" rowSpan={2}>EQUIPO</th>
-                {GROUPS.map(g => (
-                  <th key={g.label} colSpan={g.cols.length} className="p20-th-group" title={GLOSS_DESC[g.label] || g.label}>{g.label}</th>
-                ))}
-              </tr>
-              <tr className="p20-pro-stats">
-                {ALL_COLS.map((c, i) => (
-                  <th
-                    key={i}
-                    className={`p20-th-stat ${sortKey === c.key ? 'p20-th-sorted' : ''}`}
-                    title={`[${c.group}] ${c.tip}`}
-                    onClick={() => handleSort(c.key)}
-                  >
-                    {c.label}
-                    {sortKey === c.key && <span className="p20-sort-arrow">{sortDir === 'desc' ? '▼' : '▲'}</span>}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((t, i) => (
-                  <tr
+        {/* ── BODY: NORMAL ── */}
+        {!proVision && (
+          <div className="p20-ed-table">
+            <div className="p20-ed-thead">
+              <span className="p20-ed-col-pos">#</span>
+              <span className="p20-ed-col-team">Equipo</span>
+              <span className="p20-ed-col-w">W</span>
+              <span className="p20-ed-col-l">L</span>
+              <span className="p20-ed-col-wr">WR%</span>
+              <span className="p20-ed-col-streak">Racha</span>
+            </div>
+            <div className="p20-ed-tbody">
+              {sorted.map((t, i) => {
+                const streak = getStreak(t);
+                const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
+                const showSeries = t.match_wins != null;
+                const dispW = showSeries ? t.match_wins! : t.wins;
+                const dispL = showSeries ? t.match_losses! : t.losses;
+                const dispWR = showSeries ? t.match_wr! : t.win_rate;
+                return (
+                  <div
                     key={t.abbr}
-                    className={`p20-pro-row ${i % 2 === 1 ? 'p20-pro-alt' : ''}`}
+                    className="p20-ed-row"
                     onClick={() => router.push(`/${league}/team_profile/${t.slug || t.abbr}`)}
                   >
-                    <td className="p20-td p20-td-pos p20-sticky-pos">
-                      <span>{i + 1}</span>
-                    </td>
-                    <td className="p20-td p20-td-team p20-sticky-team">
-                      <div className="p20-pro-team-cell">
-                        <Image src={teamImg(t.logo_url, t.abbr, league)} className="p20-pro-logo" alt={t.abbr} width={24} height={24} />
-                        <span className="p20-pro-abbr">{t.abbr}</span>
+                    <span className="p20-ed-pos">
+                      {medal && <span className={`p20-ed-medal p20-ed-medal-${medal}`} />}
+                      <span className="p20-ed-pos-num">{String(i + 1).padStart(2, '0')}</span>
+                    </span>
+                    <div className="p20-ed-team">
+                      <Image src={teamImg(t.logo_url, t.abbr, league)} className="p20-ed-logo-mini" alt={t.abbr} width={32} height={32} />
+                      <div className="p20-ed-team-text">
+                        <span className="p20-ed-team-name">{t.team}</span>
+                        <span className="p20-ed-team-abbr">{t.abbr}</span>
                       </div>
-                    </td>
-                    {ALL_COLS.map((c, j) => {
-                      const hasData = cellHasData(t, c);
-                      const val = cellVal(t, c);
-                      const cls = cellCls(val, c, hasData);
-                      return <td key={j} className={`p20-td-stat ${cls}`}>{val}</td>;
-                    })}
-                  </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    </div>
+                    <span className="p20-ed-win">
+                      {dispW}
+                      {showSeries && <span className="p20-ed-sub"> ({t.wins})</span>}
+                    </span>
+                    <span className="p20-ed-loss">
+                      {dispL}
+                      {showSeries && <span className="p20-ed-sub"> ({t.losses})</span>}
+                    </span>
+                    <span className={`p20-ed-wr ${getWinRateClass(dispWR)}`}>{dispWR}%</span>
+                    <span className={`p20-ed-streak p20-ed-streak-${streak.type.toLowerCase()}`}>
+                      {streak.type}{streak.count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── BODY: PRO VISION (tabla densa, misma card editorial) ── */}
+        {proVision && (
+          <div className="p20-pro-wrap">
+            <table className="p20-pro-table">
+              <thead>
+                <tr className="p20-pro-groups">
+                  <th className="p20-th p20-th-pos p20-sticky-pos" rowSpan={2}>#</th>
+                  <th className="p20-th p20-th-team p20-sticky-team" rowSpan={2}>EQUIPO</th>
+                  {GROUPS.map(g => (
+                    <th key={g.label} colSpan={g.cols.length} className="p20-th-group" title={GLOSS_DESC[g.label] || g.label}>{g.label}</th>
+                  ))}
+                </tr>
+                <tr className="p20-pro-stats">
+                  {ALL_COLS.map((c, i) => (
+                    <th
+                      key={i}
+                      className={`p20-th-stat ${sortKey === c.key ? 'p20-th-sorted' : ''}`}
+                      title={`[${c.group}] ${c.tip}`}
+                      onClick={() => handleSort(c.key)}
+                    >
+                      {c.label}
+                      {sortKey === c.key && <span className="p20-sort-arrow">{sortDir === 'desc' ? '▼' : '▲'}</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((t, i) => (
+                    <tr
+                      key={t.abbr}
+                      className={`p20-pro-row ${i % 2 === 1 ? 'p20-pro-alt' : ''}`}
+                      onClick={() => router.push(`/${league}/team_profile/${t.slug || t.abbr}`)}
+                    >
+                      <td className="p20-td p20-td-pos p20-sticky-pos">
+                        <span>{i + 1}</span>
+                      </td>
+                      <td className="p20-td p20-td-team p20-sticky-team">
+                        <div className="p20-pro-team-cell">
+                          <Image src={teamImg(t.logo_url, t.abbr, league)} className="p20-pro-logo" alt={t.abbr} width={24} height={24} />
+                          <span className="p20-pro-abbr">{t.abbr}</span>
+                        </div>
+                      </td>
+                      {ALL_COLS.map((c, j) => {
+                        const hasData = cellHasData(t, c);
+                        const val = cellVal(t, c);
+                        const cls = cellCls(val, c, hasData);
+                        return <td key={j} className={`p20-td-stat ${cls}`}>{val}</td>;
+                      })}
+                    </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -149,151 +149,265 @@
 }
 
 /* ===========================================================================
-   NORMAL TABLE
+   NORMAL TABLE — Editorial card (inspired by Home p1-major-card)
+   Prefix: p20-ed-*
    =========================================================================== */
 
-.p20-table-card {
+.p20-ed-card {
+  position: relative;
   background: var(--surface-card, #141820);
   border: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  border-radius: 2px;
+  border-radius: 4px;
   overflow: hidden;
-  position: relative;
+  isolation: isolate;
 }
-.p20-table-card::before {
+.p20-ed-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: var(--p20-accent, #f0a500);
+  background: linear-gradient(90deg, transparent, var(--p20-accent, #f0a500), transparent);
+  z-index: 2;
 }
 
-.p20-table-hdr {
-  display: grid;
-  grid-template-columns: 60px 2fr repeat(4, 1fr) 100px;
-  padding: 14px 24px;
-  background: rgba(0,0,0,0.2);
+/* Watermark logo */
+.p20-ed-watermark {
+  position: absolute;
+  top: -40px;
+  right: -60px;
+  width: 320px !important;
+  height: 320px !important;
+  object-fit: contain;
+  opacity: 0.04;
+  filter: grayscale(1) brightness(2);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Editorial header ──────────────────────────────────────────────────── */
+.p20-ed-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 44px 48px 36px;
   border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--p20-accent, #f0a500);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-family: 'JetBrains Mono', monospace;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  position: relative;
+  z-index: 1;
 }
-.p20-col-pos { text-align: left; padding-left: 24px; }
-.p20-col-stat, .p20-col-streak { text-align: center; }
+.p20-ed-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.p20-ed-logo {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  flex-shrink: 0;
+}
+.p20-ed-hdr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.p20-ed-hero {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  background: linear-gradient(to right, #fff 30%, var(--p20-accent, #f0a500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.p20-ed-subhero {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--p20-accent, #f0a500);
+}
+.p20-ed-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.p20-ed-teamstat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.p20-ed-teamcount {
+  font-size: 44px;
+  font-weight: 950;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.p20-ed-teamlbl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
 
-.p20-table-body {
+/* Pro Vision button inside editorial header */
+.p20-ed-hdr-right .p20-btn {
+  align-self: center;
+}
+
+/* ── Table body ────────────────────────────────────────────────────────── */
+.p20-ed-table {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
 }
 
-.p20-row {
+/* Grid columns: pos(72) | team(flex) | W(90) | L(90) | WR%(90) | Streak(100) */
+.p20-ed-thead {
   display: grid;
-  grid-template-columns: 60px 2fr repeat(4, 1fr) 100px;
-  padding: 14px 24px;
+  grid-template-columns: 72px minmax(0, 1fr) 90px 90px 90px 100px;
   align-items: center;
+  padding: 16px 48px;
+  background: rgba(0,0,0,0.25);
   border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.p20-ed-col-pos { text-align: left; }
+.p20-ed-col-team { text-align: left; padding-left: 4px; }
+.p20-ed-col-w,
+.p20-ed-col-l,
+.p20-ed-col-wr,
+.p20-ed-col-streak { text-align: right; }
+
+.p20-ed-tbody { display: flex; flex-direction: column; }
+
+.p20-ed-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 90px 90px 90px 100px;
+  align-items: center;
+  padding: 18px 48px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
   cursor: pointer;
   transition: background 0.15s, transform 0.15s;
   position: relative;
 }
-.p20-row:last-child { border-bottom: none; }
-.p20-row:hover {
-  background: rgba(255,255,255,0.03);
+.p20-ed-row:last-child { border-bottom: none; }
+.p20-ed-row:hover {
+  background: rgba(255,255,255,0.025);
   transform: translateX(3px);
 }
 
-/* Medal rows */
-.p20-row-gold { background: rgba(251,191,36,0.04); }
-.p20-row-silver { background: rgba(148,163,184,0.04); }
-.p20-row-bronze { background: rgba(180,83,9,0.04); }
-
-.p20-row-gold::before,
-.p20-row-silver::before,
-.p20-row-bronze::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0;
-  width: 3px;
-  height: 100%;
-}
-.p20-row-gold::before { background: #fbbf24; }
-.p20-row-silver::before { background: #94a3b8; }
-.p20-row-bronze::before { background: #b45309; }
-
-/* Position */
-.p20-pos {
-  font-size: 14px;
-  font-weight: 950;
-  color: var(--text-muted, #64748b);
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -0.5px;
-  text-align: left;
-  padding-left: 24px;
-}
-.p20-pos-gold { color: #fbbf24; }
-.p20-pos-silver { color: #94a3b8; }
-.p20-pos-bronze { color: #b45309; }
-
-/* Team cell */
-.p20-team-cell {
+/* Position + medal dot */
+.p20-ed-pos {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
 }
-.p20-team-logo {
-  width: 36px;
-  height: 36px;
+.p20-ed-medal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+.p20-ed-medal-gold { background: #fbbf24; color: #fbbf24; }
+.p20-ed-medal-silver { background: #cbd5e1; color: #cbd5e1; }
+.p20-ed-medal-bronze { background: #d97706; color: #d97706; }
+.p20-ed-pos-num {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-muted, #64748b);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.p20-ed-row:first-child .p20-ed-pos-num { color: #fbbf24; }
+.p20-ed-row:nth-child(2) .p20-ed-pos-num { color: #cbd5e1; }
+.p20-ed-row:nth-child(3) .p20-ed-pos-num { color: #d97706; }
+
+/* Team cell */
+.p20-ed-team {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.p20-ed-logo-mini {
+  width: 32px !important;
+  height: 32px !important;
   object-fit: contain;
+  flex-shrink: 0;
 }
-.p20-team-text {
+.p20-ed-team-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
-.p20-team-name {
+.p20-ed-team-name {
   font-size: 15px;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.p20-name-gold { color: #fbbf24; }
-.p20-name-silver { color: #c8d0d9; }
-.p20-name-bronze { color: #d97706; }
-.p20-team-abbr {
+.p20-ed-team-abbr {
   font-size: 10px;
   font-weight: 700;
   color: var(--text-muted, #64748b);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
-/* Stat values */
-.p20-stat {
-  font-size: 14px;
-  font-weight: 950;
-  color: var(--text-secondary, #94a3b8);
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -0.5px;
-  text-align: center;
+/* W / L / WR% stat cells — monospace, right-aligned */
+.p20-ed-win,
+.p20-ed-loss,
+.p20-ed-wr,
+.p20-ed-streak {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
 }
-.p20-stat-w { color: #22c55e; }
-.p20-stat-l { color: #ef4444; }
+.p20-ed-win { color: #22c55e; }
+.p20-ed-loss { color: #ef4444; }
 
-.p20-wr.winrate-high { color: #22c55e; }
-.p20-wr.winrate-mid { color: #eab308; }
-.p20-wr.winrate-low { color: #ef4444; }
+/* Series parenthetical game count — muted, smaller */
+.p20-ed-sub {
+  display: inline;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0;
+}
+
+/* Win rate colored */
+.p20-ed-wr { color: var(--text-secondary, #94a3b8); }
+.p20-ed-wr.winrate-high { color: #22c55e; }
+.p20-ed-wr.winrate-mid { color: #eab308; }
+.p20-ed-wr.winrate-low { color: #ef4444; }
 
 /* Streak */
-.p20-streak {
-  font-size: 13px;
-  font-weight: 950;
-  font-family: 'Inter', system-ui, sans-serif;
-  text-align: center;
-  letter-spacing: -0.5px;
-}
-.p20-streak-w { color: #22c55e; }
-.p20-streak-l { color: #ef4444; }
+.p20-ed-streak-w { color: #22c55e; }
+.p20-ed-streak-l { color: #ef4444; }
 
 
 /* ===========================================================================
@@ -309,6 +423,15 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.12) transparent;
   position: relative;
+}
+
+/* When Pro Vision lives inside the editorial card, drop its own shell —
+   the card (border + top gradient) already provides the frame. */
+.p20-ed-card .p20-pro-wrap {
+  border: none;
+  border-top: none;
+  border-radius: 0;
+  z-index: 1;
 }
 .p20-pro-wrap::-webkit-scrollbar { height: 6px; }
 .p20-pro-wrap::-webkit-scrollbar-track { background: transparent; }
@@ -563,6 +686,11 @@
 @media (max-width: 1024px) {
   .p20-header { flex-direction: column; gap: 20px; align-items: flex-start; }
   .p20-page { padding: 40px 24px 60px; }
+  .p20-ed-hdr { padding: 32px 28px 28px; }
+  .p20-ed-hero { font-size: 40px; letter-spacing: -1.5px; }
+  .p20-ed-teamcount { font-size: 34px; }
+  .p20-ed-thead,
+  .p20-ed-row { padding-left: 28px; padding-right: 28px; }
 }
 
 @media (max-width: 768px) {
@@ -570,11 +698,20 @@
   .p20-header { padding: 20px; }
   .p20-header-title { font-size: 24px; }
   .p20-header-actions { flex-wrap: wrap; gap: 8px; }
-  .p20-table-hdr { font-size: 9px; padding: 10px 16px; }
-  .p20-row { padding: 10px 16px; }
-  .p20-team-name { font-size: 13px; }
-  .p20-team-logo { width: 28px; height: 28px; }
   .p20-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .p20-ed-watermark { width: 220px !important; height: 220px !important; top: -20px; right: -40px; }
+  .p20-ed-hdr { flex-direction: column; align-items: flex-start; gap: 20px; padding: 28px 20px 24px; }
+  .p20-ed-hdr-right { align-items: flex-start; flex-direction: row; gap: 10px; align-items: baseline; }
+  .p20-ed-hero { font-size: 32px; letter-spacing: -1px; }
+  .p20-ed-logo { width: 48px !important; height: 48px !important; }
+  .p20-ed-teamcount { font-size: 26px; }
+  .p20-ed-thead { grid-template-columns: 56px minmax(0,1fr) 60px 60px 70px 70px; padding: 12px 20px; font-size: 9px; letter-spacing: 1.5px; }
+  .p20-ed-row { grid-template-columns: 56px minmax(0,1fr) 60px 60px 70px 70px; padding: 14px 20px; }
+  .p20-ed-team-name { font-size: 13px; }
+  .p20-ed-logo-mini { width: 26px !important; height: 26px !important; }
+  .p20-ed-win, .p20-ed-loss, .p20-ed-wr, .p20-ed-streak { font-size: 12px; }
+  .p20-ed-sub { font-size: 10px; }
 }
 
 @media (max-width: 600px) {
@@ -588,15 +725,25 @@
   .p20-header-actions { gap: 6px; }
   .p20-hstat-val { font-size: 28px; }
   .p20-hstat-lbl { font-size: 9px; }
-  .p20-table-card { border-radius: 0; }
-  .p20-table-hdr { grid-template-columns: 50px 1fr 70px 70px; gap: 8px; padding: 10px 12px; font-size: 8px; }
-  .p20-row { grid-template-columns: 50px 1fr 70px 70px; gap: 8px; padding: 10px 12px; flex-wrap: wrap; }
-  .p20-team-name { font-size: 11px; }
-  .p20-team-logo { width: 24px; height: 24px; }
-  .p20-team-abbr { font-size: 8px; }
-  .p20-stat { font-size: 12px; }
-  .p20-streak { font-size: 11px; }
-  .p20-pos { font-size: 12px; }
   .p20-header-stat { align-items: flex-start; gap: 2px; }
   .p20-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .p20-ed-card { border-radius: 0; }
+  .p20-ed-watermark { width: 160px !important; height: 160px !important; }
+  .p20-ed-hdr { padding: 20px 14px 18px; gap: 14px; }
+  .p20-ed-hero { font-size: 26px; }
+  .p20-ed-subhero { font-size: 9px; letter-spacing: 2px; }
+  .p20-ed-logo { width: 40px !important; height: 40px !important; }
+  .p20-ed-teamcount { font-size: 22px; }
+  .p20-ed-thead { grid-template-columns: 44px minmax(0,1fr) 48px 48px 58px 56px; padding: 10px 14px; font-size: 8px; letter-spacing: 1px; gap: 4px; }
+  .p20-ed-row { grid-template-columns: 44px minmax(0,1fr) 48px 48px 58px 56px; padding: 12px 14px; gap: 4px; }
+  .p20-ed-team { gap: 8px; }
+  .p20-ed-team-name { font-size: 11px; }
+  .p20-ed-team-abbr { font-size: 8px; letter-spacing: 1px; }
+  .p20-ed-logo-mini { width: 22px !important; height: 22px !important; }
+  .p20-ed-pos { gap: 6px; }
+  .p20-ed-medal { width: 6px; height: 6px; }
+  .p20-ed-pos-num { font-size: 12px; }
+  .p20-ed-win, .p20-ed-loss, .p20-ed-wr, .p20-ed-streak { font-size: 11px; }
+  .p20-ed-sub { display: none; } /* hide parenthetical game count on very small screens */
 }

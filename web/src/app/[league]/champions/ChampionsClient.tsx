@@ -153,106 +153,134 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
     else { setSortKey(key); setSortDir('desc'); }
   };
 
+  const playedCount = useMemo(
+    () => filtered.filter(c => ((c.games ?? c.picks) ?? 0) > 0).length,
+    [filtered]
+  );
+
   return (
     <div className="p25-page" style={{ '--p25-accent': accent } as React.CSSProperties}>
 
-      {/* ── HEADER ── */}
-      <div className="p25-header">
-        <div className="p25-header-info">
-          <div className="p25-header-logo">
-            <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
+      {/* ── Editorial card: header unificado + filtros + body según modo ── */}
+      <div className={`p25-ed-card ${proVision ? 'p25-ed-card-pro' : ''}`} data-league={league.toLowerCase()}>
+        <Image
+          src={LEAGUE_LOGO(league)}
+          alt=""
+          className="p25-ed-watermark"
+          aria-hidden="true"
+          width={280}
+          height={280}
+        />
+
+        <div className="p25-ed-hdr">
+          <div className="p25-ed-hdr-left">
+            <Image src={LEAGUE_LOGO(league)} alt={league} className="p25-ed-logo" width={64} height={64} />
+            <div className="p25-ed-hdr-text">
+              <span className="p25-ed-hero">{leagueUpper} CAMPEONES</span>
+              <span className="p25-ed-subhero">
+                SEASON {filters.year || ''} · {(filters.split || '').toUpperCase()}
+              </span>
+            </div>
           </div>
-          <div>
-            <div className="p25-header-title">{leagueUpper} CAMPEONES</div>
-            <div className="p25-header-sub">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
-          </div>
-        </div>
-        <div className="p25-header-filters">
-          {POSITIONS.map(pos => (
+          <div className="p25-ed-hdr-right">
             <button
-              key={pos}
-              className={`p25-filter-btn ${pos === posFilter ? 'p25-filter-active' : ''}`}
-              onClick={() => setPosFilter(pos)}
+              className={`p25-btn p25-btn-pv ${proVision ? 'p25-btn-active' : ''}`}
+              onClick={() => setProVision(v => !v)}
             >
-              {pos === 'All' ? 'Todos' : pos.toUpperCase()}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              PRO VISION
+              {proVision && <span className="p25-pv-dot" />}
             </button>
-          ))}
-        </div>
-        <div className="p25-header-right">
-          <button
-            className={`p25-btn p25-btn-pv ${proVision ? 'p25-btn-active' : ''}`}
-            onClick={() => setProVision(v => !v)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            PRO VISION
-            {proVision && <span className="p25-pv-dot" />}
-          </button>
-          {posFilter === 'All' ? (<>
-            <div className="p25-header-stat">
-              <span className="p25-hstat-val">{filtered.filter(c => ((c.games ?? c.picks) ?? 0) > 0).length}</span>
-              <span className="p25-hstat-lbl">Campeones jugados</span>
-            </div>
-            <div className="p25-header-stat">
-              <span className="p25-hstat-val">{filtered.length}</span>
-              <span className="p25-hstat-lbl">Presentes</span>
-            </div>
-          </>) : (
-            <div className="p25-header-stat">
-              <span className="p25-hstat-val">{filtered.length}</span>
-              <span className="p25-hstat-lbl">Campeones</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── NORMAL TABLE ── */}
-      {!proVision && (
-        <div className="p25-table-card">
-          <div className="p25-table-hdr">
-            <span className="p25-col-pos">#</span>
-            <span className="p25-col-champ">Campeón</span>
-            <span className="p25-col-stat">Picks</span>
-            <span className="p25-col-stat">WR</span>
-            <span className="p25-col-stat">Pick%</span>
-            <span className="p25-col-stat">Bans</span>
-            <span className="p25-col-stat">Ban%</span>
-            <span className="p25-col-stat">KDA</span>
-          </div>
-          <div className="p25-table-body">
-            {filtered.map((c, i) => {
-              const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
-              return (
-                <div
-                  key={c.name}
-                  className={`p25-row ${medal ? `p25-row-${medal}` : ''}`}
-                  onClick={() => router.push(`/${league}/champion_profile/${encodeURIComponent(c.name)}`)}
-                >
-                  <span className={`p25-pos ${medal ? `p25-pos-${medal}` : ''}`}>{i + 1}</span>
-                  <div className="p25-champ-cell">
-                    <div className="p25-champ-img">
-                      <Image src={champImg(c.image_url) ?? ''} alt={c.name} width={28} height={28} onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
-                    </div>
-                    <span className={`p25-champ-name ${medal ? `p25-name-${medal}` : ''}`}>{c.name}</span>
-                  </div>
-                  <span className="p25-stat">{c.games}</span>
-                  <span className={`p25-stat ${getWinRateClass(c.win_rate ?? 0)}`}>{c.win_rate}%</span>
-                  <span className="p25-stat">{c.pick_rate}%</span>
-                  <span className="p25-stat">{c.bans}</span>
-                  <span className="p25-stat">{c.ban_rate}%</span>
-                  <span className="p25-stat">{c.kda != null ? Number(c.kda).toFixed(2) : '—'}</span>
+            {posFilter === 'All' ? (
+              <>
+                <div className="p25-ed-teamstat">
+                  <span className="p25-ed-teamcount">{playedCount}</span>
+                  <span className="p25-ed-teamlbl">Jugados</span>
                 </div>
-              );
-            })}
+                <div className="p25-ed-teamstat">
+                  <span className="p25-ed-teamcount">{filtered.length}</span>
+                  <span className="p25-ed-teamlbl">Presentes</span>
+                </div>
+              </>
+            ) : (
+              <div className="p25-ed-teamstat">
+                <span className="p25-ed-teamcount">{filtered.length}</span>
+                <span className="p25-ed-teamlbl">Campeones</span>
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* ── PRO VISION TABLE ── */}
-      {proVision && (
-        <div className="p25-pro-wrap">
+        {/* ── Filtros de rol (segunda franja del header editorial) ── */}
+        <div className="p25-ed-filters">
+          <span className="p25-ed-filters-lbl">Rol</span>
+          <div className="p25-ed-filters-group">
+            {POSITIONS.map(pos => (
+              <button
+                key={pos}
+                className={`p25-filter-btn ${pos === posFilter ? 'p25-filter-active' : ''}`}
+                onClick={() => setPosFilter(pos)}
+              >
+                {pos === 'All' ? 'Todos' : pos.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── BODY: NORMAL ── */}
+        {!proVision && (
+          <div className="p25-ed-table">
+            <div className="p25-ed-thead">
+              <span className="p25-ed-col-pos">#</span>
+              <span className="p25-ed-col-champ">Campeón</span>
+              <span className="p25-ed-col-num">PICKS</span>
+              <span className="p25-ed-col-num">WR%</span>
+              <span className="p25-ed-col-num">PICK%</span>
+              <span className="p25-ed-col-num">BANS</span>
+              <span className="p25-ed-col-num">BAN%</span>
+              <span className="p25-ed-col-num">KDA</span>
+            </div>
+            <div className="p25-ed-tbody">
+              {filtered.map((c, i) => {
+                const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
+                const wrCls = c.win_rate != null ? getWinRateClass(c.win_rate) : '';
+                return (
+                  <div
+                    key={c.name}
+                    className="p25-ed-row"
+                    onClick={() => router.push(`/${league}/champion_profile/${encodeURIComponent(c.name)}`)}
+                  >
+                    <span className="p25-ed-pos">
+                      {medal && <span className={`p25-ed-medal p25-ed-medal-${medal}`} />}
+                      <span className="p25-ed-pos-num">{String(i + 1).padStart(2, '0')}</span>
+                    </span>
+                    <div className="p25-ed-champ">
+                      <div className="p25-ed-champ-img">
+                        <Image src={champImg(c.image_url) ?? ''} alt={c.name} width={32} height={32} onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                      </div>
+                      <span className="p25-ed-champ-name">{c.name}</span>
+                    </div>
+                    <span className="p25-ed-num">{c.games ?? '—'}</span>
+                    <span className={`p25-ed-num p25-ed-wr ${wrCls}`}>
+                      {c.win_rate != null ? Number(c.win_rate).toFixed(0) + '%' : '—'}
+                    </span>
+                    <span className="p25-ed-num">{c.pick_rate != null ? c.pick_rate + '%' : '—'}</span>
+                    <span className="p25-ed-num">{c.bans ?? '—'}</span>
+                    <span className="p25-ed-num">{c.ban_rate != null ? c.ban_rate + '%' : '—'}</span>
+                    <span className="p25-ed-num">{c.kda != null ? Number(c.kda).toFixed(2) : '—'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── BODY: PRO VISION (tabla densa, misma card editorial) ── */}
+        {proVision && (
+          <div className="p25-pro-wrap">
           <table className="p25-pro-table">
             <thead>
               <tr className="p25-pro-groups">
@@ -311,6 +339,7 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }

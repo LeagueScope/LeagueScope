@@ -219,156 +219,191 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
     else { setSortKey(key); setSortDir('desc'); }
   };
 
+  // ── BO3+ detection (surface series-level W/L in normal view) ───────────────
+  const isBo3 = sorted.some(p => p.match_wins != null || p.match_losses != null);
+  const serieBo = sorted.find(p => p.best_of != null)?.best_of;
+  const showSeries = isBo3;
+
   return (
     <div className="p24-page" style={{ '--p24-accent': accent } as React.CSSProperties}>
 
-      {/* ── HEADER ── */}
-      <div className="p24-header">
-        <div className="p24-header-info">
-          <div className="p24-header-logo">
-            <Image src={LEAGUE_LOGO(league)} alt={league} width={40} height={40} />
+      {/* ── Editorial card: header unificado + filtros + body según modo ── */}
+      <div className={`p24-ed-card ${proVision ? 'p24-ed-card-pro' : ''}`} data-league={league.toLowerCase()}>
+        <Image
+          src={LEAGUE_LOGO(league)}
+          alt=""
+          className="p24-ed-watermark"
+          aria-hidden="true"
+          width={280}
+          height={280}
+        />
+
+        <div className="p24-ed-hdr">
+          <div className="p24-ed-hdr-left">
+            <Image src={LEAGUE_LOGO(league)} alt={league} className="p24-ed-logo" width={64} height={64} />
+            <div className="p24-ed-hdr-text">
+              <span className="p24-ed-hero">{leagueName} JUGADORES</span>
+              <span className="p24-ed-subhero">
+                SEASON {filters.year || ''} · {(filters.split || '').toUpperCase()}
+              </span>
+            </div>
           </div>
-          <div>
-            <div className="p24-header-title">{leagueName} JUGADORES</div>
-            <div className="p24-header-sub">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
-          </div>
-        </div>
-        <div className="p24-header-filters">
-          {POSITIONS.map(pos => (
+          <div className="p24-ed-hdr-right">
             <button
-              key={pos}
-              className={`p24-filter-btn ${pos === posFilter ? 'p24-filter-active' : ''}`}
-              onClick={() => setPosFilter(pos)}
+              className={`p24-btn p24-btn-pv ${proVision ? 'p24-btn-active' : ''}`}
+              onClick={() => setProVision(v => !v)}
             >
-              {pos === 'All' ? 'Todos' : pos.toUpperCase()}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              PRO VISION
+              {proVision && <span className="p24-pv-dot" />}
             </button>
-          ))}
-        </div>
-        <div className="p24-header-right">
-          <button
-            className={`p24-btn p24-btn-pv ${proVision ? 'p24-btn-active' : ''}`}
-            onClick={() => setProVision(v => !v)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            PRO VISION
-            {proVision && <span className="p24-pv-dot" />}
-          </button>
-          <div className="p24-header-stat">
-            <span className="p24-hstat-val">{filtered.length}</span>
-            <span className="p24-hstat-lbl">Jugadores</span>
+            <div className="p24-ed-teamstat">
+              <span className="p24-ed-teamcount">{filtered.length}</span>
+              <span className="p24-ed-teamlbl">Jugadores</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── NORMAL TABLE ── */}
-      {!proVision && (
-        <div className="p24-table-card">
-          <div className="p24-table-hdr">
-            <span className="p24-col-pos">#</span>
-            <span className="p24-col-role">ROL</span>
-            <span className="p24-col-player">Jugador</span>
-            <span className="p24-col-stat">Victorias</span>
-            <span className="p24-col-stat">Derrotas</span>
-            <span className="p24-col-stat">Partidas</span>
-            <span className="p24-col-stat">Win Rate %</span>
-            <span className="p24-col-streak">Racha</span>
-          </div>
-          <div className="p24-table-body">
-            {filtered.map((p, i) => {
-              const streak = computeStreak(p);
-              const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
-              return (
-                <div
-                  key={`${p.name}-${p.team_abbr}`}
-                  className={`p24-row ${medal ? `p24-row-${medal}` : ''}`}
-                  onClick={() => router.push(`/${league}/player_profile/${encodeURIComponent(p.name)}?team=${encodeURIComponent(p.team_abbr)}`)}
-                >
-                  <span className={`p24-pos ${medal ? `p24-pos-${medal}` : ''}`}>{i + 1}</span>
-                  <span className="p24-role-cell"><Image src={ROLE_ICON(p.position)} alt={p.position} className="p24-role-icon" width={20} height={20} /></span>
-                  <div className="p24-player-cell">
-                    <Image src={teamImg(p.team_logo_url, p.team_abbr, league)} className="p24-player-logo" alt={p.team_abbr} width={24} height={24} />
-                    <div className="p24-player-text">
-                      <span className={`p24-player-name ${medal ? `p24-name-${medal}` : ''}`}>{p.name}</span>
-                      <span className="p24-player-team">{p.team_abbr}</span>
-                    </div>
-                  </div>
-                  <span className="p24-stat p24-stat-w">{p.wins ?? '—'}</span>
-                  <span className="p24-stat p24-stat-l">{p.losses ?? '—'}</span>
-                  <span className="p24-stat">{p.games ?? '—'}</span>
-                  <span className={`p24-stat p24-wr ${p.win_rate != null ? (p.win_rate >= 60 ? 'p24-wr-high' : p.win_rate >= 50 ? 'p24-wr-mid' : 'p24-wr-low') : ''}`}>
-                    {p.win_rate != null ? p.win_rate.toFixed(0) + '%' : '—'}
-                  </span>
-                  <span className={`p24-streak ${streak ? (streak.type === 'W' ? 'p24-streak-w' : 'p24-streak-l') : ''}`}>
-                    {streak ? streak.count : '—'}
-                  </span>
-                </div>
-              );
-            })}
+        {/* ── Filtros de rol (segunda franja del header editorial) ── */}
+        <div className="p24-ed-filters">
+          <span className="p24-ed-filters-lbl">Rol</span>
+          <div className="p24-ed-filters-group">
+            {POSITIONS.map(pos => (
+              <button
+                key={pos}
+                className={`p24-filter-btn ${pos === posFilter ? 'p24-filter-active' : ''}`}
+                onClick={() => setPosFilter(pos)}
+              >
+                {pos === 'All' ? 'Todos' : pos.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* ── PRO VISION TABLE ── */}
-      {proVision && (
-        <div className="p24-pro-wrap">
-          <table className="p24-pro-table">
-            <thead>
-              <tr className="p24-pro-groups">
-                <th className="p24-th p24-th-pos p24-sticky-pos" rowSpan={2}>#</th>
-                <th className="p24-th p24-th-role p24-sticky-role" rowSpan={2}>ROL</th>
-                <th className="p24-th p24-th-player p24-sticky-player" rowSpan={2}>JUGADOR</th>
-                {GROUPS.map(g => (
-                  <th key={g.label} colSpan={g.cols.length} className="p24-th-group" title={GLOSS_DESC[g.label] || g.label}>{g.label}</th>
-                ))}
-              </tr>
-              <tr className="p24-pro-stats">
-                {ALL_COLS.map((c, i) => (
-                  <th
-                    key={i}
-                    className={`p24-th-stat ${sortKey === c.key ? 'p24-th-sorted' : ''}`}
-                    title={`[${c.group}] ${c.tip}`}
-                    onClick={() => handleSort(c.key)}
+        {/* ── BODY: NORMAL ── */}
+        {!proVision && (
+          <div className="p24-ed-table">
+            <div className="p24-ed-thead">
+              <span className="p24-ed-col-pos">#</span>
+              <span className="p24-ed-col-role">Rol</span>
+              <span className="p24-ed-col-player">Jugador</span>
+              <span className="p24-ed-col-w">W</span>
+              <span className="p24-ed-col-l">L</span>
+              <span className="p24-ed-col-wr">WR%</span>
+              <span className="p24-ed-col-streak">Racha</span>
+            </div>
+            <div className="p24-ed-tbody">
+              {filtered.map((p, i) => {
+                const streak = computeStreak(p);
+                const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
+                // Series-level display when BO3+, else game-level
+                const dispW = showSeries ? (p.match_wins ?? 0) : (p.wins ?? '—');
+                const dispL = showSeries ? (p.match_losses ?? 0) : (p.losses ?? '—');
+                const dispWr = showSeries ? (p.match_wr ?? null) : (p.win_rate ?? null);
+                const wrCls = dispWr != null ? (dispWr >= 60 ? 'p24-wr-high' : dispWr >= 50 ? 'p24-wr-mid' : 'p24-wr-low') : '';
+                return (
+                  <div
+                    key={`${p.name}-${p.team_abbr}`}
+                    className="p24-ed-row"
+                    onClick={() => router.push(`/${league}/player_profile/${encodeURIComponent(p.name)}?team=${encodeURIComponent(p.team_abbr)}`)}
                   >
-                    {c.label}
-                    {sortKey === c.key && <span className="p24-sort-arrow">{sortDir === 'desc' ? '▼' : '▲'}</span>}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p, i) => (
-                <tr
-                  key={`${p.name}-${p.team_abbr}`}
-                  className={`p24-pro-row ${i % 2 === 1 ? 'p24-pro-alt' : ''}`}
-                  onClick={() => router.push(`/${league}/player_profile/${encodeURIComponent(p.name)}?team=${encodeURIComponent(p.team_abbr)}`)}
-                >
-                  <td className="p24-td p24-td-pos p24-sticky-pos">
-                    <span>{i + 1}</span>
-                  </td>
-                  <td className="p24-td p24-td-role p24-sticky-role">
-                    <Image src={ROLE_ICON(p.position)} alt={p.position} className="p24-pro-role-icon" width={20} height={20} />
-                  </td>
-                  <td className="p24-td p24-td-player p24-sticky-player">
-                    <div className="p24-pro-player-cell">
-                      <Image src={teamImg(p.team_logo_url, p.team_abbr, league)} className="p24-pro-team-logo" alt={p.team_abbr} width={24} height={24} />
-                      <span className="p24-pro-player-name">{p.name}</span>
+                    <span className="p24-ed-pos">
+                      {medal && <span className={`p24-ed-medal p24-ed-medal-${medal}`} />}
+                      <span className="p24-ed-pos-num">{String(i + 1).padStart(2, '0')}</span>
+                    </span>
+                    <span className="p24-ed-role">
+                      <Image src={ROLE_ICON(p.position)} alt={p.position || ''} className="p24-ed-role-icon" width={22} height={22} />
+                    </span>
+                    <div className="p24-ed-player">
+                      <Image src={teamImg(p.team_logo_url, p.team_abbr, league)} className="p24-ed-player-logo" alt={p.team_abbr} width={32} height={32} />
+                      <div className="p24-ed-player-text">
+                        <span className="p24-ed-player-name">{p.name}</span>
+                        <span className="p24-ed-player-team">{p.team_abbr}</span>
+                      </div>
                     </div>
-                  </td>
-                  {ALL_COLS.map((c, j) => {
-                    const hasData = cellHasData(p as unknown as Record<string, unknown>, c);
-                    const val = cellVal(p as unknown as Record<string, unknown>, c);
-                    const cls = cellCls(val, c, hasData, 'p24-');
-                    return <td key={j} className={`p24-td-stat ${cls}`}>{val}</td>;
-                  })}
+                    <span className="p24-ed-win">
+                      {dispW}
+                      {showSeries && p.wins != null && <span className="p24-ed-sub"> ({p.wins})</span>}
+                    </span>
+                    <span className="p24-ed-loss">
+                      {dispL}
+                      {showSeries && p.losses != null && <span className="p24-ed-sub"> ({p.losses})</span>}
+                    </span>
+                    <span className={`p24-ed-wr ${wrCls}`}>
+                      {dispWr != null ? dispWr.toFixed(0) + '%' : '—'}
+                    </span>
+                    <span className={`p24-ed-streak ${streak ? (streak.type === 'W' ? 'p24-ed-streak-w' : 'p24-ed-streak-l') : ''}`}>
+                      {streak ? `${streak.type}${streak.count}` : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── BODY: PRO VISION (tabla densa, misma card editorial) ── */}
+        {proVision && (
+          <div className="p24-pro-wrap">
+            <table className="p24-pro-table">
+              <thead>
+                <tr className="p24-pro-groups">
+                  <th className="p24-th p24-th-pos p24-sticky-pos" rowSpan={2}>#</th>
+                  <th className="p24-th p24-th-role p24-sticky-role" rowSpan={2}>ROL</th>
+                  <th className="p24-th p24-th-player p24-sticky-player" rowSpan={2}>JUGADOR</th>
+                  {GROUPS.map(g => (
+                    <th key={g.label} colSpan={g.cols.length} className="p24-th-group" title={GLOSS_DESC[g.label] || g.label}>{g.label}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                <tr className="p24-pro-stats">
+                  {ALL_COLS.map((c, i) => (
+                    <th
+                      key={i}
+                      className={`p24-th-stat ${sortKey === c.key ? 'p24-th-sorted' : ''}`}
+                      title={`[${c.group}] ${c.tip}`}
+                      onClick={() => handleSort(c.key)}
+                    >
+                      {c.label}
+                      {sortKey === c.key && <span className="p24-sort-arrow">{sortDir === 'desc' ? '▼' : '▲'}</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((p, i) => (
+                  <tr
+                    key={`${p.name}-${p.team_abbr}`}
+                    className={`p24-pro-row ${i % 2 === 1 ? 'p24-pro-alt' : ''}`}
+                    onClick={() => router.push(`/${league}/player_profile/${encodeURIComponent(p.name)}?team=${encodeURIComponent(p.team_abbr)}`)}
+                  >
+                    <td className="p24-td p24-td-pos p24-sticky-pos">
+                      <span>{i + 1}</span>
+                    </td>
+                    <td className="p24-td p24-td-role p24-sticky-role">
+                      <Image src={ROLE_ICON(p.position)} alt={p.position || ''} className="p24-pro-role-icon" width={20} height={20} />
+                    </td>
+                    <td className="p24-td p24-td-player p24-sticky-player">
+                      <div className="p24-pro-player-cell">
+                        <Image src={teamImg(p.team_logo_url, p.team_abbr, league)} className="p24-pro-team-logo" alt={p.team_abbr} width={24} height={24} />
+                        <span className="p24-pro-player-name">{p.name}</span>
+                      </div>
+                    </td>
+                    {ALL_COLS.map((c, j) => {
+                      const hasData = cellHasData(p as unknown as Record<string, unknown>, c);
+                      const val = cellVal(p as unknown as Record<string, unknown>, c);
+                      const cls = cellCls(val, c, hasData, 'p24-');
+                      return <td key={j} className={`p24-td-stat ${cls}`}>{val}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

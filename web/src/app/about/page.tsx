@@ -55,81 +55,94 @@ export default function AboutPage() {
         <section>
           <h2>La historia detrás</h2>
           <p>
-            LeagueScope nace de una obsesión muy simple: querer saber
-            <em> todo</em> sobre las partidas competitivas de League of Legends.
-            Después de años buscando una web que ofreciera información clara,
-            concisa y no intrusiva, pensamos: &laquo;¿Y si lo hacemos nosotros,
-            y además lo hacemos gratis?&raquo;
+            LeagueScope nace de una idea muy simple: una web que ofrezca toda
+            la información posible de forma clara, concisa y sin anuncios ni
+            paywalls. Busqué algo así y no lo encontré. Así que me puse a
+            construirlo.
           </p>
           <p>
-            Así empezó este proyecto, un proyecto personal que se convirtió en
-            algo mucho más grande de lo que en un principio concebimos.
-            Actualmente, cubrimos más de 80 competiciones profesionales en todo
-            el mundo, con datos históricos que se remontan a 2014 y más de
-            72.000 partidas analizadas.
+            Lo que empezó como un proyecto personal para entender mejor mis
+            ligas favoritas se fue haciendo grande a base de fines de semana.
+            Hoy LeagueScope cubre más de 20 competiciones activas y, sumando
+            ligas extintas, fusiones, showmatches y torneos internacionales,
+            supera los <strong>80 campeonatos procesados y las 72.000 partidas
+            analizadas</strong>. Y sigue creciendo.
           </p>
         </section>
 
         {/* -- Para quién -- */}
         <section>
           <h2>Para quién es</h2>
+          <p>Para ti.</p>
           <p>
-            Para ti, si estás leyendo esto. Da igual si eres un fan que quiere
-            saber cómo le fue a su equipo, un creador de contenido que necesita
-            estadísticas fiables para su próximo vídeo o un analista preparando
-            la retransmisión del fin de semana.
+            Si eres de los que se pone el LCK a las 10 de la mañana, esto es
+            para ti. Si haces vídeos y necesitas un dato concreto sin tener
+            que pelearte con mil filtros, esto es para ti. Si estás preparando
+            un cast y quieres comparar dos rosters rápido, esto es para ti. Y
+            si simplemente quieres entender por qué tu equipo pierde siempre
+            en el side rojo, también.
           </p>
-          <p>
-            LeagueScope está pensada para cualquier persona que disfrute del
-            League of Legends competitivo y quiera entenderlo un poco mejor.
-          </p>
+          <p>No hace falta ser analista. Solo que te guste el juego.</p>
         </section>
 
         {/* -- Qué ofrecemos -- */}
         <section>
           <h2>Qué puedes encontrar aquí</h2>
           <p>
-            No son solo estadísticas, es un conjunto de herramientas de análisis
-            basadas en datos oficiales de partidas competitivas:
+            No es una web llena de tablas por llenar tablas. Cada herramienta
+            nació porque yo mismo la necesitaba en algún momento.
           </p>
+
+          <h3>Explorar una liga</h3>
           <ul>
             <li>
-              <strong>Overview por liga</strong> &mdash; Resumen de temporada
-              con meta snapshot, rankings y distribución de resultados por lado.
+              <strong>Overview</strong> &mdash; El pulso de la temporada: meta,
+              rankings y cómo está yendo cada lado del mapa.
             </li>
             <li>
               <strong>Standings avanzados</strong> &mdash; Clasificación con 11
-              grupos de métricas: early, mid, late game, daño, economía, visión
-              y objetivos.
-            </li>
-            <li>
-              <strong>Perfiles de equipo</strong> &mdash; Roster, historial de
-              partidas, champion pool, prioridad de draft y diferencial de oro.
-            </li>
-            <li>
-              <strong>Perfiles de jugador</strong> &mdash; Stats completas,
-              campeones jugados, match log con builds y runas, y carrera
-              histórica.
-            </li>
-            <li>
-              <strong>Perfiles de campeón</strong> &mdash; Matchups, items,
-              keystones, desglose por parche y jugadores destacados.
-            </li>
-            <li>
-              <strong>Head-to-Head</strong> &mdash; Compara hasta 4 equipos o
-              jugadores con todos los datos lado a lado.
-            </li>
-            <li>
-              <strong>Record y partidas</strong> &mdash; Detalle de builds,
-              timeline, gold graph y picks/bans de cada partida.
+              bloques de métricas (early, mid, late, daño, economía, visión,
+              objetivos). Lo que las clasificaciones oficiales no te cuentan.
             </li>
             <li>
               <strong>Filtros por fase</strong> &mdash; Regular Season,
               Playoffs o temporada completa.
             </li>
+          </ul>
+
+          <h3>Perfiles en profundidad</h3>
+          <ul>
             <li>
-              <strong>Datos históricos</strong> &mdash; Palmarés de jugadores,
-              equipos y campeones desde 2014 hasta hoy.
+              <strong>Equipo</strong> &mdash; Roster, historial, champion pool,
+              prioridad de draft y oro acumulado.
+            </li>
+            <li>
+              <strong>Jugador</strong> &mdash; Stats completas, campeones,
+              match log con builds y runas, y toda su carrera.
+            </li>
+            <li>
+              <strong>Campeón</strong> &mdash; Matchups, items, keystones,
+              desglose por parche y los jugadores que más lo petan con él.
+            </li>
+          </ul>
+
+          <h3>Comparar y analizar</h3>
+          <ul>
+            <li>
+              <strong>Head-to-Head</strong> &mdash; Hasta 4 equipos o jugadores
+              comparados lado a lado.
+            </li>
+            <li>
+              <strong>Record de partida</strong> &mdash; Builds, timeline, gold
+              graph y draft, todo en una.
+            </li>
+          </ul>
+
+          <h3>Memoria histórica</h3>
+          <ul>
+            <li>
+              <strong>Archivo desde 2014</strong> &mdash; Palmarés de jugadores,
+              equipos y campeones de toda la historia competitiva.
             </li>
           </ul>
         </section>
@@ -138,43 +151,43 @@ export default function AboutPage() {
         <section>
           <h2>+80 competiciones cubiertas</h2>
           <p>
-            Las 4 grandes &mdash;LCK, LPL, LEC y LCS&mdash; junto con CBLOL,
-            LCP, VCS, LJL y TCL como ligas mayores, ligas de desarrollo como la
-            LCK CL, NA CL o EMEA Masters.
+            <strong>Las principales.</strong> LCK, LPL, LEC y LCS, más el
+            bloque emergente: CBLOL, LCP, VCS, LJL y TCL.
           </p>
           <p>
-            Ligas regionales como LFL, PRM, LES, NLC, LIT, EBL y Road of
-            Legends.
+            <strong>Ligas de desarrollo.</strong> Donde se forja el talento:
+            LCK CL, NA CL y EMEA Masters, con los mejores equipos de cada
+            región luchando por el ascenso.
           </p>
           <p>
-            Los 3 torneos internacionales más importantes: First Stand, MSI y
-            Worlds.
+            <strong>Torneos internacionales.</strong> First Stand, MSI, Worlds
+            y EWC.
           </p>
           <p>
-            Y un archivo extenso de ligas ya extintas: EU LCS, NA LCS, LMS,
-            PCS, LLA entre otras muchas más.
+            <strong>Ligas regionales.</strong> LFL, PRM, LES, NLC, LIT, EBL y
+            Road of Legends, entre otras.
+          </p>
+          <p>
+            <strong>Archivo histórico.</strong> Ligas ya extintas como EU LCS,
+            NA LCS, LMS, PCS y LLA, que nos dejaron momentos inolvidables y
+            hoy siguen vivas bajo otro nombre.
           </p>
         </section>
 
         {/* -- Compromiso solidario -- */}
         <section className="abt-solidario">
           <h2>Por qué es solidario</h2>
+          <p>Aquí está la parte que más me importa.</p>
           <p>
-            Aquí viene la parte que más nos importa. LeagueScope es un proyecto
-            completamente sin ánimo de lucro. Actualmente mantener el acceso a
-            la API, hosting y dominio cuesta alrededor de
-            1.000&#8364; al mes.
+            LeagueScope no tiene ánimo de lucro. Punto. Mantener la API, el
+            hosting y el dominio cuesta unos <strong>900&#8364; al mes</strong>,
+            y eso es todo lo que el proyecto necesita para seguir vivo.
           </p>
           <p>
-            Todo, absolutamente todo, lo que se recaude por encima de esa cifra
-            se donará íntegramente a la <strong>AECC</strong> (Asociación
-            Española Contra el Cáncer). Cada mes se publicará un desglose
-            transparente de ingresos, gastos y el importe de la donación.
-          </p>
-          <p>
-            Apoyar LeagueScope no es solo mantener una web de estadísticas. Es
-            contribuir directamente a la lucha contra el cáncer. Y eso da
-            sentido a cada línea de código que se escribe.
+            Cada euro que entre por encima de esa cifra va íntegro a la{' '}
+            <strong>AECC</strong> (Asociación Española Contra el Cáncer). Cada
+            mes publicaré un desglose claro de ingresos, gastos y donación:
+            nada escondido, nada maquillado.
           </p>
         </section>
 
@@ -182,10 +195,9 @@ export default function AboutPage() {
         <section>
           <h2>Cómo puedes ayudar</h2>
           <p>
-            Hay varias formas de contribuir. Como anteriormente se ha comentado,
-            todas las aportaciones irán destinadas a cubrir costes operativos, y
-            el excedente va directamente a la <strong>AECC</strong>. La web
-            sigue siendo 100% gratuita para todos, con o sin suscripción.
+            Apoyar el proyecto no implica pagar por nada. La web seguirá siendo
+            gratis para todo el mundo, con o sin suscripción. Pero si quieres
+            echar una mano, hay formas.
           </p>
 
           <h3>Suscripciones individuales</h3>
@@ -198,19 +210,19 @@ export default function AboutPage() {
                 </span>
               </div>
               <div className="abt-tier-body">
-                Nombre en el Wall of Fame. Acceso al canal de la comunidad.
-                Voto en sugerencias y nuevas funcionalidades.
+                Tu nombre en el Wall of Fame, acceso al canal de la comunidad
+                y voto en las próximas funcionalidades.
               </div>
             </div>
             <div className="abt-tier abt-tier-open">
               <div className="abt-tier-top">
                 <span className="abt-tier-name">Libre</span>
-                <span className="abt-tier-price">Tu decides</span>
+                <span className="abt-tier-price">Tú decides</span>
               </div>
               <div className="abt-tier-body">
-                Elige la cantidad con la que te sientas cómodo. Cada euro cuenta
-                para el proyecto y para contribuir y apoyar a la <strong>AECC</strong>.
-                Dispondrás de los mismos beneficios que la suscripción Supporter.
+                Si los 5&#8364; no te encajan, cada euro será bienvenido. Suma
+                para el proyecto y para la <strong>AECC</strong>, y te da los
+                mismos beneficios que el tier Supporter.
               </div>
             </div>
           </div>
@@ -223,16 +235,17 @@ export default function AboutPage() {
 
           <h3>Colaboraciones con equipos</h3>
           <p>
-            LeagueScope daría la bienvenida a cualquier equipo u organización
-            del mundo de los esports que apoye el proyecto, ya sea de forma
-            directa o indirecta. En cada reporte mensual y en nuestras redes se
-            hará mención a los equipos que colaboren. Toda aportación no deberá
-            influir en publicidad u otros elementos que puedan afectar al
-            propósito original de la web.
+            Si eres un equipo u organización y quieres apoyar, serás bienvenido
+            con los brazos abiertos. Haré mención en los reportes mensuales y
+            en redes.
+          </p>
+          <p>
+            Lo único que pido: que la aportación no condicione la neutralidad
+            ni la ausencia de publicidad en la web. Eso es innegociable.
           </p>
 
           <div className="abt-cta">
-            <a href="#" className="abt-btn">
+            <a href="mailto:contact@leaguescope.com" className="abt-btn">
               Contáctanos para colaborar
             </a>
           </div>
@@ -242,31 +255,29 @@ export default function AboutPage() {
         <section>
           <h2>Qué viene después</h2>
           <p>
-            LeagueScope está en desarrollo activo. La primera fase ya está
-            completada: cubrir las principales ligas junto a showmatches, ligas
-            regionales y más. Se han aplicado los filtros por año, temporada y
-            fase para indagar todavía más en estos torneos.
+            <strong>Fase actual &mdash; hecho.</strong> Ligas principales,
+            regionales, showmatches y filtros por año, split y fase.
           </p>
           <p>
-            Lo que viene: datos en tiempo real durante las partidas en curso,
-            perfiles de usuario con tus equipos y jugadores favoritos y
-            herramientas avanzadas para indagar todavía más en los datos de cada
-            partida.
+            <strong>Próximamente.</strong> Datos en tiempo real durante las
+            partidas en curso, perfiles de usuario con tus equipos y jugadores
+            favoritos guardados, y herramientas más avanzadas para escarbar en
+            cada partida.
           </p>
           <p>
-            A largo plazo trabajaremos en incorporar modelos predictivos, una
-            app móvil nativa tanto en iOS como Android y ampliar la cobertura a
-            torneos amateur entre otros.
+            <strong>A medio-largo plazo.</strong> Modelos predictivos, app
+            móvil (iOS y Android) y cobertura de torneos amateur.
           </p>
+          <p>No hay fechas prometidas. Solo la promesa de seguir trabajándolo.</p>
         </section>
 
         {/* -- Wall of Fame -- */}
         <section>
           <h2>Wall of Fame</h2>
           <div className="abt-wall">
-            Aquí aparecerán los nombres de quienes apoyan el proyecto.
+            Aquí aparecerán los nombres de quienes apoyen el proyecto.
             <br />
-            <strong>Sé el primero en aparecer aquí.</strong>
+            <strong>Puedes ser el primero.</strong>
           </div>
         </section>
 
@@ -274,8 +285,8 @@ export default function AboutPage() {
         <section className="abt-contact">
           <h2>Hablemos</h2>
           <p>
-            Sugerencias, posibles errores, ideas locas que tengas en mente o
-            simplemente ganas de charlar sobre esports. Estamos aquí:
+            Sugerencias, errores, ideas locas o simplemente ganas de hablar de
+            esports: aquí estoy.
           </p>
           <div className="abt-links">
             <a href="https://www.instagram.com/leaguescope?igsh=eGw4ZTJ1M2hzNmRt" target="_blank" rel="noopener noreferrer" aria-label="Instagram de LeagueScope" className="abt-social-link">
@@ -298,11 +309,11 @@ export default function AboutPage() {
               </svg>
               Discord
             </a>
-            <a href="mailto:contacto@leaguescope.com" className="abt-social-link">
+            <a href="mailto:contact@leaguescope.com" className="abt-social-link">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
               </svg>
-              contacto@leaguescope.com
+              contact@leaguescope.com
             </a>
           </div>
         </section>
@@ -310,10 +321,10 @@ export default function AboutPage() {
         {/* -- Footer personal -- */}
         <footer className="abt-footer">
           <p className="abt-quote">
-            Hagas lo que hagas, disfruta de ello, que nadie ni nada te diga
-            cómo debes disfrutar de tu vida.
+            Hagas lo que hagas, disfruta de ello. Que nadie ni nada te diga
+            cómo debes vivir tu vida.
           </p>
-          <span>LeagueScope &mdash; 2024-2026</span>
+          <span>LeagueScope &mdash; 2026</span>
         </footer>
 
       </article>

@@ -5,7 +5,7 @@
 
 /* ── Container — 3-column grid ────────────────────────────── */
 .p50-container {
-  padding: 48px 40px;
+  padding: 60px 40px 80px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
@@ -13,7 +13,7 @@
   width: 100%;
   margin: 0 auto;
   background: var(--surface-bg, #0e1117);
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
   font-family: 'Inter', system-ui, sans-serif;
   color: #f8fafc;
 }
@@ -1137,4 +1137,148 @@
   .p50-row-val { width: 34px; font-size: 11px; }
   .p50-champ-img { width: 22px; height: 22px; }
   .p50-avatar { width: 24px; height: 24px; }
+}
+
+/* ===========================================================================
+   EDITORIAL HEADER — unificado con /standings (p20-ed-*), /players (p24-ed-*),
+   /champions (p25-ed-*) y /record (tr-ed-*). Prefijo: p50-ed-*
+   Sustituye al antiguo .p2-league-header dentro de /overview.
+   =========================================================================== */
+
+.p50-ed-card {
+  position: relative;
+  grid-column: 1 / -1;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 4px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.p50-ed-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--p50-accent, #f0a500), transparent);
+  z-index: 2;
+}
+
+.p50-ed-watermark {
+  position: absolute;
+  top: -40px;
+  right: -60px;
+  width: 320px !important;
+  height: 320px !important;
+  object-fit: contain;
+  opacity: 0.04;
+  filter: grayscale(1) brightness(2);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.p50-ed-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 44px 48px 36px;
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  position: relative;
+  z-index: 1;
+}
+.p50-ed-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+.p50-ed-logo {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  flex-shrink: 0;
+}
+.p50-ed-hdr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.p50-ed-hero {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  background: linear-gradient(to right, #fff 30%, var(--p50-accent, #f0a500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.p50-ed-subhero {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--p50-accent, #f0a500);
+}
+.p50-ed-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.p50-ed-teamstat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.p50-ed-teamcount {
+  font-size: 44px;
+  font-weight: 950;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.p50-ed-teamlbl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+
+/* Responsive — alineado con p20-ed-* breakpoints */
+@media (max-width: 1024px) {
+  .p50-ed-hdr { padding: 32px 28px 28px; }
+  .p50-ed-hero { font-size: 40px; letter-spacing: -1.5px; }
+  .p50-ed-teamcount { font-size: 34px; }
+}
+@media (max-width: 768px) {
+  .p50-ed-watermark { width: 220px !important; height: 220px !important; top: -20px; right: -40px; }
+  .p50-ed-hdr {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 28px 20px 24px;
+  }
+  .p50-ed-hdr-right {
+    align-items: baseline;
+    flex-direction: row;
+    gap: 10px;
+  }
+  .p50-ed-hero { font-size: 32px; letter-spacing: -1px; }
+  .p50-ed-logo { width: 48px !important; height: 48px !important; }
+  .p50-ed-teamcount { font-size: 26px; }
+}
+@media (max-width: 480px) {
+  .p50-ed-card { border-radius: 0; }
+  .p50-ed-watermark { width: 160px !important; height: 160px !important; }
+  .p50-ed-hdr { padding: 20px 14px 18px; gap: 14px; }
+  .p50-ed-hero { font-size: 26px; }
+  .p50-ed-subhero { font-size: 9px; letter-spacing: 2px; }
+  .p50-ed-logo { width: 40px !important; height: 40px !important; }
+  .p50-ed-teamcount { font-size: 22px; }
 }

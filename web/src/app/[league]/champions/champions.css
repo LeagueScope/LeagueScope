@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Pruebas25 - Champions Redesign (p20/p24 visual language)
+   Pruebas25 - Champions Redesign (editorial p20/p24 visual language)
    Prefix: p25-
    =========================================================================== */
 
@@ -14,127 +14,7 @@
 }
 
 /* ===========================================================================
-   HEADER - p20/p24 style
-   =========================================================================== */
-
-.p25-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 32px 40px;
-  margin-bottom: 32px;
-  background: var(--surface-card, #141820);
-  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-}
-.p25-header::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--p25-accent, #f0a500), transparent);
-}
-
-.p25-header-info {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-.p25-header-logo {
-  width: 72px;
-  height: 72px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  flex-shrink: 0;
-}
-.p25-header-logo img { width: 48px; height: 48px; object-fit: contain; }
-.p25-header-title {
-  font-size: 32px;
-  font-weight: 950;
-  letter-spacing: -1.5px;
-  background: linear-gradient(to left, #fff, var(--p25-accent, #f0a500));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-}
-.p25-header-sub {
-  font-size: 11px;
-  font-weight: 800;
-  color: #fbbf24;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-.p25-header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.p25-header-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-.p25-hstat-val {
-  font-size: 36px;
-  font-weight: 950;
-  color: #fff;
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -1.5px;
-  line-height: 1;
-}
-.p25-hstat-lbl {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-muted, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-/* ===========================================================================
-   POSITION FILTER (inside header)
-   =========================================================================== */
-
-.p25-header-filters {
-  display: flex;
-  gap: 6px;
-}
-.p25-filter-btn {
-  padding: 8px 16px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text-muted, #64748b);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
-}
-.p25-filter-btn:hover {
-  border-color: rgba(255,255,255,0.2);
-  color: #fff;
-  background: rgba(255,255,255,0.06);
-}
-.p25-filter-btn.p25-filter-active {
-  border-color: var(--p25-accent, #f0a500);
-  color: var(--p25-accent, #f0a500);
-  background: rgba(240,165,0,0.06);
-}
-
-/* ===========================================================================
-   BUTTONS
+   BUTTONS (PRO VISION + filtros)
    =========================================================================== */
 
 .p25-btn {
@@ -178,136 +58,288 @@
   100% { transform: scale(2.5); opacity: 0; }
 }
 
+.p25-filter-btn {
+  padding: 8px 16px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.p25-filter-btn:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+.p25-filter-btn.p25-filter-active {
+  border-color: var(--p25-accent, #f0a500);
+  color: var(--p25-accent, #f0a500);
+  background: rgba(240,165,0,0.06);
+}
+
 /* ===========================================================================
-   NORMAL TABLE
+   EDITORIAL CARD (header unificado + filtros + tabla)
+   Prefix: p25-ed-*
    =========================================================================== */
 
-.p25-table-card {
+.p25-ed-card {
+  position: relative;
   background: var(--surface-card, #141820);
   border: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  border-radius: 2px;
+  border-radius: 4px;
   overflow: hidden;
-  position: relative;
+  isolation: isolate;
 }
-.p25-table-card::before {
+.p25-ed-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: var(--p25-accent, #f0a500);
+  background: linear-gradient(90deg, transparent, var(--p25-accent, #f0a500), transparent);
+  z-index: 2;
 }
 
-.p25-table-hdr {
-  display: grid;
-  grid-template-columns: 60px 2fr repeat(6, 1fr);
-  padding: 14px 24px;
-  background: rgba(0,0,0,0.2);
+/* Watermark logo */
+.p25-ed-watermark {
+  position: absolute;
+  top: -40px;
+  right: -60px;
+  width: 320px !important;
+  height: 320px !important;
+  object-fit: contain;
+  opacity: 0.04;
+  filter: grayscale(1) brightness(2);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Editorial header ──────────────────────────────────────────────────── */
+.p25-ed-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 44px 48px 36px;
   border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
-  font-size: 11px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  position: relative;
+  z-index: 1;
+}
+.p25-ed-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.p25-ed-logo {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  flex-shrink: 0;
+}
+.p25-ed-hdr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.p25-ed-hero {
+  font-size: 52px;
   font-weight: 900;
-  color: var(--p25-accent, #f0a500);
+  letter-spacing: -2px;
+  line-height: 1;
+  background: linear-gradient(to right, #fff 30%, var(--p25-accent, #f0a500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.p25-ed-subhero {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  color: var(--p25-accent, #f0a500);
+}
+.p25-ed-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.p25-ed-teamstat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.p25-ed-teamcount {
+  font-size: 44px;
+  font-weight: 950;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.p25-ed-teamlbl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.p25-ed-hdr-right .p25-btn { align-self: center; }
+
+/* ── Filter strip (segunda franja bajo el header) ─────────────────────── */
+.p25-ed-filters {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 48px;
+  background: rgba(0,0,0,0.18);
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  position: relative;
+  z-index: 1;
+}
+.p25-ed-filters-lbl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
   font-family: 'JetBrains Mono', monospace;
 }
-.p25-col-pos { text-align: left; padding-left: 24px; }
-.p25-col-champ { text-align: left; }
-.p25-col-stat { text-align: center; }
+.p25-ed-filters-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
-.p25-table-body {
+/* ── Table body (vista normal) ────────────────────────────────────────── */
+.p25-ed-table {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
 }
 
-.p25-row {
+/* Grid columns: pos(64) | champ(flex) | PICKS(72) | WR%(72) | PICK%(72) | BANS(72) | BAN%(72) | KDA(80) */
+.p25-ed-thead {
   display: grid;
-  grid-template-columns: 60px 2fr repeat(6, 1fr);
-  padding: 14px 24px;
+  grid-template-columns: 64px minmax(0, 1fr) 72px 72px 72px 72px 72px 80px;
   align-items: center;
+  padding: 16px 48px;
+  background: rgba(0,0,0,0.25);
   border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.p25-ed-col-pos { text-align: left; }
+.p25-ed-col-champ { text-align: left; padding-left: 4px; }
+.p25-ed-col-num { text-align: right; }
+
+.p25-ed-tbody { display: flex; flex-direction: column; }
+
+.p25-ed-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 72px 72px 72px 72px 72px 80px;
+  align-items: center;
+  padding: 14px 48px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
   cursor: pointer;
   transition: background 0.15s, transform 0.15s;
   position: relative;
 }
-.p25-row:last-child { border-bottom: none; }
-.p25-row:hover {
-  background: rgba(255,255,255,0.03);
+.p25-ed-row:last-child { border-bottom: none; }
+.p25-ed-row:hover {
+  background: rgba(255,255,255,0.025);
   transform: translateX(3px);
 }
 
-/* Medal rows */
-.p25-row-gold { background: rgba(251,191,36,0.04); }
-.p25-row-silver { background: rgba(148,163,184,0.04); }
-.p25-row-bronze { background: rgba(180,83,9,0.04); }
-.p25-row-gold::before, .p25-row-silver::before, .p25-row-bronze::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0;
-  width: 3px;
-  height: 100%;
-}
-.p25-row-gold::before { background: #fbbf24; }
-.p25-row-silver::before { background: #94a3b8; }
-.p25-row-bronze::before { background: #b45309; }
-
-/* Position number */
-.p25-pos {
-  font-size: 14px;
-  font-weight: 950;
-  color: var(--text-muted, #64748b);
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -0.5px;
-  text-align: left;
-  padding-left: 24px;
-}
-.p25-pos-gold { color: #fbbf24; }
-.p25-pos-silver { color: #94a3b8; }
-.p25-pos-bronze { color: #b45309; }
-
-/* Champion cell */
-.p25-champ-cell {
+/* Position + medal dot */
+.p25-ed-pos {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
 }
-.p25-champ-img {
-  width: 36px;
-  height: 36px;
+.p25-ed-medal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+.p25-ed-medal-gold { background: #fbbf24; color: #fbbf24; }
+.p25-ed-medal-silver { background: #cbd5e1; color: #cbd5e1; }
+.p25-ed-medal-bronze { background: #d97706; color: #d97706; }
+.p25-ed-pos-num {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-muted, #64748b);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.p25-ed-row:first-child .p25-ed-pos-num { color: #fbbf24; }
+.p25-ed-row:nth-child(2) .p25-ed-pos-num { color: #cbd5e1; }
+.p25-ed-row:nth-child(3) .p25-ed-pos-num { color: #d97706; }
+
+/* Champion cell */
+.p25-ed-champ {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.p25-ed-champ-img {
+  width: 32px;
+  height: 32px;
   border-radius: 4px;
   overflow: hidden;
   background: rgba(0,0,0,0.3);
   border: 1px solid var(--border-card, rgba(255,255,255,0.08));
   flex-shrink: 0;
 }
-.p25-champ-img img {
+.p25-ed-champ-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.p25-champ-name {
+.p25-ed-champ-name {
   font-size: 15px;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.3px;
-}
-.p25-name-gold { color: #fbbf24; }
-.p25-name-silver { color: #c8d0d9; }
-.p25-name-bronze { color: #d97706; }
-
-/* Stat values - Inter 950 */
-.p25-stat {
-  font-size: 14px;
-  font-weight: 950;
-  color: var(--text-secondary, #94a3b8);
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -0.5px;
-  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* WR colors from global helpers */
-.winrate-high { color: #22c55e; }
-.winrate-mid { color: #eab308; }
-.winrate-low { color: #ef4444; }
+/* Numeric stat cells — monospace, right-aligned */
+.p25-ed-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #e2e8f0;
+  min-width: 0;
+}
+
+/* WR coloring (shared with global winrate-* helpers) */
+.p25-ed-wr { color: var(--text-secondary, #94a3b8); }
+.p25-ed-wr.winrate-high { color: #22c55e; }
+.p25-ed-wr.winrate-mid { color: #eab308; }
+.p25-ed-wr.winrate-low { color: #ef4444; }
+
 
 /* ===========================================================================
    PRO VISION TABLE
@@ -323,6 +355,15 @@
   scrollbar-color: rgba(255,255,255,0.12) transparent;
   position: relative;
 }
+
+/* When Pro Vision lives inside the editorial card, drop its own shell */
+.p25-ed-card .p25-pro-wrap {
+  border: none;
+  border-top: none;
+  border-radius: 0;
+  z-index: 1;
+}
+
 .p25-pro-wrap::-webkit-scrollbar { height: 6px; }
 .p25-pro-wrap::-webkit-scrollbar-track { background: transparent; }
 .p25-pro-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
@@ -337,7 +378,7 @@
   background: #0f1219;
 }
 
-/* Sticky columns - opaque backgrounds */
+/* Sticky columns — opaque backgrounds to prevent bleed-through */
 .p25-sticky-pos {
   position: sticky;
   left: 0;
@@ -359,7 +400,6 @@
   pointer-events: none;
 }
 
-/* Header sticky overrides */
 .p25-th.p25-sticky-pos,
 .p25-th.p25-sticky-champ { z-index: 20; background: #0f1219 !important; }
 .p25-pro-groups .p25-sticky-pos,
@@ -455,7 +495,6 @@
   vertical-align: middle;
 }
 
-/* Stat tooltip on hover */
 .p25-th-stat[title]:hover::after {
   content: attr(title);
   position: absolute;
@@ -487,7 +526,7 @@
   pointer-events: none;
 }
 
-/* Data rows - uniform alternation */
+/* Data rows */
 .p25-pro-row {
   cursor: pointer;
   transition: background 0.15s;
@@ -503,11 +542,9 @@
 .p25-pro-alt .p25-sticky-champ { background: #11141d !important; }
 .p25-pro-row:last-child { border-bottom: none; }
 
-/* Non-alt rows sticky background */
 .p25-pro-row:not(.p25-pro-alt) .p25-sticky-pos,
 .p25-pro-row:not(.p25-pro-alt) .p25-sticky-champ { background: #0f1219 !important; }
 
-/* Sticky cell styles */
 .p25-td { padding: 0; }
 .p25-td-pos {
   text-align: center;
@@ -546,7 +583,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Data cells - JetBrains Mono 16px */
 .p25-td-stat {
   text-align: center;
   padding: 12px 4px;
@@ -575,23 +611,81 @@
   user-select: none;
 }
 
+/* Global WR color helpers (used by normal view) */
+.winrate-high { color: #22c55e; }
+.winrate-mid { color: #eab308; }
+.winrate-low { color: #ef4444; }
+
 /* ===========================================================================
    RESPONSIVE
    =========================================================================== */
 
 @media (max-width: 1024px) {
-  .p25-header { flex-direction: column; gap: 20px; align-items: flex-start; }
-  .p25-header-filters { border-left: none; margin-left: 0; padding-left: 0; }
+  .p25-page { padding: 40px 24px 60px; }
+  .p25-ed-hdr { padding: 32px 28px 28px; }
+  .p25-ed-hero { font-size: 40px; letter-spacing: -1.5px; }
+  .p25-ed-teamcount { font-size: 34px; }
+  .p25-ed-filters { padding: 12px 28px; }
+  .p25-ed-thead,
+  .p25-ed-row { padding-left: 28px; padding-right: 28px; }
 }
 
 @media (max-width: 768px) {
-  .p25-page { padding: 40px 16px; }
-  .p25-header { padding: 20px; }
-  .p25-header-title { font-size: 24px; }
-  .p25-header-right { flex-wrap: wrap; gap: 8px; }
-  .p25-header-filters { flex-wrap: wrap; }
-  .p25-table-hdr { font-size: 9px; padding: 10px 16px; }
-  .p25-row { padding: 10px 16px; }
-  .p25-champ-name { font-size: 13px; }
-  .p25-champ-img { width: 28px; height: 28px; }
+  .p25-page { padding: 24px 16px; }
+  .p25-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .p25-ed-watermark { width: 220px !important; height: 220px !important; top: -20px; right: -40px; }
+  .p25-ed-hdr { flex-direction: column; align-items: flex-start; gap: 20px; padding: 28px 20px 24px; }
+  .p25-ed-hdr-right { align-items: baseline; flex-direction: row; gap: 10px; flex-wrap: wrap; }
+  .p25-ed-hero { font-size: 32px; letter-spacing: -1px; }
+  .p25-ed-logo { width: 48px !important; height: 48px !important; }
+  .p25-ed-teamcount { font-size: 26px; }
+  .p25-ed-filters { flex-wrap: wrap; gap: 10px; padding: 12px 20px; }
+  /* 8-col compact: pos(52) | champ(flex) | 6x56 = 388 + flex */
+  .p25-ed-thead {
+    grid-template-columns: 52px minmax(0,1fr) 56px 56px 56px 56px 56px 60px;
+    padding: 12px 20px; font-size: 9px; letter-spacing: 1.5px;
+  }
+  .p25-ed-row {
+    grid-template-columns: 52px minmax(0,1fr) 56px 56px 56px 56px 56px 60px;
+    padding: 14px 20px;
+  }
+  .p25-ed-champ-name { font-size: 13px; }
+  .p25-ed-champ-img { width: 26px; height: 26px; }
+  .p25-ed-num { font-size: 12px; }
+}
+
+@media (max-width: 600px) {
+  .p25-page { padding: 16px 12px; font-size: 12px; }
+  .p25-pro-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .p25-ed-card { border-radius: 0; }
+  .p25-ed-watermark { width: 160px !important; height: 160px !important; }
+  .p25-ed-hdr { padding: 20px 14px 18px; gap: 14px; }
+  .p25-ed-hero { font-size: 24px; }
+  .p25-ed-subhero { font-size: 9px; letter-spacing: 2px; }
+  .p25-ed-logo { width: 40px !important; height: 40px !important; }
+  .p25-ed-teamcount { font-size: 20px; }
+  .p25-ed-filters { padding: 10px 14px; gap: 8px; }
+  .p25-ed-filters-lbl { display: none; }
+
+  /* Mobile compact: sólo mostramos las 4 métricas esenciales
+     pos(40) | champ(flex) | PICKS(44) | WR(52) | PICK%(48) | BAN%(48) | KDA(52)
+     → mantenemos 8 columnas y escondemos BANS (menos crítica) mediante nth */
+  .p25-ed-thead,
+  .p25-ed-row {
+    grid-template-columns: 40px minmax(0,1fr) 44px 52px 48px 0px 48px 52px;
+    padding: 12px 14px; gap: 3px;
+  }
+  /* Hide BANS column (6th child after pos+champ+picks+wr+pick+ = col index 6) */
+  .p25-ed-thead > :nth-child(6),
+  .p25-ed-row > :nth-child(6) { display: none; }
+
+  .p25-ed-champ { gap: 8px; }
+  .p25-ed-champ-name { font-size: 11px; }
+  .p25-ed-champ-img { width: 22px; height: 22px; }
+  .p25-ed-pos { gap: 6px; }
+  .p25-ed-medal { width: 6px; height: 6px; }
+  .p25-ed-pos-num { font-size: 12px; }
+  .p25-ed-num { font-size: 11px; }
 }

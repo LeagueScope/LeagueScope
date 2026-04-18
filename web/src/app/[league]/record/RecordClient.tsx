@@ -1319,7 +1319,7 @@ export function MatchDetail({ matchId }: { matchId: number }): React.ReactElemen
 // ANIMATED COLLAPSE WRAPPER
 // ══════════════════════════════════════════════════════════════════════════
 
-function DetailCollapse({ isOpen, matchId }: { isOpen: boolean; matchId: number }): React.ReactElement | null {
+export function DetailCollapse({ isOpen, matchId }: { isOpen: boolean; matchId: number }): React.ReactElement | null {
   const [shouldRender, setShouldRender] = useState(false);
   const [animClass, setAnimClass] = useState('');
 
@@ -1350,26 +1350,60 @@ function DetailCollapse({ isOpen, matchId }: { isOpen: boolean; matchId: number 
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// MAIN COMPONENT (editorial shell — ported from /test-record)
 // ══════════════════════════════════════════════════════════════════════════
+
+function trPsImg(imageUrl: string | null | undefined, fallbackText: string | undefined): string {
+  if (imageUrl) return imageUrl;
+  return 'data:image/svg+xml,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="2" fill="%23222938"/><text x="20" y="24" text-anchor="middle" fill="%2364748b" font-size="10" font-family="sans-serif">${(fallbackText || '?').substring(0, 3)}</text></svg>`
+  );
+}
+
+function trFormatDate(dateValue: unknown): string {
+  if (!dateValue) return '';
+  if (typeof dateValue === 'string') return dateValue.split(' ')[0].split('T')[0];
+  if (dateValue instanceof Date) return dateValue.toISOString().split('T')[0];
+  if (typeof dateValue === 'object' && dateValue !== null && '$date' in dateValue) {
+    return new Date((dateValue as { $date: string }).$date).toISOString().split('T')[0];
+  }
+  return String(dateValue).split(' ')[0].split('T')[0];
+}
+
+interface TrFormEntry {
+  status: 'win' | 'loss' | 'pending';
+  opp_acronym?: string;
+  opp_logo?: string;
+}
+
+function TrFormPip({ entry }: { entry: TrFormEntry }): React.ReactElement {
+  const cls =
+    entry.status === 'win' ? 'tr-form-win' :
+    entry.status === 'loss' ? 'tr-form-loss' :
+    'tr-form-pending';
+  const title = `${entry.status === 'win' ? 'W' : entry.status === 'loss' ? 'L' : '?'} vs ${entry.opp_acronym || '?'}`;
+  return (
+    <div className={`tr-form-pip ${cls}`} title={title}>
+      {entry.opp_logo ? (
+        <Image src={entry.opp_logo} alt={entry.opp_acronym || ''} width={20} height={20} className="tr-form-opp-logo" />
+      ) : (
+        <span className="tr-form-opp-text">{(entry.opp_acronym || '?').substring(0, 3)}</span>
+      )}
+    </div>
+  );
+}
 
 export default function RecordClient(props: RecordClientProps): React.ReactElement {
   const { league, accent, initialMatches, tournament } = props;
   const leagueName = league.toUpperCase();
   const filters = useFilters();
-  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
-  const [scheduledOpen, setScheduledOpen] = useState(false);
+
   const [matches, setMatches] = useState<MatchData[]>(initialMatches);
   const [tournamentData, setTournamentData] = useState<TournamentData>(tournament);
+  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
 
-  const formatDate = (dateValue: any): string => {
-    if (!dateValue) return '';
-    if (typeof dateValue === 'string') return dateValue.split(' ')[0].split('T')[0];
-    if (dateValue instanceof Date) return dateValue.toISOString().split('T')[0];
-    if (dateValue.$date) return new Date(dateValue.$date).toISOString().split('T')[0];
-    return String(dateValue).split(' ')[0].split('T')[0];
-  };
-
+  // Refetch on filter change
   useEffect(() => {
     if (!filters.ready) return;
     const qs = new URLSearchParams();
@@ -1383,17 +1417,17 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
     Promise.all([
       clientFetch<MatchData[]>(`/api/v1/pg/matches?${qs}`),
       clientFetch<TournamentData>(`/api/v1/pg/tournament?${qs}`),
-    ]).then(([matchesData, tournamentData]) => {
+    ]).then(([matchesData, tData]) => {
       if (!cancelled) {
         setMatches(matchesData);
-        setTournamentData(tournamentData);
+        setTournamentData(tData);
       }
     }).catch(logger.error);
 
     return () => { cancelled = true; };
   }, [league, filters.ready, filters.year, filters.split, filters.stage]);
 
-  // Live polling: refetch every 30s when there are live matches
+  // Live polling: refetch every 30s when any match is running
   useEffect(() => {
     const hasLive = matches.some(m => m.status === 'running');
     if (!hasLive || !filters.ready) return;
@@ -1413,73 +1447,49 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
     return () => clearInterval(interval);
   }, [matches, league, filters.ready, filters.year, filters.split, filters.stage]);
 
-  // Split matches into 3 groups
+  // Split into sections
   const liveMatches = useMemo(() => matches.filter(m => m.status === 'running'), [matches]);
   const scheduledMatches = useMemo(() =>
     matches.filter(m => m.status === 'not_started').sort((a, b) =>
-      new Date(a.begin_at || a.scheduled_at || 0).getTime() - new Date(b.begin_at || b.scheduled_at || 0).getTime()
+      new Date(a.begin_at || a.scheduled_at || 0).getTime() -
+      new Date(b.begin_at || b.scheduled_at || 0).getTime()
     ), [matches]);
-  const finishedMatches = useMemo(() => matches.filter(m => m.status === 'finished'), [matches]);
+  const finishedMatches = useMemo(() =>
+    matches.filter(m => m.status === 'finished'), [matches]);
 
   const totalGames = finishedMatches.reduce((acc, m) => acc + (m.games?.length || 0), 0);
 
-  // Render a form pip: color-coded circle with opponent logo
-  const FormPip = ({ entry }: { entry: any }) => (
-    <div
-      className={`p22-form-pip ${entry.status === 'win' ? 'p22-form-win' : entry.status === 'loss' ? 'p22-form-loss' : 'p22-form-pending'}`}
-      title={`${entry.status === 'win' ? 'W' : entry.status === 'loss' ? 'L' : '?'} vs ${entry.opp_acronym}`}
-    >
-      {entry.opp_logo
-        ? <Image src={entry.opp_logo} alt={entry.opp_acronym} width={20} height={20} className="p22-form-opp-logo" />
-        : <span className="p22-form-opp-text">{(entry.opp_acronym || '?').substring(0, 3)}</span>
-      }
-    </div>
-  );
-
-  // Scheduled match card
+  // ── Scheduled card ─────────────────────────────────────────────────────
   const ScheduledCard = ({ m }: { m: MatchData }) => {
     const dateObj = new Date(m.begin_at || m.scheduled_at || '');
     const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    const formA = (m.teamA as any)?.form || [];
-    const formB = (m.teamB as any)?.form || [];
+    const formA = ((m.teamA as unknown) as { form?: TrFormEntry[] })?.form || [];
+    const formB = ((m.teamB as unknown) as { form?: TrFormEntry[] })?.form || [];
     const matchLabel = m.match_label || null;
 
     return (
-      <div className="p22-match-wrapper">
-        <div className="p22-match-card p22-scheduled-card">
-          {matchLabel && <span className="p22-match-label">{matchLabel}</span>}
-          {m.best_of > 1 && <span className="p22-bo-badge">BO{m.best_of}</span>}
+      <div className="tr-match-wrapper">
+        <div className="tr-match-card tr-scheduled-card">
+          {matchLabel && <span className="tr-match-label">{matchLabel}</span>}
+          {m.best_of > 1 && <span className="tr-bo-badge">BO{m.best_of}</span>}
 
-          <div className="p22-scheduled-content">
-            {/* Team A form (oldest → newest) */}
-            <div className="p22-form-group p22-form-left">
-              {formA.slice().reverse().map((f: any, i: number) => <FormPip key={i} entry={f} />)}
+          <div className="tr-scheduled-content">
+            <div className="tr-form-group tr-form-left">
+              {formA.slice().reverse().map((f, i) => <TrFormPip key={i} entry={f} />)}
             </div>
-
-            {/* Team A name + logo */}
-            <div className="p22-sched-team p22-sched-team-left">
-              <span className="p22-team-name">{m.teamA?.abbr || '?'}</span>
-              <div className="p22-team-logo-wrap">
-                <Image src={m.teamA?.logo_url || psImg(null, m.teamA?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
-              </div>
+            <span className="tr-team-name tr-team-left">{m.teamA?.abbr || '?'}</span>
+            <div className="tr-team-logo-wrap">
+              <Image src={m.teamA?.logo_url || trPsImg(null, m.teamA?.abbr)} alt="" className="tr-team-logo" width={48} height={48} />
             </div>
-
-            {/* Center: time */}
-            <div className="p22-sched-center">
-              <span className="p22-sched-hour">{timeStr}</span>
+            <div className="tr-sched-center">
+              <span className="tr-sched-hour">{timeStr}</span>
             </div>
-
-            {/* Team B logo + name */}
-            <div className="p22-sched-team p22-sched-team-right">
-              <div className="p22-team-logo-wrap">
-                <Image src={m.teamB?.logo_url || psImg(null, m.teamB?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
-              </div>
-              <span className="p22-team-name">{m.teamB?.abbr || '?'}</span>
+            <div className="tr-team-logo-wrap">
+              <Image src={m.teamB?.logo_url || trPsImg(null, m.teamB?.abbr)} alt="" className="tr-team-logo" width={48} height={48} />
             </div>
-
-            {/* Team B form (newest → oldest) */}
-            <div className="p22-form-group p22-form-right">
-              {formB.map((f: any, i: number) => <FormPip key={i} entry={f} />)}
+            <span className="tr-team-name tr-team-right">{m.teamB?.abbr || '?'}</span>
+            <div className="tr-form-group tr-form-right">
+              {formB.map((f, i) => <TrFormPip key={i} entry={f} />)}
             </div>
           </div>
         </div>
@@ -1487,46 +1497,53 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
     );
   };
 
-  // Match card (works for both finished and live)
-  const FinishedCard = ({ m, isSelected }: { m: MatchData; isSelected: boolean }) => {
+  // ── Finished / Live match card ─────────────────────────────────────────
+  const MatchCard = ({ m, isSelected }: { m: MatchData; isSelected: boolean }) => {
     const isLive = m.status === 'running';
     const aWins = !isLive && m.winner_id === m.teamA?.id;
     const bWins = !isLive && m.winner_id === m.teamB?.id;
     const matchLabel = m.match_label || null;
 
+    const scoreAClass = isLive
+      ? 'tr-score-live'
+      : aWins ? 'tr-score-winner-left' : 'tr-score-loser-left';
+    const scoreBClass = isLive
+      ? 'tr-score-live'
+      : bWins ? 'tr-score-winner-right' : 'tr-score-loser-right';
+
     return (
-      <div className="p22-match-wrapper">
+      <div className="tr-match-wrapper">
         <div
-          className={`p22-match-card ${isSelected ? 'p22-match-active' : ''} ${isLive ? 'p22-match-live' : ''}`}
+          className={`tr-match-card ${isSelected ? 'tr-match-active' : ''} ${isLive ? 'tr-match-live' : ''}`}
           onClick={() => !isLive && setSelectedMatchId(isSelected ? null : m.matchid)}
           style={isLive ? { cursor: 'default' } : undefined}
         >
-          {matchLabel && <span className="p22-match-label">{matchLabel}</span>}
-          {m.best_of > 1 && <span className="p22-bo-badge">BO{m.best_of}</span>}
+          {matchLabel && <span className="tr-match-label">{matchLabel}</span>}
+          {m.best_of > 1 && <span className="tr-bo-badge">BO{m.best_of}</span>}
 
-          <div className="p22-match-content">
-            <div className={`p22-team-name p22-team-left ${aWins ? 'p22-team-winner' : ''}`}>
+          <div className="tr-match-content">
+            <div className={`tr-team-name tr-team-left ${aWins ? 'tr-team-winner' : ''}`}>
               {m.teamA?.abbr || m.teamA?.name || '?'}
             </div>
-            <div className="p22-team-logo-wrap">
-              <Image src={m.teamA?.logo_url || psImg(null, m.teamA?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+            <div className="tr-team-logo-wrap">
+              <Image src={m.teamA?.logo_url || trPsImg(null, m.teamA?.abbr)} alt="" className="tr-team-logo" width={48} height={48} />
             </div>
-            <div className="p22-score-center">
-              <div className="p22-score">
-                <span className={`p22-score-num ${isLive ? 'p22-score-live' : aWins ? 'p22-score-winner-left' : 'p22-score-loser-left'}`}>{m.teamA?.score || 0}</span>
-                <span className="p22-score-sep">—</span>
-                <span className={`p22-score-num ${isLive ? 'p22-score-live' : bWins ? 'p22-score-winner-right' : 'p22-score-loser-right'}`}>{m.teamB?.score || 0}</span>
+            <div className="tr-score-center">
+              <div className="tr-score">
+                <span className={`tr-score-num ${scoreAClass}`}>{m.teamA?.score ?? 0}</span>
+                <span className="tr-score-sep">—</span>
+                <span className={`tr-score-num ${scoreBClass}`}>{m.teamB?.score ?? 0}</span>
               </div>
             </div>
-            <div className="p22-team-logo-wrap">
-              <Image src={m.teamB?.logo_url || psImg(null, m.teamB?.abbr)} alt="" className="p22-team-logo" width={48} height={48} />
+            <div className="tr-team-logo-wrap">
+              <Image src={m.teamB?.logo_url || trPsImg(null, m.teamB?.abbr)} alt="" className="tr-team-logo" width={48} height={48} />
             </div>
-            <div className={`p22-team-name p22-team-right ${bWins ? 'p22-team-winner' : ''}`}>
+            <div className={`tr-team-name tr-team-right ${bWins ? 'tr-team-winner' : ''}`}>
               {m.teamB?.abbr || m.teamB?.name || '?'}
             </div>
             {!isLive && (
-              <div className="p22-expand-icon">
-                <svg className={isSelected ? 'p22-chevron-up' : ''} width="20" height="20" viewBox="0 0 24 24" fill="none"
+              <div className="tr-expand-icon">
+                <svg className={isSelected ? 'tr-chevron-up-icon' : ''} width="18" height="18" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
@@ -1535,73 +1552,85 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
           </div>
 
           {!isLive && (aWins
-            ? <div className="p22-winner-bar p22-bar-left" />
-            : <div className="p22-winner-bar p22-bar-right" />
+            ? <div className="tr-winner-bar tr-bar-left" />
+            : bWins
+              ? <div className="tr-winner-bar tr-bar-right" />
+              : null
           )}
         </div>
-        <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
+        {!isLive && (
+          <div className="tr-detail-wrap">
+            <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="p22-page" style={{ '--p22-accent': accent } as React.CSSProperties}>
-      {/* Page Header */}
-      <div className="p22-header">
-        <div className="p22-header-info">
-          <div className="p22-header-logo-container">
-            <Image src={LEAGUE_LOGO(league)} alt={league} width={96} height={96} />
+    <div className="tr-page" style={{ '--tr-accent': accent } as React.CSSProperties}>
+      {/* ════════ EDITORIAL HEADER CARD ════════ */}
+      <div className="tr-ed-card">
+        <Image
+          src={LEAGUE_LOGO(league)}
+          alt=""
+          className="tr-ed-watermark"
+          aria-hidden="true"
+          width={280}
+          height={280}
+        />
+
+        <div className="tr-ed-hdr">
+          <div className="tr-ed-hdr-left">
+            <Image src={LEAGUE_LOGO(league)} alt={league} className="tr-ed-logo" width={64} height={64} />
+            <div className="tr-ed-hdr-text">
+              <span className="tr-ed-hero">{leagueName} RECORD</span>
+              <span className="tr-ed-subhero">
+                SEASON {filters.year || ''} · {(filters.split || '').toUpperCase()}
+                {filters.stage && filters.stage !== 'all' && !/regular[_ ]?season/i.test(filters.stage) ? ` · ${filters.stage.toUpperCase()}` : ''}
+              </span>
+            </div>
           </div>
-          <div>
-            <div className="p22-header-title">{leagueName} RECORD</div>
-            <div className="p22-header-subtitle">SEASON {filters.year || ''} // {(filters.split || '').toUpperCase()}</div>
+          <div className="tr-ed-hdr-right">
+            <div className="tr-ed-teamstat">
+              <span className="tr-ed-teamcount">{finishedMatches.length}</span>
+              <span className="tr-ed-teamlbl">Series</span>
+            </div>
+            <div className="tr-ed-teamstat">
+              <span className="tr-ed-teamcount">{totalGames}</span>
+              <span className="tr-ed-teamlbl">Mapas</span>
+            </div>
+            <div className="tr-ed-teamstat">
+              <span className="tr-ed-teamcount">{tournamentData.avg_duration_formatted || '0:00'}</span>
+              <span className="tr-ed-teamlbl">Duración</span>
+            </div>
           </div>
         </div>
-        <div className="p22-header-stats">
-          <div className="p22-hstat">
-            <span className="p22-hstat-val">{finishedMatches.length}</span>
-            <span className="p22-hstat-lbl">Series</span>
-          </div>
-          <div className="p22-hstat">
-            <span className="p22-hstat-val">{totalGames}</span>
-            <span className="p22-hstat-lbl">Mapas</span>
-          </div>
-          <div className="p22-hstat">
-            <span className="p22-hstat-val">{tournamentData.avg_duration_formatted || '0:00'}</span>
-            <span className="p22-hstat-lbl">Duración Media</span>
-          </div>
-        </div>
+
       </div>
 
-      {/* ── EN VIVO ── */}
-      {liveMatches.length > 0 && (
-        <div className="p22-section">
-          <div className="p22-section-header p22-section-live">
-            <span className="p22-live-dot-record" />
-            <span>EN VIVO</span>
-          </div>
-          <div className="p22-matches">
-            {liveMatches.map(m => <FinishedCard key={m.matchid} m={m} isSelected={selectedMatchId === m.matchid} />)}
-          </div>
-        </div>
-      )}
+      {/* ════════ FEED SECTIONS ════════ */}
 
-      {/* ── PROGRAMADAS (collapsible) ── */}
+      {/* PROGRAMADAS (collapsible) */}
       {scheduledMatches.length > 0 && (
-        <div className="p22-section">
+        <div className="tr-section">
           <div
-            className={`p22-section-header p22-section-scheduled ${scheduledOpen ? 'p22-section-open' : ''}`}
+            className={`tr-section-header tr-section-clickable ${scheduledOpen ? 'tr-section-open' : ''}`}
             onClick={() => setScheduledOpen(o => !o)}
           >
-            <span className="p22-section-title">PROGRAMADAS</span>
-            <span className="p22-section-count">{scheduledMatches.length}</span>
-            <svg className={`p22-section-chevron ${scheduledOpen ? 'p22-chevron-up' : ''}`} width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <span className="tr-section-title">PROGRAMADAS</span>
+            <span className="tr-section-count">· {scheduledMatches.length}</span>
+            <span className="tr-section-dash" />
+            <svg
+              className={`tr-section-chevron ${scheduledOpen ? 'tr-chevron-up' : ''}`}
+              width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            >
               <path d="M6 9l6 6 6-6" />
             </svg>
           </div>
           {scheduledOpen && (
-            <div className="p22-matches">
+            <div className="tr-matches">
               {scheduledMatches.map((m, i) => {
                 const dateObj = new Date(m.begin_at || m.scheduled_at || '');
                 const currentDate = dateObj.toISOString().split('T')[0];
@@ -1609,13 +1638,12 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
                   ? new Date(scheduledMatches[i - 1].begin_at || scheduledMatches[i - 1].scheduled_at || '').toISOString().split('T')[0]
                   : null;
                 const isNewDate = currentDate !== prevDate;
-                const dateLabel = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long' });
 
                 return (
                   <React.Fragment key={m.matchid}>
                     {isNewDate && (
-                      <div className="p22-date-header">
-                        <span className="p22-date-label">{dateLabel}</span>
+                      <div className="tr-date-header">
+                        <span className="tr-date-label">{currentDate}</span>
                       </div>
                     )}
                     <ScheduledCard m={m} />
@@ -1627,31 +1655,38 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
         </div>
       )}
 
-      {/* ── JUGADAS ── */}
-      <div className="p22-section">
-        <div className="p22-section-header p22-section-played">
-          <span>JUGADAS</span>
-          <span className="p22-section-count">{finishedMatches.length}</span>
-        </div>
-        <div className="p22-matches">
-          {finishedMatches.map((m, i) => {
-            const currentDate = m.date_str || formatDate(m.date);
-            const prevDate = i > 0 ? (finishedMatches[i - 1].date_str || formatDate(finishedMatches[i - 1].date)) : null;
-            const isNewDate = currentDate !== prevDate;
+      {/* JUGADAS */}
+      {finishedMatches.length > 0 ? (
+        <div className="tr-section">
+          <div className="tr-section-header">
+            <span className="tr-section-title">JUGADAS</span>
+            <span className="tr-section-count">· {finishedMatches.length}</span>
+            <span className="tr-section-dash" />
+          </div>
+          <div className="tr-matches">
+            {finishedMatches.map((m, i) => {
+              const currentDate = m.date_str || trFormatDate(m.date);
+              const prevDate = i > 0
+                ? (finishedMatches[i - 1].date_str || trFormatDate(finishedMatches[i - 1].date))
+                : null;
+              const isNewDate = currentDate !== prevDate;
 
-            return (
-              <React.Fragment key={m.matchid}>
-                {isNewDate && (
-                  <div className="p22-date-header">
-                    <span className="p22-date-label">{currentDate}</span>
-                  </div>
-                )}
-                <FinishedCard m={m} isSelected={selectedMatchId === m.matchid} />
-              </React.Fragment>
-            );
-          })}
+              return (
+                <React.Fragment key={m.matchid}>
+                  {isNewDate && currentDate && (
+                    <div className="tr-date-header">
+                      <span className="tr-date-label">{currentDate}</span>
+                    </div>
+                  )}
+                  <MatchCard m={m} isSelected={selectedMatchId === m.matchid} />
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : liveMatches.length === 0 && scheduledMatches.length === 0 ? (
+        <div className="tr-empty">Sin partidas para los filtros seleccionados</div>
+      ) : null}
     </div>
   );
 }
