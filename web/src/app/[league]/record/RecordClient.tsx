@@ -1607,6 +1607,49 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
           </div>
         </div>
 
+        {/* Live strip — sits inside the header card, only renders when there's a real live match */}
+        {liveMatches.length > 0 && (
+          <div className="tr-ed-live-strip">
+            <div className="tr-ed-live-head">
+              <span className="tr-ed-live-dot" />
+              <span className="tr-ed-live-tag">EN VIVO</span>
+              <span className="tr-ed-live-count">· {liveMatches.length}</span>
+              <span className="tr-ed-live-dash" />
+            </div>
+            <div className="tr-ed-live-list">
+              {liveMatches.map(m => (
+                <div key={m.matchid} className="tr-ed-live-row">
+                  {m.match_label && <span className="tr-ed-live-label">{m.match_label}</span>}
+                  <div className="tr-ed-live-matchup">
+                    <span className="tr-ed-live-team tr-ed-live-team-left">{m.teamA?.abbr || '?'}</span>
+                    <Image
+                      src={m.teamA?.logo_url || trPsImg(null, m.teamA?.abbr)}
+                      alt=""
+                      className="tr-ed-live-logo"
+                      width={32}
+                      height={32}
+                    />
+                    <div className="tr-ed-live-score">
+                      <span className="tr-ed-live-score-num tr-ed-live-score-left">{m.teamA?.score ?? 0}</span>
+                      <span className="tr-ed-live-score-sep">—</span>
+                      <span className="tr-ed-live-score-num tr-ed-live-score-right">{m.teamB?.score ?? 0}</span>
+                    </div>
+                    <Image
+                      src={m.teamB?.logo_url || trPsImg(null, m.teamB?.abbr)}
+                      alt=""
+                      className="tr-ed-live-logo"
+                      width={32}
+                      height={32}
+                    />
+                    <span className="tr-ed-live-team tr-ed-live-team-right">{m.teamB?.abbr || '?'}</span>
+                  </div>
+                  {m.best_of > 1 && <span className="tr-ed-live-bo">BO{m.best_of}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ════════ FEED SECTIONS ════════ */}
