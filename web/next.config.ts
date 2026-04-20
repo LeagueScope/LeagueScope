@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // Standalone output for self-hosted deployments (no node_modules needed)
   output: 'standalone',
 
-  // Monorepo root — avoids "multiple lockfiles" warning
+  // Monorepo root - avoids "multiple lockfiles" warning
   outputFileTracingRoot: path.join(__dirname, '..'),
 
   // API proxy: handled by src/app/api/[...path]/route.ts (Route Handler)
@@ -18,20 +18,14 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Prevent MIME-type sniffing
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          // Prevent clickjacking
           { key: 'X-Frame-Options', value: 'DENY' },
-          // XSS protection (legacy browsers)
           { key: 'X-XSS-Protection', value: '1; mode=block' },
-          // Referrer policy
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          // Permissions policy — disable unused browser features
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
           },
-          // Content Security Policy
           {
             key: 'Content-Security-Policy',
             value: [

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Robots.txt — /robots.txt
+   Robots.txt - /robots.txt
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.leaguescope.com';

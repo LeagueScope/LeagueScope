@@ -1,22 +1,22 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * match-poller.js — Continuous 24/7 match status poller
+ * match-poller.js â€” Continuous 24/7 match status poller
  *
  * Implements status-based ingestion:
- *   • not_started → Register match metadata (scheduled_at, teams, tournament)
- *   • running     → Update status to 'running' (frontend shows "En vivo")
- *   • finished    → Trigger FULL game data dump (stats, timeline, runes — definitive)
+ *   â€¢ not_started â†’ Register match metadata (scheduled_at, teams, tournament)
+ *   â€¢ running     â†’ Update status to 'running' (frontend shows "En vivo")
+ *   â€¢ finished    â†’ Trigger FULL game data dump (stats, timeline, runes â€” definitive)
  *
  * Architecture:
  *   This script runs as a long-lived process (or Lambda on a schedule).
  *   Every POLL_INTERVAL seconds it:
- *     1. Fetches /lol/matches/upcoming → upserts as not_started
- *     2. Fetches /lol/matches/running  → updates status to running
+ *     1. Fetches /lol/matches/upcoming â†’ upserts as not_started
+ *     2. Fetches /lol/matches/running  â†’ updates status to running
  *     3. Queries DB for finished-but-not-ingested matches
  *     4. For each: spawns fetch-to-postgres.js --match-id <id> to do the full dump
  *     5. After dump, marks match as games_ingested_at = NOW()
  *
- * This does NOT replace auto-ingest.js — that handles historical backfill
+ * This does NOT replace auto-ingest.js â€” that handles historical backfill
  * (full series sweeps). This handles real-time status tracking.
  *
  * Usage:
@@ -26,9 +26,9 @@
  *   node scripts/match-poller.js --leagues LEC,LCK  # only specific leagues
  *
  * Env vars:
- *   PG_DSN             — PostgreSQL connection string
- *   PANDASCORE_TOKEN   — PandaScore API token
- *   POLL_INTERVAL      — Seconds between polls (default: 90)
+ *   PG_DSN             â€” PostgreSQL connection string
+ *   PANDASCORE_TOKEN   â€” PandaScore API token
+ *   POLL_INTERVAL      â€” Seconds between polls (default: 90)
  */
 
 import { spawn } from 'child_process';
@@ -36,11 +36,12 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logIngestionFailure, markFailuresResolved } from './lib/digestFailures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ─── .env loader ──────────────────────────────────────────────────────────
+// â”€â”€â”€ .env loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const envPath = path.join(__dirname, '..', '.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf-8');
@@ -56,7 +57,7 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const BASE_URL = 'https://api.pandascore.co';
 const TOKEN = process.env.PANDASCORE_TOKEN;
 const PG_DSN = process.env.PG_DSN;
@@ -77,7 +78,7 @@ const MAX_CONCURRENT_INGESTS = Number(getArg('max-concurrent') || 2);
 
 const FETCH_SCRIPT = path.join(__dirname, 'fetch-to-postgres.js');
 
-// ─── League IDs (same as fetch-to-postgres.js) ───────────────────────────
+// â”€â”€â”€ League IDs (same as fetch-to-postgres.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LEAGUE_IDS = {
   // Tier 1
   LCK: 293, LPL: 294, LEC: 4197, LCS: 4198, CBLOL: 302, LCP: 5351,
@@ -97,7 +98,7 @@ const LEAGUE_IDS = {
   ROADOFLEGENDS: 5366,
 };
 
-// Build reverse map: league_id → slug
+// Build reverse map: league_id â†’ slug
 const LEAGUE_SLUGS = {};
 for (const [slug, id] of Object.entries(LEAGUE_IDS)) {
   LEAGUE_SLUGS[id] = slug;
@@ -110,7 +111,7 @@ const TRACKED_LEAGUE_IDS = LEAGUE_FILTER
 
 const TRACKED_LEAGUE_IDS_SET = new Set(TRACKED_LEAGUE_IDS);
 
-// ─── Logging ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const BOLD = '\x1b[1m';
 const DIM = '\x1b[2m';
 const RST = '\x1b[0m';
@@ -121,12 +122,12 @@ const CYAN = '\x1b[36m';
 
 const ts = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const log = (msg) => console.log(`[${ts()}] ${msg}`);
-const logOk = (msg) => console.log(`[${ts()}] ${GREEN}✓${RST} ${msg}`);
-const logWarn = (msg) => console.log(`[${ts()}] ${YELLOW}⚠${RST} ${msg}`);
-const logErr = (msg) => console.error(`[${ts()}] ${RED}✗${RST} ${msg}`);
-const logLive = (msg) => console.log(`[${ts()}] ${CYAN}▶${RST} ${msg}`);
+const logOk = (msg) => console.log(`[${ts()}] ${GREEN}âœ“${RST} ${msg}`);
+const logWarn = (msg) => console.log(`[${ts()}] ${YELLOW}âš ${RST} ${msg}`);
+const logErr = (msg) => console.error(`[${ts()}] ${RED}âœ—${RST} ${msg}`);
+const logLive = (msg) => console.log(`[${ts()}] ${CYAN}â–¶${RST} ${msg}`);
 
-// ─── HTTP client (same rate-limited pattern as fetch-to-postgres.js) ─────
+// â”€â”€â”€ HTTP client (same rate-limited pattern as fetch-to-postgres.js) â”€â”€â”€â”€â”€
 let requestCount = 0;
 let lastRequestTime = 0;
 const MIN_DELAY = 400;
@@ -150,7 +151,7 @@ async function apiFetch(url, attempt = 1) {
 
     if (res.status === 429) {
       const ra = parseInt(res.headers.get('Retry-After') || '5');
-      if (attempt <= 5) { log(`  ⏳ 429 — waiting ${ra}s (attempt ${attempt})...`); await sleep(ra * 1000); return apiFetch(url, attempt + 1); }
+      if (attempt <= 5) { log(`  â³ 429 â€” waiting ${ra}s (attempt ${attempt})...`); await sleep(ra * 1000); return apiFetch(url, attempt + 1); }
       throw new Error(`429 after ${attempt} retries`);
     }
     if (res.status >= 500 && attempt <= 3) { await sleep(2000 * attempt); return apiFetch(url, attempt + 1); }
@@ -160,7 +161,7 @@ async function apiFetch(url, attempt = 1) {
     return await res.json();
   } catch (err) {
     clearTimeout(tid);
-    if (err.name === 'AbortError' && attempt <= 3) { log(`  ⏳ Timeout (attempt ${attempt})...`); await sleep(2000 * attempt); return apiFetch(url, attempt + 1); }
+    if (err.name === 'AbortError' && attempt <= 3) { log(`  â³ Timeout (attempt ${attempt})...`); await sleep(2000 * attempt); return apiFetch(url, attempt + 1); }
     throw err;
   }
 }
@@ -190,7 +191,7 @@ async function apiGetAll(path, params = {}, maxPages = 10) {
   return results;
 }
 
-// ─── DB Pool ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ DB Pool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function createPool() {
   const poolConfig = { connectionString: PG_DSN, max: 3, connectionTimeoutMillis: 5000 };
   if (PG_DSN.includes('rds.amazonaws.com')) {
@@ -199,14 +200,14 @@ function createPool() {
   return new pg.Pool(poolConfig);
 }
 
-// ─── Role normalization (minimal — just for match metadata) ──────────────
+// â”€â”€â”€ Role normalization (minimal â€” just for match metadata) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ROLE_MAP = { top: 'top', jun: 'jun', jungle: 'jun', mid: 'mid', adc: 'adc', bot: 'adc', sup: 'sup', support: 'sup' };
 const VALID_ROLES = new Set(['top', 'jun', 'mid', 'adc', 'sup']);
 const normRole = (r) => { const n = ROLE_MAP[r?.toLowerCase()]; return n && VALID_ROLES.has(n) ? n : null; };
 const VALID_STATUSES = new Set(['finished', 'running', 'not_started', 'canceled', 'postponed']);
 const normStatus = (s) => VALID_STATUSES.has(s) ? s : null;
 
-// ─── Ensure referenced entities exist (auto-fetch from API if missing) ────
+// â”€â”€â”€ Ensure referenced entities exist (auto-fetch from API if missing) â”€â”€â”€â”€
 const _knownChampions = new Set();
 const _knownItems = new Set();
 
@@ -234,7 +235,7 @@ async function ensureChampionExists(pool, champId, champName) {
         ON CONFLICT (pandascore_id) DO NOTHING
       `, [data.id, data.id, name, data.image_url || null]);
       _knownChampions.add(champId);
-      log(`  ✓ Auto-fetched champion ${champId} (${name})`);
+      log(`  âœ“ Auto-fetched champion ${champId} (${name})`);
       return true;
     }
   } catch (e) { /* API fetch failed, skip */ }
@@ -255,7 +256,7 @@ async function ensureItemExists(pool, itemId) {
         ON CONFLICT (id) DO NOTHING
       `, [data.id, data.name, data.image_url || null, data.is_trinket ?? false, data.gold_total ?? null]);
       _knownItems.add(itemId);
-      log(`  ✓ Auto-fetched item ${itemId} (${data.name})`);
+      log(`  âœ“ Auto-fetched item ${itemId} (${data.name})`);
       return true;
     }
   } catch (e) { /* API fetch failed, skip */ }
@@ -274,7 +275,7 @@ async function ensureRuneExists(pool, runeId, runeName) {
       INSERT INTO runes (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING
     `, [runeId, name]);
     _knownRunes.add(runeId);
-    log(`  ✓ Auto-inserted rune stub ${runeId} (${name})`);
+    log(`  âœ“ Auto-inserted rune stub ${runeId} (${name})`);
     return true;
   } catch (e) { /* insert failed, skip */ }
   return false;
@@ -297,14 +298,14 @@ async function ensurePlayerExists(pool, playerId, playerName) {
           data.last_name || null, data.image_url || null,
           data.role ? normRole(data.role) : null, data.nationality || null]);
       _knownPlayers.add(playerId);
-      log(`  ✓ Auto-fetched player ${playerId} (${name})`);
+      log(`  âœ“ Auto-fetched player ${playerId} (${name})`);
       return true;
     }
   } catch (e) { /* API fetch failed, skip */ }
   return false;
 }
 
-// ─── Ensure migration applied ─────────────────────────────────────────────
+// â”€â”€â”€ Ensure migration applied â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function ensureMigration(pool) {
   const sqlPath = path.join(__dirname, 'sql', 'match_ingestion_tracking.sql');
   if (fs.existsSync(sqlPath)) {
@@ -320,9 +321,9 @@ async function ensureMigration(pool) {
   logOk('Migrations applied');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STEP 1: Poll upcoming matches → register as not_started
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 1: Poll upcoming matches â†’ register as not_started
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function pollUpcoming(pool) {
   log('Polling upcoming matches...');
@@ -346,7 +347,7 @@ async function pollUpcoming(pool) {
     // Ensure league/serie/tournament exist (lightweight upsert)
     await ensureMatchStructure(pool, m);
 
-    // Upsert match metadata (NO game data — just scheduling info)
+    // Upsert match metadata (NO game data â€” just scheduling info)
     await pool.query(`
       INSERT INTO matches (id, tournament_id, serie_id, league_id, name, slug, match_type,
         number_of_games, status, begin_at, scheduled_at, original_scheduled_at,
@@ -414,9 +415,9 @@ async function pollUpcoming(pool) {
   return registered;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STEP 2: Poll running matches → update status to 'running'
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 2: Poll running matches â†’ update status to 'running'
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function pollRunning(pool) {
   log('Polling running matches...');
@@ -433,7 +434,7 @@ async function pollRunning(pool) {
     // Ensure structure
     await ensureMatchStructure(pool, m);
 
-    // Update to running — NO game data written
+    // Update to running â€” NO game data written
     await pool.query(`
       INSERT INTO matches (id, tournament_id, serie_id, league_id, name, slug, match_type,
         number_of_games, status, begin_at, scheduled_at, original_scheduled_at,
@@ -477,7 +478,7 @@ async function pollRunning(pool) {
 
     const leagueSlug = LEAGUE_SLUGS[m.league_id] || m.league_id;
     const teams = (m.opponents || []).map(o => (o.opponent || o).acronym || (o.opponent || o).name).join(' vs ');
-    logLive(`LIVE: ${leagueSlug} — ${teams} (match ${m.id})`);
+    logLive(`LIVE: ${leagueSlug} â€” ${teams} (match ${m.id})`);
     updated++;
   }
 
@@ -485,9 +486,9 @@ async function pollRunning(pool) {
   return updated;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STEP 3: Detect & ingest newly finished matches
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function pollFinished(pool) {
   log('Checking for newly finished matches...');
@@ -692,7 +693,7 @@ async function pollFinished(pool) {
   if (totalStaleCount > 0) {
     logOk(`Newly finished: ${newlyFinished} matches to ingest | Catch-up remaining: ${staleRemaining} stale matches`);
   } else {
-    logOk(`Newly finished: ${newlyFinished} matches to ingest | Catch-up: all clear ✓`);
+    logOk(`Newly finished: ${newlyFinished} matches to ingest | Catch-up: all clear âœ“`);
   }
 
   // Now trigger game data ingestion for all pending matches
@@ -707,9 +708,9 @@ async function pollFinished(pool) {
   return newlyFinished;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STEP 4: Full game data dump for finished matches
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function ingestPendingMatches(pool) {
   const { rows: pending } = await pool.query(`
@@ -751,7 +752,7 @@ async function ingestPendingMatches(pool) {
 // Compute match scores from games.winner_id when PandaScore didn't provide results
 async function backfillMatchScores(pool, matchId) {
   try {
-    // Skip canceled/postponed matches — they have no real scores
+    // Skip canceled/postponed matches â€” they have no real scores
     const { rows: [mStatus] } = await pool.query(
       'SELECT status FROM matches WHERE id = $1', [matchId]
     );
@@ -794,7 +795,7 @@ async function backfillMatchScores(pool, matchId) {
         }
       }
 
-      log(`  ✓ Backfilled scores for match ${matchId} from game results`);
+      log(`  âœ“ Backfilled scores for match ${matchId} from game results`);
       return;
     }
 
@@ -816,7 +817,7 @@ async function backfillMatchScores(pool, matchId) {
 
     // Winner score = games needed to win the BO (ceil(bo/2)), or gamesPlayed if BO1
     // Loser score = gamesPlayed - winnerScore
-    const winsNeeded = Math.ceil(bo / 2); // BO1→1, BO3→2, BO5→3
+    const winsNeeded = Math.ceil(bo / 2); // BO1â†’1, BO3â†’2, BO5â†’3
     const winnerScore = gamesPlayed > 0 ? Math.min(winsNeeded, gamesPlayed) : winsNeeded;
     const loserScore = Math.max(0, gamesPlayed - winnerScore);
 
@@ -828,7 +829,7 @@ async function backfillMatchScores(pool, matchId) {
       );
     }
 
-    log(`  ✓ Backfilled scores for match ${matchId} from winner_id (${winnerScore}-${loserScore})`);
+    log(`  âœ“ Backfilled scores for match ${matchId} from winner_id (${winnerScore}-${loserScore})`);
   } catch (e) {
     logWarn(`  backfillMatchScores ${matchId}: ${e.message}`);
   }
@@ -852,7 +853,7 @@ async function ingestSingleMatch(pool, match) {
       `, [match.id]);
 
       if (gameCheck.real_games > 0 || gameCheck.total_games === 0) {
-        // Has real game data, or no games at all → mark as ingested
+        // Has real game data, or no games at all â†’ mark as ingested
         await pool.query(
           `UPDATE matches SET games_ingested_at = NOW() WHERE id = $1`,
           [match.id]
@@ -865,20 +866,49 @@ async function ingestSingleMatch(pool, match) {
           `UPDATE matches SET games_ingested_at = '1970-01-01' WHERE id = $1`,
           [match.id]
         );
-        logWarn(`  ${matchLabel}: games are empty shells (${gameCheck.total_games} games, 0 with data) — marked for retry`);
+        logWarn(`  ${matchLabel}: games are empty shells (${gameCheck.total_games} games, 0 with data) â€” marked for retry`);
+        await logIngestionFailure(pool, {
+          source: 'match-poller',
+          league_slug: leagueSlug,
+          league_id: match.league_id,
+          match_id: match.id,
+          stage: 'ingest-verify',
+          error_type: 'empty_games',
+          message: `${matchLabel}: ${gameCheck.total_games} games ingestadas sin datos reales`,
+        });
       }
 
       // Backfill scores from games if result_score is still null/0
       await backfillMatchScores(pool, match.id);
 
+      // Fallo previamente registrado para este match queda resuelto
+      await markFailuresResolved(pool, { match_id: match.id });
+
       logOk(`  ${matchLabel}: OK (${result.apiCalls} API calls)`);
       return { success: true, matchId: match.id };
     } else {
-      logErr(`  ${matchLabel}: FAILED — ${result.stderr?.slice(0, 200)}`);
+      logErr(`  ${matchLabel}: FAILED â€” ${result.stderr?.slice(0, 200)}`);
+      await logIngestionFailure(pool, {
+        source: 'match-poller',
+        league_slug: leagueSlug,
+        league_id: match.league_id,
+        match_id: match.id,
+        stage: 'fetch-to-postgres',
+        message: result.stderr?.slice(0, 1000) || `Exit code ${result.code ?? 'unknown'}`,
+      });
       return { success: false, matchId: match.id };
     }
   } catch (err) {
-    logErr(`  ${matchLabel}: ERROR — ${err.message}`);
+    logErr(`  ${matchLabel}: ERROR â€” ${err.message}`);
+    await logIngestionFailure(pool, {
+      source: 'match-poller',
+      league_slug: leagueSlug,
+      league_id: match.league_id,
+      match_id: match.id,
+      stage: 'ingest-exception',
+      message: err.message,
+      stack: err.stack,
+    });
     return { success: false, matchId: match.id };
   }
 }
@@ -913,9 +943,9 @@ function runFetchForMatch(matchId) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // HELPERS: Ensure league/serie/tournament structure exists
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function ensureMatchStructure(pool, m) {
   // League
@@ -972,9 +1002,9 @@ async function ensureMatchStructure(pool, m) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STEP 5: Static Data Refresh (24h + startup)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 let lastStaticRefresh = null;
 const STATIC_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
@@ -1026,9 +1056,9 @@ function runStaticRefresh() {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STEP 6: Derived Stats Refresh (after match ingestion)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function refreshAllStats(pool, matchIds) {
   if (!matchIds || matchIds.length === 0) {
@@ -1076,7 +1106,7 @@ async function refreshSerieStats(pool, serieId) {
   let updated = 0;
 
   try {
-    // ─── Player career stats ─────────────────────────────────────────
+    // â”€â”€â”€ Player career stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // PandaScore has NO bulk endpoint for player stats per series.
     // We must: 1) get player IDs from the DB (game_players for this serie), 2) call individual stats endpoints.
     log(`  Refreshing player_career for serie ${serieId}...`);
@@ -1100,13 +1130,13 @@ async function refreshSerieStats(pool, serieId) {
     for (const { playerId, teamId, role } of playerList) {
       try {
         const statsArr = await apiGetAll(`/lol/series/${serieId}/players/${playerId}/stats`);
-        // API returns an array — take the first element, or use the array itself if it has stats fields
+        // API returns an array â€” take the first element, or use the array itself if it has stats fields
         const raw = Array.isArray(statsArr) && statsArr.length > 0 ? statsArr[0] : statsArr;
         if (raw && (raw.stats || raw.games_count != null || raw.average || raw.averages)) {
           playerCareer.push({ player: { id: playerId, role }, team: { id: teamId }, ...raw });
         }
       } catch (e) {
-        // Some players may not have stats (subs who never played) — skip silently
+        // Some players may not have stats (subs who never played) â€” skip silently
       }
       await sleep(100); // gentle rate limiting
     }
@@ -1124,7 +1154,7 @@ async function refreshSerieStats(pool, serieId) {
     //     total_damage: { dealt, dealt_to_champions, taken, dealt_to_champions_percentage },
     //     magic_damage/physical_damage/true_damage: { dealt, dealt_to_champions, taken, ... },
     //     total_heal, total_time_crowd_control_dealt, kill_counters: { players, neutral_minions, ... }
-    //   NO: kda, kill_participation, cspm, dpm, gpm, game_length — must be calculated
+    //   NO: kda, kill_participation, cspm, dpm, gpm, game_length â€” must be calculated
     for (const pc of playerCareer) {
       if (!pc.player?.id) continue;
       const s = pc.stats || pc;
@@ -1201,7 +1231,7 @@ async function refreshSerieStats(pool, serieId) {
           aTrd.dealt_to_champions ?? null,                                  // avg_true_dpm (avg per game)
           null,                                                             // avg_cc_per_min (not in API)
           null,                                                             // avg_heal_per_min (not in API)
-          null,                                                             // cspm (not in API — only minions_killed avg/game)
+          null,                                                             // cspm (not in API â€” only minions_killed avg/game)
           a.gold_earned ?? null,                                            // gpm (actually avg gold per game)
           aTd.dealt_to_champions ?? null,                                   // dpm (actually avg dmg per game)
           aTd.dealt_to_champions_percentage ?? null,                        // dmg_share
@@ -1223,7 +1253,7 @@ async function refreshSerieStats(pool, serieId) {
 
     logOk(`    player_career: ${updated} inserted for serie ${serieId}`);
 
-    // ─── Player keystones (from raw game data, not API) ─────────────
+    // â”€â”€â”€ Player keystones (from raw game data, not API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     for (const pc of playerCareer) {
       if (!pc.player?.id) continue;
       try {
@@ -1245,7 +1275,7 @@ async function refreshSerieStats(pool, serieId) {
       }
     }
 
-    // ─── Team career stats ──────────────────────────────────────────
+    // â”€â”€â”€ Team career stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const teamCareer = await apiGetAll(`/lol/series/${serieId}/teams/stats`);
     log(`    API returned ${teamCareer.length} teams for serie ${serieId}`);
     let teamUpdated = 0;
@@ -1405,11 +1435,11 @@ async function refreshSerieStats(pool, serieId) {
     }
     logOk(`    team_career: ${teamUpdated} inserted for serie ${serieId}`);
 
-    // ─── REMOVED: player_stats, team_stats (JSONB dump tables) ─────
+    // â”€â”€â”€ REMOVED: player_stats, team_stats (JSONB dump tables) â”€â”€â”€â”€â”€
     // These were dropped in migrate-remove-jsonb.js. Their data is now
     // covered by player_career, team_career, and player_champion_stats.
 
-    // ─── Player champion stats ──────────────────────────────────────
+    // â”€â”€â”€ Player champion stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     for (const pc of playerCareer) {
       if (!pc.player?.id || !pc.favorite_champions) continue;
       for (const fc of pc.favorite_champions) {
@@ -1738,7 +1768,7 @@ async function refreshChampionGlobalStats(pool, serieId) {
         ]);
         updated++;
 
-        // ── Insert derivative tables ──────────────────────────────────────
+        // â”€â”€ Insert derivative tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         // champion_role_stats
         if (cs.roles_json) {
@@ -1838,9 +1868,9 @@ async function refreshChampionGlobalStats(pool, serieId) {
   return updated;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // POLL CYCLE
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // Auto-backfill: re-ingest recent matches where games are missing rune data.
 // This fixes the race condition where PandaScore hasn't published runes yet
@@ -1870,7 +1900,7 @@ async function autoBackfillIncomplete(pool) {
         await pool.query(`UPDATE matches SET games_ingested_at = NOW() WHERE id = $1`, [m.match_id]);
         logOk(`    match ${m.match_id}: backfilled OK`);
       } else {
-        logWarn(`    match ${m.match_id}: backfill failed — will retry next cycle`);
+        logWarn(`    match ${m.match_id}: backfill failed â€” will retry next cycle`);
       }
     }
   } catch (err) {
@@ -1883,7 +1913,7 @@ async function autoBackfillIncomplete(pool) {
 // before its telemetry pipeline has published player-per-game data (frequent
 // for tier-3 ERLs like LES/LFL/LRS). Detects both fully broken matches (no
 // telemetry on any game) and partial ones (e.g. game 1 has data, game 2 does
-// not). We retry up to 7 days after kickoff — anything older is treated as
+// not). We retry up to 7 days after kickoff â€” anything older is treated as
 // permanent data rot and left alone.
 async function autoHealBrokenMatches(pool) {
   try {
@@ -1944,7 +1974,7 @@ async function autoHealBrokenMatches(pool) {
           log(`    match ${m.match_id}: re-ingested but PandaScore still has no player data (will retry)`);
         }
       } else {
-        logWarn(`    match ${m.match_id}: auto-heal failed — will retry next cycle`);
+        logWarn(`    match ${m.match_id}: auto-heal failed â€” will retry next cycle`);
       }
     }
   } catch (err) {
@@ -1956,19 +1986,19 @@ async function pollCycle(pool) {
   const cycleStart = Date.now();
   requestCount = 0;
 
-  log(`${BOLD}─── Poll cycle ───${RST}`);
+  log(`${BOLD}â”€â”€â”€ Poll cycle â”€â”€â”€${RST}`);
 
   try {
     // Step 0: Refresh static data if needed (24h cycle)
     await refreshStaticIfNeeded();
 
-    // Step 1: Upcoming → register as not_started
+    // Step 1: Upcoming â†’ register as not_started
     await pollUpcoming(pool);
 
-    // Step 2: Running → update status
+    // Step 2: Running â†’ update status
     await pollRunning(pool);
 
-    // Step 3: Finished → detect & trigger ingestion
+    // Step 3: Finished â†’ detect & trigger ingestion
     await pollFinished(pool);
 
     // Also pick up any matches that were finished but not ingested from previous cycles
@@ -1986,24 +2016,24 @@ async function pollCycle(pool) {
     await autoHealBrokenMatches(pool);
 
     const elapsed = ((Date.now() - cycleStart) / 1000).toFixed(1);
-    log(`${BOLD}─── Cycle done: ${requestCount} API calls, ${elapsed}s ───${RST}\n`);
+    log(`${BOLD}â”€â”€â”€ Cycle done: ${requestCount} API calls, ${elapsed}s â”€â”€â”€${RST}\n`);
   } catch (err) {
     logErr(`Poll cycle error: ${err.message}`);
     if (err.stack) logErr(err.stack.split('\n').slice(0, 3).join('\n'));
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MAIN
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function main() {
   const pool = createPool();
 
   log('');
-  log(`${BOLD}═══════════════════════════════════════════════════════════${RST}`);
-  log(`${BOLD}  LEAGUESCOPE MATCH POLLER — Status-based ingestion${RST}`);
-  log(`${BOLD}═══════════════════════════════════════════════════════════${RST}`);
+  log(`${BOLD}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${RST}`);
+  log(`${BOLD}  LEAGUESCOPE MATCH POLLER â€” Status-based ingestion${RST}`);
+  log(`${BOLD}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${RST}`);
   log(`  Mode:     ${ONCE ? 'Single cycle' : 'Continuous'}`);
   log(`  Interval: ${POLL_INTERVAL / 1000}s`);
   log(`  Leagues:  ${LEAGUE_FILTER ? LEAGUE_FILTER.join(', ') : 'ALL'}`);
@@ -2013,9 +2043,9 @@ async function main() {
   try {
     await ensureMigration(pool);
 
-    // ─── --fix-scores mode: backfill missing match scores from game results ──
+    // â”€â”€â”€ --fix-scores mode: backfill missing match scores from game results â”€â”€
     if (FIX_SCORES) {
-      log(`${BOLD}═══ FIX SCORES MODE ═══${RST}`);
+      log(`${BOLD}â•â•â• FIX SCORES MODE â•â•â•${RST}`);
       log('Finding matches with missing scores...');
 
       const { rows: brokenMatches } = await pool.query(`
@@ -2043,9 +2073,9 @@ async function main() {
       process.exit(0);
     }
 
-    // ─── --refresh-stats mode: recalculate ALL derived tables for existing data ──
+    // â”€â”€â”€ --refresh-stats mode: recalculate ALL derived tables for existing data â”€â”€
     if (REFRESH_STATS) {
-      log(`${BOLD}═══ STATS REFRESH MODE (only missing) ═══${RST}`);
+      log(`${BOLD}â•â•â• STATS REFRESH MODE (only missing) â•â•â•${RST}`);
       log('Finding series/tournaments/matches WITHOUT stats...');
 
       // Series that have ingested matches but NO player_career OR NO team_career data yet
@@ -2076,7 +2106,7 @@ async function main() {
       log(`Missing stats: ${serieIds.length} series for player/team career, ${champSerieIds.length} series for champion_global`);
 
       if (serieIds.length === 0 && champSerieIds.length === 0) {
-        logOk('All stats tables are up to date — nothing to refresh');
+        logOk('All stats tables are up to date â€” nothing to refresh');
         await pool.end();
         return;
       }
@@ -2126,12 +2156,12 @@ async function main() {
       return;
     }
 
-    // ─── --backfill-incomplete mode: re-ingest matches with games missing runes/data ──
+    // â”€â”€â”€ --backfill-incomplete mode: re-ingest matches with games missing runes/data â”€â”€
     // Fixes: when a match was ingested before PandaScore had rune data for the last game(s)
     const BACKFILL_INCOMPLETE = args.includes('--backfill-incomplete');
     if (BACKFILL_INCOMPLETE) {
       const daysBack = Number(getArg('days') || 30);
-      log(`${BOLD}═══ BACKFILL INCOMPLETE GAMES ═══${RST}`);
+      log(`${BOLD}â•â•â• BACKFILL INCOMPLETE GAMES â•â•â•${RST}`);
       log(`Looking for finished games with 0 runes in the last ${daysBack} days...`);
 
       // Find matches that have at least one finished game with 10 players but 0 runes
@@ -2162,14 +2192,14 @@ async function main() {
       `, [daysBack]);
 
       if (incompleteMatches.length === 0) {
-        logOk('No incomplete matches found — all games have rune data!');
+        logOk('No incomplete matches found â€” all games have rune data!');
         await pool.end();
         return;
       }
 
       log(`Found ${incompleteMatches.length} matches with incomplete game data:`);
       for (const m of incompleteMatches) {
-        log(`  match ${m.match_id}: ${m.name} — ${m.games_missing_runes}/${m.total_games} games missing runes`);
+        log(`  match ${m.match_id}: ${m.name} â€” ${m.games_missing_runes}/${m.total_games} games missing runes`);
       }
 
       let fixed = 0;
@@ -2181,7 +2211,7 @@ async function main() {
           logOk(`  match ${m.match_id}: OK (${result.apiCalls} API calls)`);
           fixed++;
         } else {
-          logErr(`  match ${m.match_id}: FAILED — ${result.stderr?.slice(0, 200)}`);
+          logErr(`  match ${m.match_id}: FAILED â€” ${result.stderr?.slice(0, 200)}`);
         }
       }
 
@@ -2190,11 +2220,11 @@ async function main() {
       return;
     }
 
-    // ─── --refresh-derivatives mode: re-run champion_global_stats + ALL derivatives ──
+    // â”€â”€â”€ --refresh-derivatives mode: re-run champion_global_stats + ALL derivatives â”€â”€
     // Use when champion_global_stats exists but derivative tables are empty
     const REFRESH_DERIVATIVES = args.includes('--refresh-derivatives');
     if (REFRESH_DERIVATIVES) {
-      log(`${BOLD}═══ DERIVATIVES REFRESH MODE ═══${RST}`);
+      log(`${BOLD}â•â•â• DERIVATIVES REFRESH MODE â•â•â•${RST}`);
       log('Re-processing champion_global_stats + all derivative tables for ALL series...');
 
       const { rows: allChampSeries } = await pool.query(`
@@ -2256,7 +2286,7 @@ async function main() {
   }
 }
 
-// ─── Lambda handler ───────────────────────────────────────────────────────
+// â”€â”€â”€ Lambda handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function handler(event, context) {
   const pool = createPool();
   try {
@@ -2271,7 +2301,7 @@ export async function handler(event, context) {
   }
 }
 
-// ─── CLI entry ────────────────────────────────────────────────────────────
+// â”€â”€â”€ CLI entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 if (!isLambda) {
   main().catch(err => {

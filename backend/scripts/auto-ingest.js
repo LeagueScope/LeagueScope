@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * auto-ingest.js — Automated league ingestion orchestrator
+ * auto-ingest.js â€” Automated league ingestion orchestrator
  *
  * Designed for AWS Lambda (15-min timeout) but works locally too.
  * Picks the most stale leagues, runs fetch-to-postgres.js for each,
@@ -21,10 +21,10 @@
  * Usage (Lambda): exported handler() is the entry point.
  *
  * Env vars:
- *   PG_DSN             — PostgreSQL connection string
- *   PANDASCORE_TOKEN   — PandaScore API token
- *   MAX_TIME_SECONDS   — Max execution time (default: 840 = 14 min)
- *   CURRENT_YEAR       — Override year filter (default: current year)
+ *   PG_DSN             â€” PostgreSQL connection string
+ *   PANDASCORE_TOKEN   â€” PandaScore API token
+ *   MAX_TIME_SECONDS   â€” Max execution time (default: 840 = 14 min)
+ *   CURRENT_YEAR       â€” Override year filter (default: current year)
  */
 
 import { execSync, spawn } from 'child_process';
@@ -32,11 +32,12 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logIngestionFailure, markFailuresResolved } from './lib/digestFailures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ─── .env loader (for local runs) ──────────────────────────────────────────
+// â”€â”€â”€ .env loader (for local runs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const envPath = path.join(__dirname, '..', '.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf-8');
@@ -52,7 +53,7 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// ─── Config ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PG_DSN = process.env.PG_DSN;
 const TOKEN = process.env.PANDASCORE_TOKEN;
 
@@ -71,12 +72,12 @@ const SKIP_TIMELINE = hasFlag('skip-timeline');
 
 const SCRIPT_PATH = path.join(__dirname, 'fetch-to-postgres.js');
 
-// ─── Logging ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ts = () => new Date().toISOString().slice(11, 19);
 const log = (msg) => console.log(`[${ts()}] ${msg}`);
 const err = (msg) => console.error(`[${ts()}] ERROR: ${msg}`);
 
-// ─── DB Pool ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ DB Pool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function createPool() {
   const poolConfig = { connectionString: PG_DSN, max: 2, connectionTimeoutMillis: 5000 };
   if (PG_DSN.includes('rds.amazonaws.com')) {
@@ -85,7 +86,7 @@ function createPool() {
   return new pg.Pool(poolConfig);
 }
 
-// ─── Ensure tables & migrations exist ─────────────────────────────────────
+// â”€â”€â”€ Ensure tables & migrations exist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function ensureStateTable(pool) {
   const sqlPath = path.join(__dirname, 'sql', 'ingestion_state.sql');
   const sql = fs.readFileSync(sqlPath, 'utf-8');
@@ -97,10 +98,18 @@ async function ensureStateTable(pool) {
     const migSql = fs.readFileSync(migrationPath, 'utf-8');
     await pool.query(migSql);
   }
-  log('ingestion_state + match tracking ready');
+
+  // digest_runs + ingestion_failures (usados por daily-digest.js y este orquestador)
+  const digestPath = path.join(__dirname, 'sql', 'digest_runs.sql');
+  if (fs.existsSync(digestPath)) {
+    const digSql = fs.readFileSync(digestPath, 'utf-8');
+    await pool.query(digSql);
+  }
+
+  log('ingestion_state + match tracking + digest tables ready');
 }
 
-// ─── Pick next leagues to process ──────────────────────────────────────────
+// â”€â”€â”€ Pick next leagues to process â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function pickLeagues(pool, limit) {
   // Priority-weighted staleness: higher priority leagues get picked sooner
   // A priority-3 league is "3x more stale" than a priority-1 league
@@ -137,7 +146,7 @@ async function pickLeagues(pool, limit) {
   return rows;
 }
 
-// ─── Run ingestion for a single league ─────────────────────────────────────
+// â”€â”€â”€ Run ingestion for a single league â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function runIngest(league, year, extraFlags = []) {
   return new Promise((resolve, reject) => {
     const cmdArgs = [
@@ -177,7 +186,7 @@ function runIngest(league, year, extraFlags = []) {
   });
 }
 
-// ─── Run static data (champions, items, runes, spells) ─────────────────────
+// â”€â”€â”€ Run static data (champions, items, runes, spells) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function runStaticData() {
   log('Running static data ingestion (champions, items, runes, spells)...');
   return new Promise((resolve, reject) => {
@@ -200,7 +209,7 @@ async function runStaticData() {
   });
 }
 
-// ─── Update state ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Update state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function markStarted(pool, league) {
   await pool.query(
     `UPDATE ingestion_state SET status = 'running', last_started = NOW() WHERE league_slug = $1`,
@@ -227,9 +236,11 @@ async function markCompleted(pool, league, apiCalls) {
        AND id IN (SELECT DISTINCT match_id FROM games)`,
     [league]
   );
+  // Si en runs anteriores hubo fallos para esta liga, los marcamos resueltos
+  await markFailuresResolved(pool, { league_slug: league });
 }
 
-async function markError(pool, league, error) {
+async function markError(pool, league, error, leagueId) {
   await pool.query(
     `UPDATE ingestion_state
      SET status = 'error', last_error = $2,
@@ -237,9 +248,16 @@ async function markError(pool, league, error) {
      WHERE league_slug = $1`,
     [league, error.slice(0, 500)]
   );
+  await logIngestionFailure(pool, {
+    source: 'auto-ingest',
+    league_slug: league,
+    league_id: leagueId || null,
+    stage: 'fetch-to-postgres',
+    message: error,
+  });
 }
 
-// ─── Main orchestrator ─────────────────────────────────────────────────────
+// â”€â”€â”€ Main orchestrator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function orchestrate() {
   const startTime = Date.now();
   const deadline = startTime + MAX_TIME_MS;
@@ -276,7 +294,7 @@ async function orchestrate() {
         break;
       }
 
-      log(`\n▶ Processing ${league.league_slug} (priority ${league.priority})`);
+      log(`\nâ–¶ Processing ${league.league_slug} (priority ${league.priority})`);
       await markStarted(pool, league.league_slug);
 
       const extraFlags = SKIP_TIMELINE ? ['--skip-timeline'] : [];
@@ -284,11 +302,11 @@ async function orchestrate() {
 
       if (result.success) {
         await markCompleted(pool, league.league_slug, result.apiCalls);
-        log(`  ✓ ${league.league_slug}: OK (${result.apiCalls} API calls)`);
+        log(`  âœ“ ${league.league_slug}: OK (${result.apiCalls} API calls)`);
       } else {
         const errorMsg = result.stderr?.slice(0, 500) || `Exit code ${result.code}`;
-        await markError(pool, league.league_slug, errorMsg);
-        err(`  ✗ ${league.league_slug}: FAILED — ${errorMsg.slice(0, 100)}`);
+        await markError(pool, league.league_slug, errorMsg, league.league_id);
+        err(`  âœ— ${league.league_slug}: FAILED â€” ${errorMsg.slice(0, 100)}`);
       }
 
       totalApiCalls += result.apiCalls;
@@ -296,7 +314,7 @@ async function orchestrate() {
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    log(`\n═══ Done: ${leaguesProcessed} leagues, ${totalApiCalls} API calls, ${elapsed}s ═══`);
+    log(`\nâ•â•â• Done: ${leaguesProcessed} leagues, ${totalApiCalls} API calls, ${elapsed}s â•â•â•`);
 
     return { processed: leaguesProcessed, apiCalls: totalApiCalls, elapsed };
   } finally {
@@ -304,7 +322,7 @@ async function orchestrate() {
   }
 }
 
-// ─── Lambda handler ────────────────────────────────────────────────────────
+// â”€â”€â”€ Lambda handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function handler(event, context) {
   // Lambda: adjust max time based on remaining context time
   if (context?.getRemainingTimeInMillis) {
@@ -328,7 +346,7 @@ export async function handler(event, context) {
   }
 }
 
-// ─── CLI entry point ───────────────────────────────────────────────────────
+// â”€â”€â”€ CLI entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 if (!isLambda) {
   orchestrate().catch(e => {
