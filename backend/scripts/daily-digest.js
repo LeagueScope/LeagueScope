@@ -1,25 +1,25 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
- * daily-digest.js â€” 8h LeagueScope digest (00:00 / 08:00 / 16:00 Europe/Madrid)
+ * daily-digest.js — 8h LeagueScope digest (00:00 / 08:00 / 16:00 Europe/Madrid)
  *
- * Cada invocaciÃ³n cubre la ventana de 8h que acaba de terminar en hora Madrid.
+ * Cada invocación cubre la ventana de 8h que acaba de terminar en hora Madrid.
  * El Lambda recibe desde EventBridge Scheduler un input con:
  *   {
  *     "slotMadrid": "00" | "08" | "16",
  *     "windowStartUtc": "2026-04-20T06:00:00Z",   // opcional
  *     "windowEndUtc":   "2026-04-20T14:00:00Z"    // opcional
  *   }
- * Si no vienen, se calculan desde NOW alineado al slot Madrid mÃ¡s cercano.
+ * Si no vienen, se calculan desde NOW alineado al slot Madrid más cercano.
  *
  * Secciones del correo:
  *   0. Header con patch activo, slot, ventana, contador de partidos
- *   1. Partidos de la ventana agrupados por banda geogrÃ¡fica + INTL
+ *   1. Partidos de la ventana agrupados por banda geográfica + INTL
  *      (cada partido con badge BO/fase, scores, walkover, integrity flags, timestamps)
  *   2. Salud de la ingesta (Lambda errors + API quota + fallos estructurados)
- *   3. Offseason tracker (sÃ³lo si hay ligas con gap > 48h)
- *   4. Ligas mÃ¡s stale
+ *   3. Offseason tracker (sólo si hay ligas con gap > 48h)
+ *   4. Ligas más stale
  *
- * Persiste cada run en `digest_runs` para que el sparkline de 7 dÃ­as se renderice
+ * Persiste cada run en `digest_runs` para que el sparkline de 7 días se renderice
  * con una sola query en runs futuros.
  *
  * Env vars:
@@ -50,15 +50,15 @@ const WINDOW_LIMIT = HOURLY_LIMIT * 8; // 8h quota
 const ses = new SESv2Client({ region: REGION });
 const cw = new CloudWatchClient({ region: REGION });
 
-// â”€â”€â”€ Palette / status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Palette / status ──────────────────────────────────────────────────────
 const PALETTE = {
   ok:   { accent: '#16a34a', bg: '#f0fdf4', label: 'Operativo' },
   warn: { accent: '#d97706', bg: '#fffbeb', label: 'Con incidencias' },
-  err:  { accent: '#dc2626', bg: '#fef2f2', label: 'Requiere atenciÃ³n' },
+  err:  { accent: '#dc2626', bg: '#fef2f2', label: 'Requiere atención' },
 };
 
-// â”€â”€â”€ Ligas por banda geogrÃ¡fica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// slug â†’ { id, name, band }. Estas 27 son las que el usuario aprobÃ³ seguir.
+// ─── Ligas por banda geográfica ────────────────────────────────────────────
+// slug → { id, name, band }. Estas 27 son las que el usuario aprobó seguir.
 const LEAGUES = {
   // ASIA-PACIFIC (~07-15 UTC)
   LCK:            { id: 293,  name: 'LCK',                 band: 'APAC' },
@@ -79,7 +79,7 @@ const LEAGUES = {
   EBL:            { id: 4426, name: 'EBL',                 band: 'EMEA' },
   HLL:            { id: 5355, name: 'Hitpoint Masters',    band: 'EMEA' },
   ROADOFLEGENDS:  { id: 5366, name: 'Road of Legends',     band: 'EMEA' },
-  // AMERICAS (~20 UTC â†’ 05 UTC)
+  // AMERICAS (~20 UTC → 05 UTC)
   LCS:            { id: 4198, name: 'LCS',                 band: 'AMER' },
   CBLOL:          { id: 302,  name: 'CBLOL',               band: 'AMER' },
   LRN:            { id: 5048, name: 'LRN',                 band: 'AMER' },
@@ -94,36 +94,36 @@ const LEAGUES = {
 };
 
 const LEAGUE_IDS = Object.values(LEAGUES).map((l) => l.id);
-// reverse: id â†’ { slug, name, band }
+// reverse: id → { slug, name, band }
 const LEAGUE_BY_ID = {};
 for (const [slug, info] of Object.entries(LEAGUES)) {
   LEAGUE_BY_ID[info.id] = { slug, ...info };
 }
 
 const BAND_LABELS = {
-  APAC: 'Asia-PacÃ­fico',
+  APAC: 'Asia-Pacífico',
   EMEA: 'EMEA',
-  AMER: 'AmÃ©ricas',
+  AMER: 'Américas',
   INTL: 'Internacional',
 };
 const BAND_ORDER = ['INTL', 'APAC', 'EMEA', 'AMER'];
 
-// â”€â”€â”€ Helpers de formateo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers de formateo ───────────────────────────────────────────────────
 function esc(s) {
   return String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 function fmtNum(n) {
-  if (n == null) return 'â€”';
+  if (n == null) return '—';
   return Number(n).toLocaleString('es-ES');
 }
 function fmtPct(numer, denom) {
-  if (!denom || denom === 0) return numer > 0 ? '+âˆž' : 'Â±0';
+  if (!denom || denom === 0) return numer > 0 ? '+∞' : '±0';
   const pct = ((numer - denom) / denom) * 100;
   const sign = pct > 0 ? '+' : '';
   return `${sign}${pct.toFixed(1)}`;
 }
 function fmtMadrid(iso) {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   try {
     return new Date(iso).toLocaleString('es-ES', {
       timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit',
@@ -148,7 +148,7 @@ function fmtMadridDate(iso) {
   } catch { return String(iso); }
 }
 function fmtRelativeHours(iso) {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const diffMs = Date.now() - new Date(iso).getTime();
   const hours = diffMs / 3_600_000;
   if (hours < 1) return `hace ${Math.round(hours * 60)} min`;
@@ -156,7 +156,7 @@ function fmtRelativeHours(iso) {
   return `hace ${(hours / 24).toFixed(1)} d`;
 }
 
-// â”€â”€â”€ Ventana del correo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ventana del correo ─────────────────────────────────────────────────────
 // Calcula [start, end) en UTC para una ventana alineada a los slots 00/08/16 Madrid.
 function computeWindow(now, slotHintMadrid) {
   // Convertimos now a hora Madrid para decidir el slot actual.
@@ -170,7 +170,7 @@ function computeWindow(now, slotHintMadrid) {
     else if (h < 16) slot = '08';
     else slot = '16';
   }
-  // slot '00' significa: ventana acabÃ³ a las 00:00 Madrid, cubre [16:00 ayer, 00:00 hoy) Madrid
+  // slot '00' significa: ventana acabó a las 00:00 Madrid, cubre [16:00 ayer, 00:00 hoy) Madrid
   // slot '08': cubre [00:00 hoy, 08:00 hoy)
   // slot '16': cubre [08:00 hoy, 16:00 hoy)
   const slotHour = parseInt(slot, 10);
@@ -182,16 +182,16 @@ function computeWindow(now, slotHintMadrid) {
   }
   const startMadrid = new Date(endMadrid.getTime() - 8 * 3_600_000);
   // Convertimos a UTC verdadero respetando el offset Europe/Madrid
-  // (usamos toISOString de los Date que estÃ¡n en "wall time Madrid" interpretados como local)
+  // (usamos toISOString de los Date que están en "wall time Madrid" interpretados como local)
   // Nota: como construimos endMadrid desde .toLocaleString('en-US'), el tz queda pisado.
-  // Preferimos hacer el cÃ¡lculo al revÃ©s: alinear now (UTC) al slot Madrid correspondiente.
+  // Preferimos hacer el cálculo al revés: alinear now (UTC) al slot Madrid correspondiente.
   const end = alignUtcToMadridSlot(now, slot);
   const start = new Date(end.getTime() - 8 * 3_600_000);
   return { start, end, slot };
 }
 
 // Dado un instante UTC y un slot Madrid ('00'|'08'|'16'), devuelve la hora UTC exacta
-// en la que ocurre ese slot mÃ¡s cercano al instante (<= now).
+// en la que ocurre ese slot más cercano al instante (<= now).
 function alignUtcToMadridSlot(now, slot) {
   const slotHour = parseInt(slot, 10);
   // Generamos candidatos para hoy y ayer en Madrid, los convertimos a UTC via Intl, comparamos.
@@ -211,14 +211,14 @@ function alignUtcToMadridSlot(now, slot) {
     const realUtcMs = wallUtcMs - offsetMin * 60_000 * -1; // offsetMin es negativo para tz delante de UTC
     candidates.push(new Date(realUtcMs));
   }
-  // el candidato mÃ¡s grande que sea <= now
+  // el candidato más grande que sea <= now
   const valid = candidates.filter((c) => c.getTime() <= now.getTime()).sort((a, b) => b - a);
   return valid[0] || candidates[0];
 }
 
 function computeTzOffsetMinutes(tz, date) {
   // Diferencia entre hora UTC y hora pared en tz, en minutos.
-  // Positivo si la tz estÃ¡ por detrÃ¡s de UTC; negativo si estÃ¡ por delante.
+  // Positivo si la tz está por detrás de UTC; negativo si está por delante.
   const utcStr = date.toISOString().slice(0, 16);
   const tzStr = date.toLocaleString('sv', { timeZone: tz }).slice(0, 16); // 'YYYY-MM-DD HH:MM'
   const utcMs = Date.parse(utcStr + 'Z');
@@ -226,7 +226,7 @@ function computeTzOffsetMinutes(tz, date) {
   return (utcMs - tzMs) / 60_000;
 }
 
-// â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Queries ────────────────────────────────────────────────────────────────
 async function openPool() {
   const dsn = process.env.PG_DSN;
   const config = { connectionString: dsn };
@@ -329,20 +329,20 @@ async function fetchPendingFailures(client, windowStart) {
     `, [new Date(windowStart.getTime() - 24 * 3_600_000).toISOString()]);
     return rows;
   } catch {
-    // Tabla no existe todavÃ­a en el primer deploy
+    // Tabla no existe todavía en el primer deploy
     return [];
   }
 }
 
 /**
  * Clasifica un match dentro de la ventana:
- *   COMPLETO     â€” todos los games con stats y frames
- *   PARCIAL      â€” games con stats pero frames incompletos
- *   SOLO_RESULTADO â€” match finished con winner pero games vacÃ­os
- *   PROGRAMADO   â€” not_started / running y cae en la ventana (previsto)
- *   FALLO        â€” finished pero con fallos sin resolver en ingestion_failures
- *   WALKOVER     â€” forfeit=true o walkover
- *   CANCELED     â€” canceled/postponed
+ *   COMPLETO     — todos los games con stats y frames
+ *   PARCIAL      — games con stats pero frames incompletos
+ *   SOLO_RESULTADO — match finished con winner pero games vacíos
+ *   PROGRAMADO   — not_started / running y cae en la ventana (previsto)
+ *   FALLO        — finished pero con fallos sin resolver en ingestion_failures
+ *   WALKOVER     — forfeit=true o walkover
+ *   CANCELED     — canceled/postponed
  */
 function classifyMatch(m, failuresByMatchId) {
   if (m.status === 'canceled' || m.status === 'postponed') return 'CANCELED';
@@ -371,14 +371,14 @@ function classifyMatch(m, failuresByMatchId) {
 /**
  * Flags de integridad que se muestran inline al lado del match:
  *   - score vs games mismatch
- *   - missing game_players en algÃºn game
+ *   - missing game_players en algún game
  *   - missing patch
  *   - match cerrado pero sin games
  */
 function integrityFlags(m) {
   const flags = [];
   if (m.status === 'finished' && m.real_games > 0 && !m.patch) flags.push('patch?');
-  if (m.status === 'finished' && m.real_games === 0 && m.total_games > 0) flags.push('games vacÃ­os');
+  if (m.status === 'finished' && m.real_games === 0 && m.total_games > 0) flags.push('games vacíos');
   if (m.games_with_frames < m.real_games && m.real_games > 0) flags.push(`frames ${m.games_with_frames}/${m.real_games}`);
   if (m.games_with_stats < m.real_games && m.real_games > 0) flags.push(`stats ${m.games_with_stats}/${m.real_games}`);
   // score vs games: si winner existe pero el score marca 0-0
@@ -417,13 +417,13 @@ function matchFormat(n) {
 
 /**
  * Filtra matches BO>1 cuya "serie" NO termina dentro de la ventana.
- * Criterio: si el match es finished, se queda; si es programado y end_at estÃ¡ fuera, tambiÃ©n
+ * Criterio: si el match es finished, se queda; si es programado y end_at está fuera, también
  * pasa (lo queremos anunciar). Pero si hubiera games cruzando ventanas, este filtro
- * decide que sÃ³lo se liste en la ventana en la que el match CERRÃ“.
+ * decide que sólo se liste en la ventana en la que el match CERRÓ.
  *
- * Como nuestra tabla `matches` tiene end_at â†” winner confirmado, basta con esta regla:
- *   incluir si begin_at âˆˆ ventana  Ã³  end_at âˆˆ ventana  Ã³  scheduled_at âˆˆ ventana
- * y para matches finished con end_at FUERA de la ventana, los excluimos (se habrÃ¡n listado
+ * Como nuestra tabla `matches` tiene end_at ↔ winner confirmado, basta con esta regla:
+ *   incluir si begin_at ∈ ventana  ó  end_at ∈ ventana  ó  scheduled_at ∈ ventana
+ * y para matches finished con end_at FUERA de la ventana, los excluimos (se habrán listado
  * en la ventana en que terminaron).
  */
 function filterCrossWindowSeries(matches, start, end) {
@@ -432,7 +432,7 @@ function filterCrossWindowSeries(matches, start, end) {
       const endTs = new Date(m.end_at).getTime();
       return endTs >= start.getTime() && endTs < end.getTime();
     }
-    // No finished: se queda si begin_at o scheduled_at estÃ¡n en la ventana
+    // No finished: se queda si begin_at o scheduled_at están en la ventana
     const pivot = m.begin_at || m.scheduled_at;
     if (!pivot) return false;
     const ts = new Date(pivot).getTime();
@@ -440,7 +440,7 @@ function filterCrossWindowSeries(matches, start, end) {
   });
 }
 
-// â”€â”€â”€ Stats de ventana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Stats de ventana ──────────────────────────────────────────────────────
 async function fetchWindowStats(client, start, end) {
   const { rows: [stats] } = await client.query(
     `
@@ -475,7 +475,7 @@ async function fetchTrendRuns(client, limit = 21) {
        LIMIT $1`,
       [limit],
     );
-    return rows.reverse(); // cronolÃ³gico
+    return rows.reverse(); // cronológico
   } catch {
     return [];
   }
@@ -494,7 +494,7 @@ async function fetchIngestionState(client) {
 }
 
 async function fetchPatchInfo(client) {
-  // Parche mÃ¡s reciente que aparece en games ingestadas en los Ãºltimos 14 dÃ­as
+  // Parche más reciente que aparece en games ingestadas en los últimos 14 días
   const { rows } = await client.query(`
     SELECT g.patch AS patch,
            MIN(g.begin_at) AS first_seen,
@@ -509,7 +509,7 @@ async function fetchPatchInfo(client) {
   return rows;
 }
 
-// â”€â”€â”€ CloudWatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CloudWatch ────────────────────────────────────────────────────────────
 async function getLambdaMetric(functionName, metricName, startTime, endTime) {
   const cmd = new GetMetricStatisticsCommand({
     Namespace: 'AWS/Lambda',
@@ -542,7 +542,7 @@ async function fetchCloudWatch(start, end) {
   };
 }
 
-// â”€â”€â”€ Snapshot del run â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Snapshot del run ──────────────────────────────────────────────────────
 async function recordRun(client, { start, end, slot, matches, stats, patchActive, sesMessageId, status }) {
   const summary = {
     total: 0, completo: 0, parcial: 0, solo_res: 0, programado: 0, fallo: 0, walkover: 0,
@@ -587,7 +587,7 @@ async function recordRun(client, { start, end, slot, matches, stats, patchActive
   }
 }
 
-// â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Render ─────────────────────────────────────────────────────────────────
 const CLASS_STYLE = {
   COMPLETO:       { bg: '#dcfce7', fg: '#14532d', label: 'Completo' },
   PARCIAL:        { bg: '#fef3c7', fg: '#78350f', label: 'Parcial' },
@@ -609,12 +609,12 @@ function renderMatchRow(m, opts = {}) {
 
   const acro = Array.isArray(m.opponent_acronyms) ? m.opponent_acronyms : [];
   const scores = Array.isArray(m.opponent_scores) ? m.opponent_scores : [];
-  const teamA = acro[0] || 'â€”';
-  const teamB = acro[1] || 'â€”';
+  const teamA = acro[0] || '—';
+  const teamB = acro[1] || '—';
   const scoreA = scores[0] != null ? scores[0] : '';
   const scoreB = scores[1] != null ? scores[1] : '';
   const scoreStr = m.status === 'finished'
-    ? `${scoreA}â€“${scoreB}`
+    ? `${scoreA}–${scoreB}`
     : (m.status === 'running' ? 'EN VIVO' : 'vs');
 
   const badges = [
@@ -623,7 +623,7 @@ function renderMatchRow(m, opts = {}) {
   if (phase) badges.push(`<span style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:3px;background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;">${phase}</span>`);
 
   const flagsHtml = flags.length
-    ? `<span style="margin-left:8px;color:#b45309;font-size:11px;">âš  ${flags.map(esc).join(' Â· ')}</span>`
+    ? `<span style="margin-left:8px;color:#b45309;font-size:11px;">⚠ ${flags.map(esc).join(' · ')}</span>`
     : '';
 
   return `
@@ -680,7 +680,7 @@ function buildIntlPlaceholder(leagueId) {
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="padding:8px 10px;border:1px dashed #e2e8f0;border-radius:6px;color:#94a3b8;font-size:12px;">
-              <strong style="color:#64748b;">${esc(info.name)}</strong> Â· Sin partidos en esta ventana
+              <strong style="color:#64748b;">${esc(info.name)}</strong> · Sin partidos en esta ventana
             </td>
           </tr>
         </table>
@@ -744,9 +744,9 @@ function buildFailuresBlock(failures) {
   const rows = failures.slice(0, 8).map((f) => `
     <tr>
       <td style="padding:8px 10px;border-bottom:1px solid #fee2e2;background:#fef2f2;">
-        <div style="font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">${esc(f.source || 'other')}${f.league_slug ? ' Â· ' + esc(f.league_slug) : ''}${f.match_id ? ' Â· match ' + f.match_id : ''}</div>
+        <div style="font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">${esc(f.source || 'other')}${f.league_slug ? ' · ' + esc(f.league_slug) : ''}${f.match_id ? ' · match ' + f.match_id : ''}</div>
         <div style="font-size:12px;color:#7f1d1d;margin-top:2px;">${esc(String(f.message || '').slice(0, 220))}</div>
-        <div style="font-size:10px;color:#991b1b;margin-top:2px;">${esc(fmtRelativeHours(f.occurred_at))} Â· ${esc(f.error_type || 'unknown')}</div>
+        <div style="font-size:10px;color:#991b1b;margin-top:2px;">${esc(fmtRelativeHours(f.occurred_at))} · ${esc(f.error_type || 'unknown')}</div>
       </td>
     </tr>`).join('');
   return `
@@ -778,7 +778,7 @@ function buildStatusCards(stats, cwData, windowLimit) {
             <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;vertical-align:top;width:33%;">
               <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">Games con frames</div>
               <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:3px;font-variant-numeric:tabular-nums;">${fmtNum(stats.games_with_frames)} / ${fmtNum(stats.games_total)}</div>
-              <div style="font-size:11px;color:#64748b;margin-top:3px;">telemetrÃ­a completa</div>
+              <div style="font-size:11px;color:#64748b;margin-top:3px;">telemetría completa</div>
             </td>
             <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;vertical-align:top;width:33%;">
               <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">Lambdas (err/inv)</div>
@@ -800,7 +800,7 @@ function buildStatusCards(stats, cwData, windowLimit) {
     </tr>`;
 }
 
-// â”€â”€â”€ Handler principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Handler principal ──────────────────────────────────────────────────────
 export async function handler(event) {
   console.log('Digest triggered:', JSON.stringify(event || {}));
   const now = new Date();
@@ -912,7 +912,7 @@ export async function handler(event) {
         ConfigurationSetName: CONFIG_SET,
       }));
       sesMessageId = res.MessageId;
-      console.log(`Digest sent: ${sesMessageId} Â· slot=${slot} Â· matches=${matchesInWindow.length}`);
+      console.log(`Digest sent: ${sesMessageId} · slot=${slot} · matches=${matchesInWindow.length}`);
     } catch (sesErr) {
       console.error('SES send failed:', sesErr);
       runStatus = 'error';
@@ -987,18 +987,18 @@ function buildSubject(slot, matches) {
   }
   const extra = Math.max(0, matches.length - (lead ? 1 : 0));
   const tail = extra > 0 ? ` + ${extra} ${extra === 1 ? 'partido' : 'partidos'}` : '';
-  if (lead) return `LeagueScope Â· ${slot}:00 Â· ${lead}${tail}`;
-  if (matches.length === 0) return `LeagueScope Â· ${slot}:00 Â· sin actividad`;
-  return `LeagueScope Â· ${slot}:00 Â· ${matches.length} ${matches.length === 1 ? 'partido' : 'partidos'}`;
+  if (lead) return `LeagueScope · ${slot}:00 · ${lead}${tail}`;
+  if (matches.length === 0) return `LeagueScope · ${slot}:00 · sin actividad`;
+  return `LeagueScope · ${slot}:00 · ${matches.length} ${matches.length === 1 ? 'partido' : 'partidos'}`;
 }
 
 function buildHtml({ start, end, slot, status, bandSections, patchActive, patchAge, patchRows, matchesInWindow, stats, cwData, ingestionState, failures }) {
-  const windowLabel = `${fmtMadrid(start)} â†’ ${fmtMadrid(end)}  Â·  ${fmtUtc(start)} â†’ ${fmtUtc(end)}`;
+  const windowLabel = `${fmtMadrid(start)} → ${fmtMadrid(end)}  ·  ${fmtUtc(start)} → ${fmtUtc(end)}`;
   const today = new Date().toLocaleString('es-ES', {
     timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
   const patchHeader = patchActive
-    ? `<div style="margin-top:4px;font-size:12px;color:#475569;">Parche activo <strong>${esc(patchActive)}</strong>${patchAge ? ' Â· primer games ' + esc(patchAge) : ''}</div>`
+    ? `<div style="margin-top:4px;font-size:12px;color:#475569;">Parche activo <strong>${esc(patchActive)}</strong>${patchAge ? ' · primer games ' + esc(patchAge) : ''}</div>`
     : '';
 
   const classCounts = matchesInWindow.reduce((acc, m) => {
@@ -1010,7 +1010,7 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
     .filter((k) => classCounts[k])
     .map((k) => {
       const s = CLASS_STYLE[k];
-      return `<span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:4px;background:${s.bg};color:${s.fg};font-size:11px;font-weight:600;">${s.label} Â· ${classCounts[k]}</span>`;
+      return `<span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:4px;background:${s.bg};color:${s.fg};font-size:11px;font-weight:600;">${s.label} · ${classCounts[k]}</span>`;
     }).join('');
 
   const offseason = buildOffseasonBlock(ingestionState);
@@ -1029,7 +1029,7 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:720px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
       <tr>
         <td style="background:${status.bg};border-left:3px solid ${status.accent};padding:22px 28px;">
-          <div style="font-size:11px;font-weight:600;color:${status.accent};text-transform:uppercase;letter-spacing:1.2px;">Informe ${esc(slot)}:00 Â· ${esc(status.label)}</div>
+          <div style="font-size:11px;font-weight:600;color:${status.accent};text-transform:uppercase;letter-spacing:1.2px;">Informe ${esc(slot)}:00 · ${esc(status.label)}</div>
           <h1 style="margin:6px 0 2px;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-0.2px;">LeagueScope</h1>
           <div style="font-size:13px;color:#475569;margin-top:2px;">${esc(today)}</div>
           <div style="font-size:12px;color:#64748b;margin-top:2px;font-variant-numeric:tabular-nums;">Ventana: ${esc(windowLabel)}</div>
@@ -1051,10 +1051,10 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td style="font-size:11px;color:#94a3b8;">
-                LeagueScope Â· Informe automÃ¡tico Â· <a href="https://leaguescope.com" style="color:#64748b;text-decoration:none;">leaguescope.com</a>
+                LeagueScope · Informe automático · <a href="https://leaguescope.com" style="color:#64748b;text-decoration:none;">leaguescope.com</a>
               </td>
               <td style="font-size:11px;text-align:right;">
-                <a href="${consoleUrl}" style="color:#2563eb;text-decoration:none;font-weight:500;">Abrir CloudWatch â†’</a>
+                <a href="${consoleUrl}" style="color:#2563eb;text-decoration:none;font-weight:500;">Abrir CloudWatch →</a>
               </td>
             </tr>
           </table>
@@ -1067,11 +1067,11 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
 
 function buildText({ slot, status, matchesInWindow, stats, cwData, failures }) {
   const lines = [];
-  lines.push(`LeagueScope Â· Informe ${slot}:00 Â· ${status.label}`);
+  lines.push(`LeagueScope · Informe ${slot}:00 · ${status.label}`);
   lines.push(`Partidos en ventana: ${matchesInWindow.length}`);
   lines.push(`Matches ingestados: ${fmtNum(stats.new_ingestions)}`);
   lines.push(`Games con frames: ${fmtNum(stats.games_with_frames)} / ${fmtNum(stats.games_total)}`);
-  lines.push(`Lambdas: auto-ingest ${cwData.autoIngest.errors}/${cwData.autoIngest.invocations} err/inv Â· poller ${cwData.matchPoller.errors}/${cwData.matchPoller.invocations} err/inv`);
+  lines.push(`Lambdas: auto-ingest ${cwData.autoIngest.errors}/${cwData.autoIngest.invocations} err/inv · poller ${cwData.matchPoller.errors}/${cwData.matchPoller.invocations} err/inv`);
   if (failures.length) lines.push(`Fallos pendientes: ${failures.length}`);
   return lines.join('\n');
 }
