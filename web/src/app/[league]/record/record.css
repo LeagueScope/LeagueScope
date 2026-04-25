@@ -832,12 +832,12 @@
 .p21-sb-kda { font-weight: 800; font-size: 15px; font-family: 'JetBrains Mono', monospace; }
 .p21-sb-kda-sep { color: var(--text-muted, #64748b); margin: 0 1px; }
 .p21-kda-good { color: var(--clr-win, #4ade80); }
-.p21-kda-ok { color: var(--accent, #f0a500); }
+.p21-kda-ok { color: #f0a500; }  /* fijo: NO usar var(--accent) para no cambiar con liga */
 .p21-kda-bad { color: var(--clr-loss, #f87171); }
 .p21-sb-kda-ratio { font-size: 10px; color: var(--text-muted, #64748b); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 
 .p21-sb-mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
-.p21-sb-gold { color: var(--accent, #f0a500); }
+.p21-sb-gold { color: #f0a500; }  /* fijo: NO usar var(--accent) para no cambiar con liga */
 
 /* Items */
 .p21-sb-items { display: flex; gap: 2px; justify-content: center; }
@@ -2286,8 +2286,20 @@
    =========================================================================== */
 
 .tr-detail-wrap {
-  --accent: var(--tr-accent, #f0a500);
-  --p22-accent: var(--tr-accent, #f0a500);
+  /* Antes: --accent: var(--tr-accent). Ahora desactivado para que el league
+     color NO contamine los valores de stat (KDA, gold, %) dentro del detail.
+     El detail siempre debe usar amber #f0a500 para mantener jerarquia semantica. */
+  --accent: #f0a500;
+  --p22-accent: #f0a500;
+}
+
+/* Refuerzo: dentro de .p22-match-detail TODOS los vars locales de accent
+   quedan inmutables a amber, sin importar la liga */
+.tr-detail-wrap .p22-match-detail,
+.p22-match-detail {
+  --accent: #f0a500 !important;
+  --p22-accent: #f0a500 !important;
+  --tr-accent: #f0a500 !important;
 }
 
 .tr-detail-wrap .p22-match-detail {
@@ -2408,8 +2420,8 @@
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
 }
-.tr-detail-wrap .p21-sb-gold { color: var(--tr-accent); }
-.tr-detail-wrap .p21-kda-ok  { color: var(--tr-accent); }
+/* Removed: .tr-detail-wrap overrides para .p21-sb-gold y .p21-kda-ok
+   Estos colores son SEMÁNTICOS (oro neutro), no deben cambiar con la liga. */
 .tr-detail-wrap .p21-sb-kda-ratio { font-family: 'JetBrains Mono', monospace; }
 
 .tr-detail-wrap .p21-obj-bar {

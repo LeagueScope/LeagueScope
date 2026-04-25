@@ -25,7 +25,8 @@ export const LEAGUE_COLORS: Record<string, { accent: string; glow: string }> = {
 
   // ── International ───────────────────────────────────────────────────────────
   worlds:           { accent: '#ffd700', glow: 'rgba(255, 215, 0, 0.35)' },
-  msi:              { accent: '#c0c0c0', glow: 'rgba(192, 192, 192, 0.35)' },
+  msi:              { accent: '#fd181f', glow: 'rgba(253, 24, 31, 0.35)' },
+  firststand:       { accent: '#ff5602', glow: 'rgba(255, 86, 2, 0.35)' },
 
   // ── LTA ─────────────────────────────────────────────────────────────────────
   ltanorth:         { accent: '#007bff', glow: 'rgba(0, 123, 255, 0.35)' },
@@ -77,5 +78,8 @@ const FALLBACK = { accent: '#01e4be', glow: 'rgba(1, 228, 190, 0.35)' };
  * Falls back to LEC colors if the league is unknown.
  */
 export function getLeagueColors(league?: string): { accent: string; glow: string } {
-  return LEAGUE_COLORS[league?.toLowerCase() ?? ''] ?? FALLBACK;
+  // Normalizar: minusculas y sin espacios/guiones (para matchear "FIRST STAND",
+  // "First Stand", "firststand" con la misma key)
+  const key = (league ?? '').toLowerCase().replace(/[\s\-]+/g, '');
+  return LEAGUE_COLORS[key] ?? FALLBACK;
 }

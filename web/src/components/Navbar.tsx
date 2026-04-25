@@ -572,6 +572,27 @@ export default function Navbar() {
 
   const onNav = useCallback((path: string) => { setMobileOpen(false); router.push(path); }, [router]);
 
+  // Bloquear scroll del body cuando el drawer mobile está abierto
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  // Cerrar drawer al pulsar Escape
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  // Cerrar drawer cuando cambia la ruta (Link directo sin pasar por onNav)
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
   // ── Current league from URL ──────────────────────────────────────────────
   const pathParts = pathname.split('/').filter(Boolean);
   const currentLeague =
@@ -612,7 +633,7 @@ export default function Navbar() {
   const isExactActive = (href: string) => pathname === href;
 
   return (
-    <nav className="arcane-navbar" aria-label="Navegación principal">
+    <nav className={`arcane-navbar ${mobileOpen ? 'is-drawer-open' : ''}`} aria-label="Navegación principal">
       {/* Brand / Logo */}
       <Link href="/home" className="arcane-brand" aria-label="LeagueScope — Inicio">
         <Image

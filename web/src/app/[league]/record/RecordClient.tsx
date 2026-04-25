@@ -967,7 +967,7 @@ function TabGraphs({ game }: { game: any }): React.ReactElement {
   const { teams = [], players = [] } = game;
   const { blueTeam, redTeam, bluePlayers, redPlayers } = getTeamPlayers(players, teams);
   const allPlayers = [...bluePlayers, ...redPlayers];
-  const [openSections, setOpenSections] = useState(new Set(['dmg_dealt_to_champions']));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());  // Todos los gráficos cerrados por defecto
   const toggleSection = (id: string): void => { setOpenSections(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); };
 
   const getDmg = (p: any, category: string): { phys: number; magic: number; tru: number; total: number } => {

@@ -890,142 +890,284 @@
 .hamburger-line.open:nth-child(2) { opacity: 0; }
 .hamburger-line.open:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* 600px and below: Hamburger menu layout */
+/* ============================================================================
+   MOBILE NAVBAR (<= 600px) — Unified drawer
+   Hamburger toggles a fullscreen drawer with all items as a single
+   accordion menu. Tiers / Extintas appear as big links inline with HOME,
+   OVERVIEW, etc., and expand inline on tap.
+   ============================================================================ */
 @media (max-width: 600px) {
+  /* Compact navbar header (drawer NOT open) */
   .arcane-navbar {
-    padding: 0 8px;
-    height: 44px;
-    gap: 4px;
+    height: 52px;
+    padding: 0 12px;
+    flex-wrap: nowrap;
     margin-bottom: 0;
-    flex-wrap: wrap;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--surface-card, #141820);
+    border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
   }
+  .arcane-brand { margin-right: auto; gap: 8px; }
+  .arcane-brand-text { display: inline; font-size: 14px; }
 
-  .arcane-brand {
-    margin-right: 8px;
-    gap: 2px;
-  }
-
-  .arcane-brand-text {
-    display: none;
-  }
-
-  /* Show hamburger */
+  /* Hamburger always visible on mobile */
   .arcane-hamburger {
     display: flex;
-    order: 2;
-  }
-
-  /* Hide center and right by default, show when mobile-open */
-  .arcane-nav-center {
-    display: none;
-    order: 3;
-    width: 100%;
-    flex-basis: 100%;
-    padding: 12px 0;
-    border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
-  }
-
-  .arcane-nav-center.mobile-open {
-    display: block;
-  }
-
-  .arcane-nav-center.mobile-open .arcane-menu {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .arcane-nav-center.mobile-open .arcane-item {
-    padding: 10px 12px;
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
-  }
-
-  .arcane-nav-center.mobile-open .gs-wrap {
-    margin: 12px 0 0;
-    width: 100%;
-  }
-
-  .arcane-nav-center.mobile-open .gs-input-wrap {
-    width: 100%;
-    height: 34px;
-  }
-
-  .arcane-nav-center.mobile-open .gs-input-wrap:focus-within,
-  .arcane-nav-center.mobile-open .gs-input-wrap.gs-input-active {
-    width: 100%;
-  }
-
-  .arcane-nav-center.mobile-open .gs-input {
-    font-size: 12px;
-  }
-
-  .arcane-nav-right {
-    display: none;
-    order: 4;
-    width: 100%;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 0 12px;
-    border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
-  }
-
-  .arcane-nav-right.mobile-open {
-    display: flex;
-  }
-
-  .arcane-nav-right.mobile-open .arcane-dropdown-container {
-    display: block;
-  }
-
-  .arcane-nav-right.mobile-open .arcane-intl-btn {
-    display: flex;
-  }
-
-  .arcane-nav-right.mobile-open .arcane-nav-separator {
-    display: none;
-  }
-
-  .arcane-nav-right.mobile-open .arcane-user-profile {
-    width: 26px;
-    height: 26px;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
     margin-left: auto;
   }
 
-  /* Dropdown panels go full-width in mobile */
-  .arcane-nav-right.mobile-open .arcane-dropdown {
-    position: static;
+  /* nav-center + nav-right hidden by default (drawer closed) */
+  .arcane-nav-center,
+  .arcane-nav-right {
+    display: none !important;
+  }
+
+  /* ─── DRAWER OPEN ─── */
+  .arcane-navbar.is-drawer-open {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--surface-base, #0e1117);
+  }
+
+  /* Header sticky (brand + hamburger occupy the top row) */
+  .arcane-navbar.is-drawer-open > .arcane-brand {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: 52px;
     width: 100%;
-    min-width: 100%;
-    box-shadow: none;
-    border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
-    margin-top: 4px;
+    padding: 0 60px 0 12px; /* leave room for hamburger absolute */
+    margin: 0;
+    background: var(--surface-card, #141820);
+    border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+  }
+  .arcane-navbar.is-drawer-open > .arcane-hamburger {
+    position: fixed;
+    top: 6px;
+    right: 12px;
+    z-index: 1101;
+    background: var(--surface-card, #141820);
+  }
+
+  /* nav-center: search arriba (column-reverse) + links primarios debajo */
+  .arcane-navbar.is-drawer-open > .arcane-nav-center.mobile-open {
+    display: flex !important;
+    flex-direction: column-reverse;
+    width: 100%;
+    padding: 24px 20px 0;
+    gap: 0;
+    border: none;
+    overflow: visible;
+  }
+  .arcane-navbar.is-drawer-open .gs-wrap {
+    width: 100%;
+    margin: 0 0 24px;
+    flex-shrink: 0;
+  }
+  .arcane-navbar.is-drawer-open .gs-input-wrap,
+  .arcane-navbar.is-drawer-open .gs-input-wrap:focus-within,
+  .arcane-navbar.is-drawer-open .gs-input-wrap.gs-input-active {
+    width: 100% !important;
+    height: 44px;
+    border-radius: 4px;
+  }
+  .arcane-navbar.is-drawer-open .gs-input { font-size: 14px; }
+
+  /* Primary links (HOME, OVERVIEW, …) big & bold */
+  .arcane-navbar.is-drawer-open .arcane-menu {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    height: auto;
+  }
+  .arcane-navbar.is-drawer-open .arcane-item {
+    padding: 16px 0;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-primary, #f8fafc);
+    border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.06));
+    background: transparent;
+    text-align: left;
+    height: auto;
+  }
+  .arcane-navbar.is-drawer-open .arcane-item.active,
+  .arcane-navbar.is-drawer-open .arcane-item:hover {
+    color: var(--accent, #f0a500);
+  }
+  .arcane-navbar.is-drawer-open .arcane-item.active::after {
+    display: none; /* sin underline en drawer */
+  }
+
+  /* nav-right: misma columna, mismo padding lateral, sin separación visual
+     respecto a nav-center (los Tier appear como big-links unificados) */
+  .arcane-navbar.is-drawer-open > .arcane-nav-right.mobile-open {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    padding: 0 20px 32px;
+    gap: 0;
+    margin: 0;
+    border: none;
+    overflow: visible;
+    flex-wrap: nowrap;
+  }
+
+  /* Cada Tier/Extintas = un big-link igual que HOME, OVERVIEW, etc. */
+  .arcane-navbar.is-drawer-open .arcane-dropdown-container {
+    display: block !important;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    position: relative;
+    border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.06));
+  }
+  .arcane-navbar.is-drawer-open .arcane-dropdown-container.standalone .dropdown-trigger {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    padding: 16px 0 !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    color: var(--text-primary, #f8fafc) !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    justify-content: space-between !important;
+    text-align: left;
+    overflow: visible !important;
+  }
+  .arcane-navbar.is-drawer-open .arcane-dropdown-container.standalone:hover .dropdown-trigger {
+    background: transparent !important;
+    color: var(--accent, #f0a500) !important;
+    border: none !important;
+  }
+  .arcane-navbar.is-drawer-open .dropdown-trigger.group-active {
+    color: var(--accent, #f0a500) !important;
+  }
+  .arcane-navbar.is-drawer-open .trigger-league-logo {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+  }
+  .arcane-navbar.is-drawer-open .dropdown-trigger > svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Dropdown panels = inline accordion (no float, no shadow) */
+  .arcane-navbar.is-drawer-open .arcane-dropdown {
+    position: static !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    background: rgba(255,255,255,0.02) !important;
+    border: none !important;
+    border-radius: 2px !important;
+    margin: 0 0 12px !important;
+    padding: 8px 12px !important;
+    transform: none !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    max-height: none !important;
+    animation: none !important;
+    overflow: visible !important;
+  }
+  .arcane-navbar.is-drawer-open .arcane-dropdown-item {
+    padding: 10px 0 !important;
+    font-size: 13px !important;
+    border-radius: 0;
+  }
+  .arcane-navbar.is-drawer-open .arcane-dropdown-item:hover,
+  .arcane-navbar.is-drawer-open .arcane-dropdown-item.kb-focus {
+    background: transparent !important;
+    color: var(--accent, #f0a500) !important;
+  }
+  .arcane-navbar.is-drawer-open .arcane-dropdown-region {
+    font-size: 10px;
+  }
+
+  /* Extintas mega-dropdown — inline accordion compacto */
+  .arcane-navbar.is-drawer-open .extintas-mega-dropdown {
+    right: auto !important;
+  }
+  .arcane-navbar.is-drawer-open .extintas-section-header {
+    padding: 10px 0 !important;
+    font-size: 12px;
+    border-radius: 0;
+  }
+  .arcane-navbar.is-drawer-open .extintas-section-header:hover {
+    background: transparent !important;
+    color: var(--accent, #f0a500);
+  }
+  .arcane-navbar.is-drawer-open .extintas-section-items {
+    padding: 0 0 4px 12px;
+  }
+  .arcane-navbar.is-drawer-open .extintas-league-item {
+    padding: 8px 0 !important;
+  }
+
+  /* Separadores ocultos en drawer (los borde-bottom de cada item ya separan) */
+  .arcane-navbar.is-drawer-open .arcane-nav-separator {
+    display: none;
+  }
+
+  /* About icon centrado al final */
+  .arcane-navbar.is-drawer-open .arcane-user-profile {
+    margin: 24px auto 0;
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Footer del drawer: créditos PandaScore */
+  .arcane-navbar.is-drawer-open > .arcane-nav-right.mobile-open::after {
+    content: 'Data powered by PandaScore';
+    display: block;
+    margin-top: 24px;
+    padding: 8px 0;
+    font-size: 11px;
+    color: var(--text-muted, #7a8ba0);
+    text-align: center;
+    letter-spacing: 0.3px;
   }
 }
 
-/* Extra small phones (under 480px) */
+/* Pantallas muy estrechas */
 @media (max-width: 480px) {
-  .arcane-navbar {
-    padding: 0 4px;
-    height: 40px;
+  .arcane-navbar.is-drawer-open .arcane-item,
+  .arcane-navbar.is-drawer-open .arcane-dropdown-container.standalone .dropdown-trigger {
+    font-size: 16px !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
   }
-
-  .arcane-brand {
-    margin-right: 4px;
-  }
-
-  .arcane-nav-center.mobile-open .arcane-item {
-    padding: 8px 8px;
+  .arcane-navbar.is-drawer-open .extintas-section-header {
     font-size: 11px;
-  }
-
-  .arcane-nav-center.mobile-open .gs-input {
-    font-size: 11px;
-  }
-
-  .arcane-user-profile {
-    width: 24px;
-    height: 24px;
   }
 }
