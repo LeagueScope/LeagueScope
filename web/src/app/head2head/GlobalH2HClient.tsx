@@ -265,6 +265,281 @@ const cleanLeagueSlug = (slug: string): string =>
       .replace(/-china$/i, '')
       .replace(/-/g, '');
 
+/* ── PlayerRadarChart — comparativa visual SVG (2-4 jugadores + media rol/region)
+   Hover sobre un eje muestra los valores exactos de todos los jugadores y baseline.
+   Solo se renderiza en desktop (oculto en mobile/tablet via CSS).
+   ────────────────────────────────────────────────────────────── */
+
+interface RadarAxis { key: string; label: string; max: number | null; suffix?: string; decimals?: number }
+// 12 ejes para JUGADORES (360/12 = 30° entre cada uno).
+// Cubre combate, economia, vision y control. Todos "higher is better".
+const PLAYER_RADAR_AXES: RadarAxis[] = [
+  { key: 'kda',                  label: 'KDA',     max: null, decimals: 2 },
+  { key: 'kill_participation',   label: 'KP',      max: 100,  suffix: '%', decimals: 0 },
+  { key: 'avg_gpm',              label: 'GPM',     max: null, decimals: 0 },
+  { key: 'avg_dpm',              label: 'DMG/m',   max: null, decimals: 0 },
+  { key: 'avg_cspm',             label: 'CS/m',    max: null, decimals: 1 },
+  { key: 'avg_damage_share',     label: 'DMG%',    max: 100,  suffix: '%', decimals: 1 },
+  { key: 'avg_gold_share',       label: 'GOLD%',   max: 100,  suffix: '%', decimals: 1 },
+  { key: 'fb_rate',              label: 'FB%',     max: 100,  suffix: '%', decimals: 0 },
+  { key: 'avg_wpm',              label: 'WARDS/m', max: null, decimals: 1 },
+  { key: 'avg_wkpm',             label: 'WK/m',    max: null, decimals: 1 },
+  { key: 'avg_cwpm',             label: 'CW/m',    max: null, decimals: 1 },
+  { key: 'avg_cc_per_min',       label: 'CC/m',    max: null, decimals: 1 },
+];
+
+// 12 ejes para EQUIPOS — combate (WR/KDA/FB) + economia (GPM/CS/m/DMG/m) +
+// objetivos (FT/FDrag/Torres/Dragons/Barons/Heralds).
+const TEAM_RADAR_AXES: RadarAxis[] = [
+  { key: 'win_rate',             label: 'WR%',     max: 100,  suffix: '%', decimals: 1 },
+  { key: 'kda',                  label: 'KDA',     max: null, decimals: 2 },
+  { key: 'avg_gpm',              label: 'GPM',     max: null, decimals: 0 },
+  { key: 'avg_cspm',             label: 'CS/m',    max: null, decimals: 1 },
+  { key: 'avg_dpm',              label: 'DMG/m',   max: null, decimals: 0 },
+  { key: 'first_blood_rate',     label: 'FB%',     max: 100,  suffix: '%', decimals: 0 },
+  { key: 'first_tower_rate',     label: 'FT%',     max: 100,  suffix: '%', decimals: 0 },
+  { key: 'first_dragon_rate',    label: 'FD%',     max: 100,  suffix: '%', decimals: 0 },
+  { key: 'avg_towers',           label: 'TORRES',  max: null, decimals: 1 },
+  { key: 'avg_dragons',          label: 'DRAGONS', max: null, decimals: 1 },
+  { key: 'avg_barons',           label: 'BARONS',  max: null, decimals: 1 },
+  { key: 'avg_heralds',          label: 'HERALDS', max: null, decimals: 1 },
+];
+
+// Paleta de colores por jugador (max 4)
+const PLAYER_COLORS = [
+  { stroke: '#f0a500', fill: 'rgba(240, 165, 0, 0.18)', swatch: 'a' },  // gold
+  { stroke: '#60a5fa', fill: 'rgba(96, 165, 250, 0.18)', swatch: 'b' }, // blue
+  { stroke: '#f87171', fill: 'rgba(248, 113, 113, 0.18)', swatch: 'c' }, // red
+  { stroke: '#4ade80', fill: 'rgba(74, 222, 128, 0.18)', swatch: 'd' }, // green
+];
+
+function fmtRadarVal(v: number, decimals = 1, suffix = ''): string {
+  if (!isFinite(v)) return '—';
+  const fixed = decimals > 0 ? v.toFixed(decimals) : Math.round(v).toString();
+  return `${fixed}${suffix}`;
+}
+
+function RadarChart({
+  axes, players, baseline, regionLabel, sectionTitle,
+}: {
+  axes: RadarAxis[];
+  players: { data: Record<string, unknown>; name: string; subtitle?: string }[];
+  baseline: Record<string, unknown> | null;
+  regionLabel: string;
+  sectionTitle: string;
+}) {
+  const [hoveredAxis, setHoveredAxis] = useState<number | null>(null);
+
+  // Baseline solo se muestra con 3+ entidades — con 2 estorba mas que ayuda
+  const showBaseline = !!baseline && players.length >= 3;
+
+  const SIZE = 440;
+  const C = SIZE / 2;
+  const R = 150;
+
+  // Por cada eje calcular max entre todos los datasets
+  const axisData = axes.map((ax, i) => {
+    const angle = (i / axes.length) * Math.PI * 2 - Math.PI / 2;
+    const playerVals = players.map(p => Number(p.data[ax.key]) || 0);
+    const valBase = showBaseline && baseline ? (Number(baseline[ax.key]) || 0) : 0;
+    const allVals = showBaseline ? [...playerVals, valBase] : playerVals;
+    const max = ax.max ?? Math.max(...allVals, 1) * 1.15;
+    return { ...ax, angle, playerVals, valBase, max };
+  });
+
+  const point = (val: number, max: number, angle: number): [number, number] => {
+    const r = (val / max) * R;
+    return [C + r * Math.cos(angle), C + r * Math.sin(angle)];
+  };
+
+  // Path por jugador
+  const playerPaths = players.map((_, pIdx) => {
+    return axisData.map((a, i) => {
+      const [x, y] = point(a.playerVals[pIdx], a.max, a.angle);
+      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    }).join(' ') + ' Z';
+  });
+
+  const pathBase = showBaseline ? axisData.map((a, i) => {
+    const [x, y] = point(a.valBase, a.max, a.angle);
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ') + ' Z' : '';
+
+  // Hit areas — wedges semitransparentes para capturar hover por eje
+  const N = axes.length;
+  const halfStep = Math.PI / N;
+  const hitR = R + 40;  // extender hit area mas alla del label
+  const buildWedge = (angle: number) => {
+    const a1 = angle - halfStep;
+    const a2 = angle + halfStep;
+    const x1 = C + hitR * Math.cos(a1);
+    const y1 = C + hitR * Math.sin(a1);
+    const x2 = C + hitR * Math.cos(a2);
+    const y2 = C + hitR * Math.sin(a2);
+    return `M ${C} ${C} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${hitR} ${hitR} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+  };
+
+  // Tooltip position
+  // Posicion del tooltip: en el lado DIAMETRALMENTE OPUESTO al eje hovered, asi
+  // el cursor (que esta sobre el wedge del axis hovered) nunca tapa el tooltip.
+  let tipX = 0, tipY = 0, tipAlign: 'start' | 'middle' | 'end' = 'middle';
+  if (hoveredAxis !== null) {
+    const a = axisData[hoveredAxis];
+    const oppAngle = a.angle + Math.PI;
+    tipX = C + (R + 38) * Math.cos(oppAngle);
+    tipY = C + (R + 38) * Math.sin(oppAngle);
+    const cosOpp = Math.cos(oppAngle);
+    if (cosOpp < -0.3) tipAlign = 'end';
+    else if (cosOpp > 0.3) tipAlign = 'start';
+    else tipAlign = 'middle';
+  }
+
+  return (
+    <div className="gh2h-radar-section">
+      <div className="gh2h-radar-title">{sectionTitle}</div>
+      <div className="gh2h-radar-wrap">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="gh2h-radar-svg" aria-label="Radar comparativo">
+          {/* Grid concéntrico */}
+          {[25, 50, 75, 100].map(p => (
+            <circle key={p} cx={C} cy={C} r={(R * p) / 100}
+              fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+          ))}
+          {/* Ejes radiales + labels */}
+          {axisData.map((a, i) => {
+            const [x, y] = [C + R * Math.cos(a.angle), C + R * Math.sin(a.angle)];
+            const [lx, ly] = [C + (R + 22) * Math.cos(a.angle), C + (R + 22) * Math.sin(a.angle)];
+            const isHovered = hoveredAxis === i;
+            return (
+              <g key={i}>
+                <line x1={C} y1={C} x2={x} y2={y}
+                  stroke={isHovered ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)'}
+                  strokeWidth={isHovered ? 1.5 : 1} />
+                <text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
+                  className={`gh2h-radar-axis-label ${isHovered ? 'is-hovered' : ''}`}>{a.label}</text>
+              </g>
+            );
+          })}
+          {/* Baseline (dashed) — solo con 3+ jugadores */}
+          {showBaseline && (
+            <path d={pathBase} fill="rgba(255,255,255,0.04)"
+              stroke="rgba(220,220,220,0.5)" strokeWidth="1.5" strokeDasharray="5 4"
+              pointerEvents="none" />
+          )}
+          {/* Polígonos de jugadores */}
+          {players.map((_, pIdx) => {
+            const c = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+            return (
+              <path key={`poly-${pIdx}`} d={playerPaths[pIdx]}
+                fill={c.fill} stroke={c.stroke} strokeWidth="2" pointerEvents="none" />
+            );
+          })}
+          {/* Vertices — resaltar los del eje hovered */}
+          {axisData.map((a, i) => (
+            <g key={`pts-${i}`} pointerEvents="none">
+              {showBaseline && hoveredAxis === i && (
+                <circle {...(() => {
+                  const [bx, by] = point(a.valBase, a.max, a.angle);
+                  return { cx: bx, cy: by };
+                })()} r="4" fill="rgba(220,220,220,0.7)" stroke="#0e1117" strokeWidth="1.5" />
+              )}
+              {players.map((_, pIdx) => {
+                const c = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+                const [px, py] = point(a.playerVals[pIdx], a.max, a.angle);
+                const r = hoveredAxis === i ? 5 : 3;
+                return <circle key={`v-${pIdx}-${i}`} cx={px} cy={py} r={r}
+                  fill={c.stroke} stroke={hoveredAxis === i ? '#0e1117' : 'transparent'} strokeWidth="1.5" />;
+              })}
+            </g>
+          ))}
+          {/* Hit areas (wedges) — capturan hover por sector */}
+          {axisData.map((a, i) => (
+            <path key={`hit-${i}`} d={buildWedge(a.angle)}
+              fill="transparent"
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoveredAxis(i)}
+              onMouseLeave={() => setHoveredAxis(null)} />
+          ))}
+          {/* Tooltip */}
+          {hoveredAxis !== null && (() => {
+            const a = axisData[hoveredAxis];
+            // Detectar duplicados de nombre — si los hay, mostrar tambien el subtitle
+            // para evitar ambigedad en el tooltip ("MKOI" vs "MKOI" → "MKOI 2026" vs "MKOI 2025")
+            const nameCounts = players.reduce<Record<string, number>>((acc, p) => {
+              acc[p.name] = (acc[p.name] || 0) + 1;
+              return acc;
+            }, {});
+            const lines = [
+              ...players.map((p, pIdx) => {
+                const isDup = (nameCounts[p.name] || 0) > 1;
+                const label = isDup && p.subtitle ? `${p.name} · ${p.subtitle}` : p.name;
+                return {
+                  color: PLAYER_COLORS[pIdx % PLAYER_COLORS.length].stroke,
+                  label,
+                  value: fmtRadarVal(a.playerVals[pIdx], a.decimals ?? 1, a.suffix ?? ''),
+                };
+              }),
+              ...(showBaseline && baseline ? [{
+                color: 'rgba(220,220,220,0.7)',
+                label: `Media ${String(baseline.role || '').toUpperCase()}`,
+                value: fmtRadarVal(a.valBase, a.decimals ?? 1, a.suffix ?? ''),
+              }] : []),
+            ];
+            const lineH = 16;
+            const padX = 10, padY = 10;
+            // Si hay duplicados, ampliamos el tooltip para que quepa "Nombre · Split YYYY"
+            const hasDup = Object.values(nameCounts).some(c => c > 1);
+            const tipW = hasDup ? 260 : 180;
+            const tipH = padY * 2 + 18 + lines.length * lineH;
+            // Position tooltip near hovered axis label
+            let bx = tipX;
+            let by = tipY;
+            if (tipAlign === 'middle') bx -= tipW / 2;
+            else if (tipAlign === 'end') bx -= tipW;
+            // Clamp dentro del viewBox
+            bx = Math.max(4, Math.min(bx, SIZE - tipW - 4));
+            by = Math.max(4, Math.min(by - tipH / 2, SIZE - tipH - 4));
+            return (
+              <g pointerEvents="none">
+                <rect x={bx} y={by} width={tipW} height={tipH} rx="4"
+                  fill="#141820" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+                <text x={bx + padX} y={by + padY + 12} className="gh2h-radar-tip-title">{a.label}</text>
+                {lines.map((ln, li) => (
+                  <g key={li}>
+                    <circle cx={bx + padX + 4} cy={by + padY + 22 + li * lineH + 4} r="3.5" fill={ln.color} />
+                    <text x={bx + padX + 14} y={by + padY + 26 + li * lineH + 4} className="gh2h-radar-tip-name">{ln.label}</text>
+                    <text x={bx + tipW - padX} y={by + padY + 26 + li * lineH + 4} textAnchor="end" className="gh2h-radar-tip-val">{ln.value}</text>
+                  </g>
+                ))}
+              </g>
+            );
+          })()}
+        </svg>
+        <div className="gh2h-radar-legend">
+          {players.map((p, pIdx) => {
+            const c = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+            return (
+              <span key={pIdx} className="gh2h-radar-legend-item">
+                <span className="gh2h-radar-swatch" style={{ background: c.fill, borderColor: c.stroke }} />
+                <span className="gh2h-radar-name-block">
+                  <span className="gh2h-radar-name">{p.name}</span>
+                  {p.subtitle && <span className="gh2h-radar-subtitle">{p.subtitle}</span>}
+                </span>
+              </span>
+            );
+          })}
+          {showBaseline && baseline && (
+            <span className="gh2h-radar-legend-item">
+              <span className="gh2h-radar-swatch gh2h-radar-swatch-base" />
+              <span className="gh2h-radar-name">Media {String(baseline.role || '').toUpperCase()} en {regionLabel}</span>
+            </span>
+          )}
+          <span className="gh2h-radar-hint">Pasa el cursor por encima de un eje para ver los valores exactos</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── VsComparison sub-component (2-way comparison) ────────────── */
 function VsComparison<T extends Record<string, unknown>>({ selected, statGroups, getLogoFn, getNameFn }: {
   selected: T[];
@@ -483,6 +758,24 @@ export default function GlobalH2HClient() {
   const [selected, setSelected] = useState<SelectedEntity[]>([]);
   const [comparisonData, setComparisonData] = useState<Record<string, unknown>[]>([]);
   const [loadingComparison, setLoadingComparison] = useState(false);
+
+  // Role baseline para el radar chart (solo en mode='players' con 2 jugadores)
+  const [roleBaseline, setRoleBaseline] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    if (mode !== 'players' || comparisonData.length !== 2) {
+      setRoleBaseline(null);
+      return;
+    }
+    const p1 = comparisonData[0];
+    const role = (p1.role as string) || '';
+    const serieId = p1.serie_id as number | undefined;
+    if (!role || !serieId) { setRoleBaseline(null); return; }
+    let cancelled = false;
+    clientFetch<Record<string, unknown> | null>(`/api/v1/pg/compare/player-role-baseline?role=${encodeURIComponent(role)}&serieId=${serieId}`)
+      .then(d => { if (!cancelled) setRoleBaseline(d); })
+      .catch(() => { if (!cancelled) setRoleBaseline(null); });
+    return () => { cancelled = true; };
+  }, [mode, comparisonData]);
 
   const [highlightIdx, setHighlightIdx] = useState(-1);
 
@@ -870,6 +1163,21 @@ export default function GlobalH2HClient() {
                 Exportar PDF
               </button>
             </div>
+
+            {/* Radar chart comparativo — 2-4 entidades en desktop, hover interactivo */}
+            {comparisonData.length >= 2 && comparisonData.length <= 4 && (
+              <RadarChart
+                axes={effectiveMode === 'teams' ? TEAM_RADAR_AXES : PLAYER_RADAR_AXES}
+                players={comparisonData.map(p => ({
+                  data: p,
+                  name: String(effectiveMode === 'teams' ? (p.abbr || p.name) : p.name) || '?',
+                  subtitle: p.serie_label ? String(p.serie_label) : undefined,
+                }))}
+                baseline={effectiveMode === 'players' ? roleBaseline : null}
+                regionLabel={String(comparisonData[0].region || '').toUpperCase() || 'la liga'}
+                sectionTitle={effectiveMode === 'teams' ? 'PERFIL DE EQUIPO' : 'PERFIL POR ROL'}
+              />
+            )}
 
             <CmpTable
               selected={comparisonData}

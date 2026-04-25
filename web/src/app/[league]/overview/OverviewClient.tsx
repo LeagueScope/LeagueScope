@@ -163,6 +163,310 @@ function AnimNum({ value, duration = 2000, decimals = 0, suffix = '' }: {
   return <>{decimals > 0 ? display.toFixed(decimals) : Math.round(display)}{suffix}</>;
 }
 
+// ── Search input usado dentro de cards expandidas ────────────────────────────
+function CardSearchInput({ value, onChange, placeholder = 'Filtrar...' }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <input
+      className="p50-card-search"
+      type="search"
+      placeholder={placeholder}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onKeyDown={e => e.stopPropagation()}
+      aria-label={placeholder}
+    />
+  );
+}
+
+// ── PlayerRankingCard (Peak Kills / Avg Farming / KDA Ratio) ─────────────────
+// Card con podium top 3 + lista desde el rank 4. Buscador filtra todo cuando
+// se expande (al filtrar se oculta el podium para evitar inconsistencias).
+type PlayerRankingCardProps = {
+  cardId: string;
+  title: string;
+  data: PlayerStat[];
+  league: string;
+  rowIcon: 'champion' | 'team';
+  valueOf: (p: PlayerStat) => number;
+  decimals?: number;
+  suffix?: string;
+};
+
+function PlayerRankingCard({
+  cardId, title, data, league, rowIcon, valueOf, decimals = 0, suffix = '',
+}: PlayerRankingCardProps) {
+  const [query, setQuery] = useState('');
+  return (
+    <ExpandableCard cardId={cardId}>
+      {(isExpanded) => {
+        const q = query.trim().toLowerCase();
+        const filtered = isExpanded && q
+          ? (data || []).filter(p => (p.name || '').toLowerCase().includes(q))
+          : (data || []);
+        const showPodium = !q;
+        const restList = q
+          ? filtered
+          : filtered.slice(3, isExpanded ? undefined : 10);
+        return (
+          <>
+            <div className="p50-card-head">
+              <span className="p50-card-title">{title}</span>
+              {isExpanded && (
+                <CardSearchInput value={query} onChange={setQuery} placeholder="Filtrar jugador..." />
+              )}
+            </div>
+            <div className="p50-card-body">
+              {showPodium && (
+                <div className="p50-podium">
+                  {[1, 0, 2].map(idx => {
+                    const p = (data || [])[idx];
+                    if (!p) return <div key={idx} className="p50-podium-slot" />;
+                    const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
+                    const secondaryImg = rowIcon === 'champion'
+                      ? (p.top_champion_image || '')
+                      : teamImg(p.team_logo_url, p.team_abbr, league);
+                    return (
+                      <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
+                        <div className="p50-podium-bg-layer">
+                          <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
+                          {secondaryImg && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${secondaryImg})` }} />}
+                        </div>
+                        <span className="p50-podium-name">{p.name}</span>
+                        <span className="p50-podium-val"><AnimNum value={valueOf(p)} decimals={decimals} suffix={suffix} /></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {restList.map((p, i) => {
+                const rank = q ? i + 1 : i + 4;
+                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
+                const iconImg = rowIcon === 'champion'
+                  ? (p.top_champion_image || '')
+                  : teamImg(p.team_logo_url, p.team_abbr, league);
+                const iconAlt = rowIcon === 'champion' ? (p.top_champion || '') : (p.team_abbr || '');
+                return (
+                  <div key={`${p.name}-${i}`} className="p50-table-row">
+                    <div className="p50-row-info">
+                      <span className="p50-row-rank">{rank}</span>
+                      <div className="p50-avatar-rect"><Image src={playerImg} alt={p.name} width={72} height={90} /></div>
+                      <span className="p50-row-name">{p.name}</span>
+                    </div>
+                    <div className="p50-row-stat-group">
+                      {iconImg && (
+                        <div className={rowIcon === 'champion' ? 'p50-row-champ-icon' : 'p50-row-team-icon'}>
+                          <Image src={iconImg} alt={iconAlt} width={40} height={40} />
+                        </div>
+                      )}
+                      <span className="p50-row-val accent"><AnimNum value={valueOf(p)} decimals={decimals} suffix={suffix} /></span>
+                    </div>
+                  </div>
+                );
+              })}
+              {isExpanded && q && filtered.length === 0 && (
+                <div className="p50-no-results">Ningun jugador coincide con &quot;{query}&quot;</div>
+              )}
+            </div>
+          </>
+        );
+      }}
+    </ExpandableCard>
+  );
+}
+
+// ── PlayerPerformanceCard (KP / Damage Share / Gold Share, 3 secciones) ──────
+function PlayerPerformanceCard({
+  topKillParticipation, topDamageShare, topGoldShare, league,
+}: {
+  topKillParticipation: PlayerStat[];
+  topDamageShare: PlayerStat[];
+  topGoldShare: PlayerStat[];
+  league: string;
+}) {
+  const [query, setQuery] = useState('');
+  return (
+    <ExpandableCard cardId="player-perf" expandedClassName="p50-expanded-split3">
+      {(isExpanded) => {
+        const q = query.trim().toLowerCase();
+        const filterFn = (p: PlayerStat) => !q || (p.name || '').toLowerCase().includes(q);
+        const kp = isExpanded ? (topKillParticipation || []).filter(filterFn) : (topKillParticipation || []);
+        const ds = isExpanded ? (topDamageShare || []).filter(filterFn) : (topDamageShare || []);
+        const gs = isExpanded ? (topGoldShare || []).filter(filterFn) : (topGoldShare || []);
+        const kpDisplay = kp.slice(0, isExpanded ? undefined : 3);
+        const dsDisplay = ds.slice(0, isExpanded ? undefined : 3);
+        const gsDisplay = gs.slice(0, isExpanded ? undefined : 3);
+        const renderRow = (p: PlayerStat, i: number, value: number) => (
+          <div key={`${p.name}-${i}`} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
+            <div className="p50-row-info">
+              <span className="p50-row-rank">{i + 1}</span>
+              <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
+              <span className="p50-row-name">{p.name}</span>
+            </div>
+            <span className="p50-row-val accent"><AnimNum value={value} decimals={1} suffix="%" /></span>
+          </div>
+        );
+        return (
+          <>
+            <div className="p50-card-head">
+              <span className="p50-card-title">PLAYER PERFORMANCE</span>
+              {isExpanded && (
+                <CardSearchInput value={query} onChange={setQuery} placeholder="Filtrar jugador..." />
+              )}
+            </div>
+            <div className="p50-card-body">
+              <div className="p50-sections">
+                <div className="p50-section">
+                  <div className="p50-section-title">KILL PARTICIPATION</div>
+                  {kpDisplay.map((p, i) => renderRow(p, i, p.kill_participation || 0))}
+                  {isExpanded && q && kpDisplay.length === 0 && (
+                    <div className="p50-no-results">Sin coincidencias</div>
+                  )}
+                </div>
+                <div className="p50-section">
+                  <div className="p50-section-title">DAMAGE SHARE %</div>
+                  {dsDisplay.map((p, i) => renderRow(p, i, p.avg_damage_share || 0))}
+                  {isExpanded && q && dsDisplay.length === 0 && (
+                    <div className="p50-no-results">Sin coincidencias</div>
+                  )}
+                </div>
+                <div className="p50-section">
+                  <div className="p50-section-title">GOLD SHARE %</div>
+                  {gsDisplay.map((p, i) => renderRow(p, i, p.avg_gold_share || 0))}
+                  {isExpanded && q && gsDisplay.length === 0 && (
+                    <div className="p50-no-results">Sin coincidencias</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      }}
+    </ExpandableCard>
+  );
+}
+
+// ── Champions Played card (con buscador en estado expandido) ─────────────────
+function ChampionsPlayedCard({ topChamps }: { topChamps: TopChamp[] }) {
+  const [query, setQuery] = useState('');
+  return (
+    <ExpandableCard cardId="champions" className="p50-card-stretch">
+      {(isExpanded) => {
+        const q = query.trim().toLowerCase();
+        const filtered = isExpanded && q
+          ? (topChamps || []).filter(c => (c.name || '').toLowerCase().includes(q))
+          : (topChamps || []);
+        const displayed = filtered.slice(0, isExpanded ? undefined : 10);
+        return (
+          <>
+            <div className="p50-card-head">
+              <span className="p50-card-title">CHAMPIONS PLAYED</span>
+              {isExpanded && (
+                <CardSearchInput value={query} onChange={setQuery} placeholder="Filtrar campeón..." />
+              )}
+            </div>
+            <div className="p50-card-body p50-body-spread">
+              <div className="p50-table-hdr">
+                <span>CHAMPION</span>
+                <span className="p50-hdr-stat">P</span>
+                <span className="p50-hdr-stat">B</span>
+                <span className="p50-hdr-stat">WR</span>
+              </div>
+              {displayed.map((c, i) => (
+                <div key={`${c.name}-${i}`} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
+                  <div className="p50-row-info">
+                    <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                    <span className="p50-row-name">{c.name}</span>
+                  </div>
+                  <div className="p50-row-stats">
+                    <span className="p50-row-val"><AnimNum value={c.games || c.picks || 0} /></span>
+                    <span className="p50-row-val"><AnimNum value={c.bans ?? 0} /></span>
+                    <span className={`p50-row-val p50-wr ${getWinRateClass(c.win_rate)}`}><AnimNum value={c.win_rate || 0} decimals={1} suffix="%" /></span>
+                  </div>
+                </div>
+              ))}
+              {isExpanded && q && displayed.length === 0 && (
+                <div className="p50-no-results">Ningun campeon coincide con &quot;{query}&quot;</div>
+              )}
+            </div>
+          </>
+        );
+      }}
+    </ExpandableCard>
+  );
+}
+
+// ── Ban Rate card (con buscador en estado expandido) ─────────────────────────
+function BanRateCard({ blueBans, redBans }: { blueBans: BanChamp[]; redBans: BanChamp[] }) {
+  const [query, setQuery] = useState('');
+  return (
+    <ExpandableCard cardId="bans" expandedClassName="p50-expanded-split2">
+      {(isExpanded) => {
+        const q = query.trim().toLowerCase();
+        const filterFn = (c: BanChamp) => !q || (c.name || '').toLowerCase().includes(q);
+        const blueFiltered = isExpanded ? (blueBans || []).filter(filterFn) : (blueBans || []);
+        const redFiltered = isExpanded ? (redBans || []).filter(filterFn) : (redBans || []);
+        const blueDisplayed = blueFiltered.slice(0, isExpanded ? undefined : 5);
+        const redDisplayed = redFiltered.slice(0, isExpanded ? undefined : 5);
+        return (
+          <>
+            <div className="p50-card-head">
+              <span className="p50-card-title">BAN RATE</span>
+              {isExpanded && (
+                <CardSearchInput value={query} onChange={setQuery} placeholder="Filtrar campeon..." />
+              )}
+            </div>
+            <div className="p50-card-body">
+              <div className="p50-sections">
+                <div className="p50-section">
+                  <div className="p50-section-title blue">BLUE SIDE BANS</div>
+                  {blueDisplayed.map((c, i) => (
+                    <div key={c.name} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
+                      <div className="p50-row-info">
+                        <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                        <span className="p50-row-name">{c.name}</span>
+                      </div>
+                      <span className="p50-bans-cell">
+                        <span className="p50-bans-main blue"><AnimNum value={c.bans_blue || 0} /></span>
+                        <span className="p50-bans-ghost red">(<AnimNum value={c.bans_red || 0} />)</span>
+                      </span>
+                      <span className="p50-row-val accent"><AnimNum value={c.ban_rate_blue || 0} decimals={1} suffix="%" /></span>
+                    </div>
+                  ))}
+                  {isExpanded && q && blueDisplayed.length === 0 && (
+                    <div className="p50-no-results">Sin coincidencias</div>
+                  )}
+                </div>
+                <div className="p50-section">
+                  <div className="p50-section-title red">RED SIDE BANS</div>
+                  {redDisplayed.map((c, i) => (
+                    <div key={c.name} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
+                      <div className="p50-row-info">
+                        <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                        <span className="p50-row-name">{c.name}</span>
+                      </div>
+                      <span className="p50-bans-cell">
+                        <span className="p50-bans-main red"><AnimNum value={c.bans_red || 0} /></span>
+                        <span className="p50-bans-ghost blue">(<AnimNum value={c.bans_blue || 0} />)</span>
+                      </span>
+                      <span className="p50-row-val accent"><AnimNum value={c.ban_rate_red || 0} decimals={1} suffix="%" /></span>
+                    </div>
+                  ))}
+                  {isExpanded && q && redDisplayed.length === 0 && (
+                    <div className="p50-no-results">Sin coincidencias</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      }}
+    </ExpandableCard>
+  );
+}
+
 export default function OverviewClient({ league, accent, initialData }: Props) {
   const filters = useFilters();
   const [data, setData] = useState<OverviewData | null>(initialData);
@@ -281,34 +585,7 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
       <ExpandableGrid>
 
       {/* ═══════ CHAMPIONS PLAYED ═══════ */}
-      <ExpandableCard cardId="champions" className="p50-card-stretch">
-        {(isExpanded) => (<>
-          <div className="p50-card-head">
-            <span className="p50-card-title">CHAMPIONS PLAYED</span>
-          </div>
-          <div className="p50-card-body p50-body-spread">
-            <div className="p50-table-hdr">
-              <span>CHAMPION</span>
-              <span className="p50-hdr-stat">P</span>
-              <span className="p50-hdr-stat">B</span>
-              <span className="p50-hdr-stat">WR</span>
-            </div>
-            {(topChamps || []).slice(0, isExpanded ? undefined : 10).map((c, i) => (
-              <div key={i} className={`p50-table-row ${getMedal(i)}`}>
-                <div className="p50-row-info">
-                  <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                  <span className="p50-row-name">{c.name}</span>
-                </div>
-                <div className="p50-row-stats">
-                  <span className="p50-row-val"><AnimNum value={c.games || c.picks || 0} /></span>
-                  <span className="p50-row-val"><AnimNum value={c.bans ?? 0} /></span>
-                  <span className={`p50-row-val p50-wr ${getWinRateClass(c.win_rate)}`}><AnimNum value={c.win_rate || 0} decimals={1} suffix="%" /></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>)}
-      </ExpandableCard>
+      <ChampionsPlayedCard topChamps={topChamps || []} />
 
       {/* ═══════ SIDE COMPARISON ═══════ */}
       <div className="p50-card p50-card-stretch">
@@ -333,222 +610,47 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
       </div>
 
       {/* ═══════ BAN RATE ═══════ */}
-      <ExpandableCard cardId="bans" expandedClassName="p50-expanded-split2">
-        {(isExpanded) => (<>
-          <div className="p50-card-head">
-            <span className="p50-card-title">BAN RATE</span>
-          </div>
-          <div className="p50-card-body">
-            <div className="p50-sections">
-              <div className="p50-section">
-                <div className="p50-section-title blue">BLUE SIDE BANS</div>
-                {(blueBans || []).slice(0, isExpanded ? undefined : 5).map((c, i) => (
-                  <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
-                    <div className="p50-row-info">
-                      <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                      <span className="p50-row-name">{c.name}</span>
-                    </div>
-                    <span className="p50-bans-cell">
-                      <span className="p50-bans-main blue"><AnimNum value={c.bans_blue || 0} /></span>
-                      <span className="p50-bans-ghost red">(<AnimNum value={c.bans_red || 0} />)</span>
-                    </span>
-                    <span className="p50-row-val accent"><AnimNum value={c.ban_rate_blue || 0} decimals={1} suffix="%" /></span>
-                  </div>
-                ))}
-              </div>
-              <div className="p50-section">
-                <div className="p50-section-title red">RED SIDE BANS</div>
-                {(redBans || []).slice(0, isExpanded ? undefined : 5).map((c, i) => (
-                  <div key={c.name} className={`p50-table-row ${getMedal(i)}`}>
-                    <div className="p50-row-info">
-                      <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
-                      <span className="p50-row-name">{c.name}</span>
-                    </div>
-                    <span className="p50-bans-cell">
-                      <span className="p50-bans-main red"><AnimNum value={c.bans_red || 0} /></span>
-                      <span className="p50-bans-ghost blue">(<AnimNum value={c.bans_blue || 0} />)</span>
-                    </span>
-                    <span className="p50-row-val accent"><AnimNum value={c.ban_rate_red || 0} decimals={1} suffix="%" /></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>)}
-      </ExpandableCard>
+      <BanRateCard blueBans={blueBans || []} redBans={redBans || []} />
 
       {/* ═══════ PEAK KILLS ═══════ */}
-      <ExpandableCard cardId="peak-kills">
-        {(isExpanded) => (<>
-          <div className="p50-card-head"><span className="p50-card-title">PEAK KILLS</span></div>
-          <div className="p50-card-body">
-            {/* Podium top 3 — order: 2nd | 1st | 3rd */}
-            <div className="p50-podium">
-              {[1, 0, 2].map(idx => {
-                const p = (topKills || [])[idx];
-                if (!p) return <div key={idx} className="p50-podium-slot" />;
-                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-                const champImg2 = p.top_champion_image || '';
-                return (
-                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                    {/* Background: player 55% + champion 45% */}
-                    <div className="p50-podium-bg-layer">
-                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                      {champImg2 && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${champImg2})` }} />}
-                    </div>
-                    <span className="p50-podium-name">{p.name}</span>
-                    <span className="p50-podium-val"><AnimNum value={p.max_kills || 0} /></span>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Rest of the list */}
-            {(topKills || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
-              <div key={`${p.name}-${i}`} className="p50-table-row">
-                <div className="p50-row-info">
-                  <span className="p50-row-rank">{i + 4}</span>
-                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                  <span className="p50-row-name">{p.name}</span>
-                </div>
-                <div className="p50-row-stat-group">
-                  {p.top_champion_image && <div className="p50-row-champ-icon"><Image src={p.top_champion_image} alt={p.top_champion || ''} width={40} height={40} /></div>}
-                  <span className="p50-row-val accent"><AnimNum value={p.max_kills || 0} /></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>)}
-      </ExpandableCard>
+      <PlayerRankingCard
+        cardId="peak-kills"
+        title="PEAK KILLS"
+        data={topKills || []}
+        league={league}
+        rowIcon="champion"
+        valueOf={(p) => p.max_kills || 0}
+      />
 
       {/* ═══════ AVG FARMING ═══════ */}
-      <ExpandableCard cardId="farming">
-        {(isExpanded) => (<>
-          <div className="p50-card-head"><span className="p50-card-title">AVG FARMING</span></div>
-          <div className="p50-card-body">
-            <div className="p50-podium">
-              {[1, 0, 2].map(idx => {
-                const p = (topCS || [])[idx];
-                if (!p) return <div key={idx} className="p50-podium-slot" />;
-                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-                const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
-                return (
-                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                    <div className="p50-podium-bg-layer">
-                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                      <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
-                    </div>
-                    <span className="p50-podium-name">{p.name}</span>
-                    <span className="p50-podium-val"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
-                  </div>
-                );
-              })}
-            </div>
-            {(topCS || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
-              <div key={`${p.name}-${i}`} className="p50-table-row">
-                <div className="p50-row-info">
-                  <span className="p50-row-rank">{i + 4}</span>
-                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                  <span className="p50-row-name">{p.name}</span>
-                </div>
-                <div className="p50-row-stat-group">
-                  <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
-                  <span className="p50-row-val accent"><AnimNum value={p.avg_cspm || 0} decimals={1} /></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>)}
-      </ExpandableCard>
+      <PlayerRankingCard
+        cardId="farming"
+        title="AVG FARMING"
+        data={topCS || []}
+        league={league}
+        rowIcon="team"
+        valueOf={(p) => p.avg_cspm || 0}
+        decimals={1}
+      />
 
       {/* ═══════ KDA RATIO ═══════ */}
-      <ExpandableCard cardId="kda">
-        {(isExpanded) => (<>
-          <div className="p50-card-head"><span className="p50-card-title">KDA RATIO</span></div>
-          <div className="p50-card-body">
-            <div className="p50-podium">
-              {[1, 0, 2].map(idx => {
-                const p = (topKDAPlayers || [])[idx];
-                if (!p) return <div key={idx} className="p50-podium-slot" />;
-                const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
-                const teamLogo = teamImg(p.team_logo_url, p.team_abbr, league);
-                return (
-                  <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
-                    <div className="p50-podium-bg-layer">
-                      <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                      <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${teamLogo})` }} />
-                    </div>
-                    <span className="p50-podium-name">{p.name}</span>
-                    <span className="p50-podium-val"><AnimNum value={p.kda || 0} decimals={1} /></span>
-                  </div>
-                );
-              })}
-            </div>
-            {(topKDAPlayers || []).slice(3, isExpanded ? undefined : 10).map((p, i) => (
-              <div key={`${p.name}-${i}`} className="p50-table-row">
-                <div className="p50-row-info">
-                  <span className="p50-row-rank">{i + 4}</span>
-                  <div className="p50-avatar-rect"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={72} height={90} /></div>
-                  <span className="p50-row-name">{p.name}</span>
-                </div>
-                <div className="p50-row-stat-group">
-                  <div className="p50-row-team-icon"><Image src={teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.team_abbr || ''} width={40} height={40} /></div>
-                  <span className="p50-row-val accent"><AnimNum value={p.kda || 0} decimals={1} /></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>)}
-      </ExpandableCard>
+      <PlayerRankingCard
+        cardId="kda"
+        title="KDA RATIO"
+        data={topKDAPlayers || []}
+        league={league}
+        rowIcon="team"
+        valueOf={(p) => p.kda || 0}
+        decimals={1}
+      />
 
       {/* ═══════ PLAYER PERFORMANCE ═══════ */}
-      <ExpandableCard cardId="player-perf" expandedClassName="p50-expanded-split3">
-        {(isExpanded) => (<>
-          <div className="p50-card-head"><span className="p50-card-title">PLAYER PERFORMANCE</span></div>
-          <div className="p50-card-body">
-            <div className="p50-sections">
-              <div className="p50-section">
-                <div className="p50-section-title">KILL PARTICIPATION</div>
-                {(topKillParticipation || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
-                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                    <div className="p50-row-info">
-                      <span className="p50-row-rank">{i + 1}</span>
-                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                      <span className="p50-row-name">{p.name}</span>
-                    </div>
-                    <span className="p50-row-val accent"><AnimNum value={p.kill_participation || 0} decimals={1} suffix="%" /></span>
-                  </div>
-                ))}
-              </div>
-              <div className="p50-section">
-                <div className="p50-section-title">DAMAGE SHARE %</div>
-                {(topDamageShare || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
-                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                    <div className="p50-row-info">
-                      <span className="p50-row-rank">{i + 1}</span>
-                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                      <span className="p50-row-name">{p.name}</span>
-                    </div>
-                    <span className="p50-row-val accent"><AnimNum value={p.avg_damage_share || 0} decimals={1} suffix="%" /></span>
-                  </div>
-                ))}
-              </div>
-              <div className="p50-section">
-                <div className="p50-section-title">GOLD SHARE %</div>
-                {(topGoldShare || []).slice(0, isExpanded ? undefined : 3).map((p, i) => (
-                  <div key={p.name} className={`p50-table-row ${getMedal(i)}`}>
-                    <div className="p50-row-info">
-                      <span className="p50-row-rank">{i + 1}</span>
-                      <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
-                      <span className="p50-row-name">{p.name}</span>
-                    </div>
-                    <span className="p50-row-val accent"><AnimNum value={p.avg_gold_share || 0} decimals={1} suffix="%" /></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>)}
-      </ExpandableCard>
+      <PlayerPerformanceCard
+        topKillParticipation={topKillParticipation || []}
+        topDamageShare={topDamageShare || []}
+        topGoldShare={topGoldShare || []}
+        league={league}
+      />
 
       {/* ═══════ ELEMENTAL DRAGONS ═══════ */}
       <div className="p50-card">

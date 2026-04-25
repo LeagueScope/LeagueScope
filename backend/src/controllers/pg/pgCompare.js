@@ -870,3 +870,80 @@ export async function getTeamSeriesPg(req, res) {
     label: serieLabel(r.league_name || r.league_slug, r.full_name, r.season, r.year),
   })));
 }
+
+/**
+ * GET /pg/compare/player-role-baseline?role=X&serieId=Y
+ * Returns averaged stats across all players of a given role in a given serie.
+ * Used as the "league average" baseline for the radar chart in H2H comparisons.
+ */
+export async function getPlayerRoleBaselinePg(req, res) {
+  const role = (req.query.role || '').toString().toLowerCase();
+  const serieId = parseInt(req.query.serieId, 10);
+  if (!role || isNaN(serieId)) return res.json(null);
+
+  // Validar role: top, jungle, mid, adc, support
+  const validRoles = ['top', 'jungle', 'mid', 'adc', 'support'];
+  if (!validRoles.includes(role)) return res.json(null);
+
+  const { rows } = await pgDb.query(`
+    WITH per_player AS (
+      SELECT
+        gp.player_id,
+        ROUND((SUM(gp.kills) + SUM(gp.assists))::numeric / NULLIF(SUM(gp.deaths), 0), 2) AS kda,
+        ROUND(AVG(CASE WHEN gt_kills.team_kills > 0 THEN (gp.kills + gp.assists)::numeric / gt_kills.team_kills * 100 ELSE 0 END), 0) AS kp,
+        ROUND(AVG(gp.gold_earned / NULLIF(g.length / 60.0, 0))::numeric, 0) AS gpm,
+        ROUND(AVG(gp.total_damage_dealt_to_champions / NULLIF(g.length / 60.0, 0))::numeric, 0) AS dpm,
+        ROUND(AVG(COALESCE(gp.creep_score, gp.minions_killed) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS cspm,
+        ROUND(AVG(gp.total_damage_dealt_to_champions_percentage)::numeric, 1) AS dmg_share,
+        ROUND(AVG(gp.gold_percentage)::numeric, 1) AS gold_share,
+        ROUND(AVG(CASE WHEN gp.first_blood_kill OR gp.first_blood_assist THEN 1 ELSE 0 END)::numeric * 100, 0) AS fb_rate,
+        ROUND(AVG(gp.wards_placed / NULLIF(g.length / 60.0, 0))::numeric, 1) AS wpm,
+        ROUND(AVG(gp.kills_wards / NULLIF(g.length / 60.0, 0))::numeric, 1) AS wkpm,
+        ROUND(AVG(COALESCE(gp.vision_wards_bought_in_game, 0) / NULLIF(g.length / 60.0, 0))::numeric, 1) AS cwpm,
+        ROUND(AVG(gp.total_time_crowd_control_dealt / NULLIF(g.length / 60.0, 0))::numeric, 1) AS cc_per_min
+      FROM game_players gp
+      JOIN games g ON g.id = gp.game_id
+      LEFT JOIN LATERAL (
+        SELECT SUM(gp2.kills) AS team_kills FROM game_players gp2 WHERE gp2.game_id = gp.game_id AND gp2.team_id = gp.team_id
+      ) gt_kills ON true
+      WHERE g.serie_id = $1 AND gp.role = $2 AND g.finished = true AND g.length > 60
+      GROUP BY gp.player_id
+      HAVING COUNT(*) >= 3
+    )
+    SELECT
+      ROUND(AVG(kda)::numeric, 2) AS kda,
+      ROUND(AVG(kp)::numeric, 0) AS kill_participation,
+      ROUND(AVG(gpm)::numeric, 0) AS avg_gpm,
+      ROUND(AVG(dpm)::numeric, 0) AS avg_dpm,
+      ROUND(AVG(cspm)::numeric, 1) AS avg_cspm,
+      ROUND(AVG(dmg_share)::numeric, 1) AS avg_damage_share,
+      ROUND(AVG(gold_share)::numeric, 1) AS avg_gold_share,
+      ROUND(AVG(fb_rate)::numeric, 0) AS fb_rate,
+      ROUND(AVG(wpm)::numeric, 1) AS avg_wpm,
+      ROUND(AVG(wkpm)::numeric, 1) AS avg_wkpm,
+      ROUND(AVG(cwpm)::numeric, 1) AS avg_cwpm,
+      ROUND(AVG(cc_per_min)::numeric, 1) AS avg_cc_per_min,
+      COUNT(*) AS sample_size
+    FROM per_player
+  `, [serieId, role]);
+
+  if (!rows.length || !rows[0].kda) return res.json(null);
+  const r = rows[0];
+  res.json({
+    role,
+    serie_id: serieId,
+    sample_size: parseInt(r.sample_size, 10) || 0,
+    kda: r.kda != null ? Number(r.kda) : null,
+    kill_participation: r.kill_participation != null ? Number(r.kill_participation) : null,
+    avg_gpm: r.avg_gpm != null ? Number(r.avg_gpm) : null,
+    avg_dpm: r.avg_dpm != null ? Number(r.avg_dpm) : null,
+    avg_cspm: r.avg_cspm != null ? Number(r.avg_cspm) : null,
+    avg_damage_share: r.avg_damage_share != null ? Number(r.avg_damage_share) : null,
+    avg_gold_share: r.avg_gold_share != null ? Number(r.avg_gold_share) : null,
+    fb_rate: r.fb_rate != null ? Number(r.fb_rate) : null,
+    avg_wpm: r.avg_wpm != null ? Number(r.avg_wpm) : null,
+    avg_wkpm: r.avg_wkpm != null ? Number(r.avg_wkpm) : null,
+    avg_cwpm: r.avg_cwpm != null ? Number(r.avg_cwpm) : null,
+    avg_cc_per_min: r.avg_cc_per_min != null ? Number(r.avg_cc_per_min) : null,
+  });
+}

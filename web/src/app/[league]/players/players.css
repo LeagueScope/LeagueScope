@@ -733,8 +733,23 @@
   .p24-ed-subhero { font-size: 9px; letter-spacing: 2px; }
   .p24-ed-logo { width: 40px !important; height: 40px !important; }
   .p24-ed-teamcount { font-size: 20px; }
-  .p24-ed-filters { padding: 10px 14px; gap: 8px; }
+  /* Filtros de rol — todos los botones en una sola fila en mobile */
+  .p24-ed-filters { padding: 10px 12px; gap: 6px; flex-wrap: nowrap; }
   .p24-ed-filters-lbl { display: none; }
+  .p24-ed-filters-group {
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .p24-filter-btn {
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 0.6px;
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+  }
 
   /* Grid compacto: pos(40) | role(28) | player(flex) | W(40) | L(40) | WR(56) | Streak(48) */
   .p24-ed-thead {
@@ -756,4 +771,24 @@
   .p24-ed-role-icon { width: 18px !important; height: 18px !important; }
   .p24-ed-win, .p24-ed-loss, .p24-ed-wr, .p24-ed-streak { font-size: 11px; }
   .p24-ed-sub { display: none; } /* hide parenthetical game count on very small screens */
+
+  /* ───── Pro Vision: encoger sticky cols (pos+role+player) para que se vean
+     mas stat columns. Por defecto suman 314px (56+68+190); en 360px de
+     viewport solo cabe una columna de stats. */
+  .p24-th-pos,
+  .p24-td-pos { width: 30px !important; min-width: 30px !important; }
+  .p24-th-role,
+  .p24-td-role { width: 36px !important; min-width: 36px !important; }
+  .p24-th-player,
+  .p24-td-player { width: 90px !important; min-width: 90px !important; padding-left: 4px !important; padding-right: 4px !important; }
+  .p24-sticky-role { left: 30px !important; }
+  .p24-sticky-player { left: 66px !important; }
+  .p24-sticky-player::after { right: -10px; width: 10px; }
+  .p24-pro-player-cell { gap: 5px; }
+  .p24-pro-logo { width: 18px !important; height: 18px !important; }
+  .p24-pro-role-icon { width: 14px !important; height: 14px !important; }
+  .p24-pro-name { font-size: 11px; letter-spacing: 0.2px; }
+  .p24-td-stat { padding: 10px 3px; font-size: 10px; }
+  .p24-pro-table { font-size: 10px; }
+  .p24-th-stat { font-size: 9px; padding: 8px 4px; letter-spacing: 0.5px; }
 }

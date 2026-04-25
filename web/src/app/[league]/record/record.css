@@ -2236,6 +2236,17 @@
 /* ---------------------------------------------------------------------------
    8. RESPONSIVE — breakpoints alineados con /standings, /players, /champions
    --------------------------------------------------------------------------- */
+/* ============================================================================
+   RESPONSIVE — /record
+   - <=1024px : tablet grande (iPad Air 820, iPad Pro portrait) — layout intacto
+                pero recalculo del width del match-label / BO badge para que no
+                se solapen con el score column al reducirse a 160px.
+   - <=900px  : iPad mini 768 — esconde match-label (GRAND FINAL etc), BO chip
+                anclado a esquina superior derecha como pill compacto.
+   - <=600px  : mobile (iPhone) — restructura row a flex compacto, expansion
+                del detail bloqueada con mensaje "no disponible".
+   ============================================================================ */
+
 @media (max-width: 1024px) {
   .tr-page { padding: 40px 24px 60px; }
   .tr-ed-hdr { padding: 32px 28px 24px; flex-direction: column; align-items: flex-start; gap: 18px; }
@@ -2254,28 +2265,241 @@
   .tr-score-num { font-size: 30px; }
   .tr-team-logo-wrap { width: 48px; height: 48px; }
   .tr-team-logo { width: 40px !important; height: 40px !important; }
+  /* Score column es ahora 160px, asi que el "free area" de cada lado se
+     calcula con 80px, no 100px */
+  .tr-match-label { width: calc(50% - 80px); }
+  .tr-bo-badge { width: calc(50% - 80px); }
 }
 
+/* ───── iPad mini portrait / tablet pequeno (≤900px) ───── */
+@media (max-width: 900px) {
+  /* Esconder match label (GRAND FINAL, WEEK 1, QUARTERFINALS...) — ahorra espacio */
+  .tr-match-label { display: none; }
+
+  /* Esconder chevron — el card sigue siendo clicable, pero el chevron choca
+     con el BO chip en esquina superior derecha y queda feo */
+  .tr-expand-icon { display: none; }
+
+  /* Reset de la columna del chevron en el grid (era 32-36px) */
+  .tr-match-content { grid-template-columns: 1fr 44px 140px 44px 1fr; }
+
+  /* BO badge centrado vertical en su carril a la derecha */
+  .tr-bo-badge {
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: auto;
+    padding: 3px 8px;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    color: var(--text-secondary, #94a3b8);
+    opacity: 0.85;
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .tr-page { padding: 32px 18px 50px; }
+  /* Padding-right reservado para el BO chip en su carril */
+  .tr-match-card { padding: 14px 56px 14px 18px; }
+  .tr-team-name { font-size: 15px; }
+  .tr-team-left { padding-right: 10px; }
+  .tr-team-right { padding-left: 10px; }
+  .tr-team-logo { width: 36px !important; height: 36px !important; }
+  .tr-team-logo-wrap { width: 44px; height: 44px; }
+  .tr-score-num { font-size: 26px; min-width: 32px; }
+  .tr-score-sep { font-size: 22px; }
+}
+
+/* ───── 768 (iPad mini portrait estricto) ───── */
 @media (max-width: 768px) {
   .tr-page { padding: 24px 16px; font-size: 13px; }
-  .tr-ed-hdr { padding: 22px 18px 18px; }
-  .tr-ed-hdr-right { gap: 12px; flex-wrap: wrap; }
+  .tr-ed-hdr { padding: 22px 20px 18px; gap: 16px; }
+  .tr-ed-hdr-left { gap: 14px; }
+  .tr-ed-hdr-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    flex-wrap: nowrap;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .tr-ed-teamstat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+  }
   .tr-ed-hero { font-size: 30px; letter-spacing: -1px; }
-  .tr-ed-subhero { font-size: 9px; letter-spacing: 1.5px; }
-  .tr-ed-teamcount { font-size: 24px; }
+  .tr-ed-subhero { font-size: 9px; letter-spacing: 2px; }
+  .tr-ed-teamcount { font-size: 26px; letter-spacing: -0.5px; line-height: 1; }
   .tr-ed-teamlbl { font-size: 9px; letter-spacing: 1.5px; }
   .tr-ed-watermark { display: none; }
   .tr-ed-live-strip { padding: 12px 16px 14px; }
   .tr-ed-live-team { font-size: 13px; min-width: 36px; }
   .tr-ed-live-logo { width: 24px !important; height: 24px !important; }
   .tr-ed-live-score-num { font-size: 18px; }
-  .tr-match-card { padding: 12px 14px; }
-  .tr-match-content { grid-template-columns: 1fr 40px 120px 40px 1fr; }
+  .tr-match-card { padding: 14px 56px 14px 16px; }
+  .tr-match-content { grid-template-columns: 1fr 38px 120px 38px 1fr; gap: 6px; }
   .tr-expand-icon { display: none; }
-  .tr-match-label { font-size: 8px; letter-spacing: 1px; padding: 2px 6px; }
-  .tr-bo-badge { top: 6px; right: 8px; padding: 2px 6px; font-size: 8px; }
-  .tr-team-name { font-size: 12px; letter-spacing: 0.4px; }
-  .tr-score-num { font-size: 22px; }
+  .tr-team-name { font-size: 13px; letter-spacing: 0.4px; }
+  .tr-team-logo { width: 30px !important; height: 30px !important; }
+  .tr-team-logo-wrap { width: 38px; height: 38px; }
+  .tr-score-num { font-size: 22px; min-width: 28px; }
+  .tr-score-sep { font-size: 18px; }
+}
+
+/* ───── Mobile (<=600px) — flex row + bloqueo expansion ───── */
+@media (max-width: 600px) {
+  .tr-page { padding: 18px 10px 40px; }
+
+  /* Header card — layout centrado y compacto */
+  .tr-ed-card { padding: 0; }
+  .tr-ed-watermark { display: none; }  /* sin watermark en mobile */
+  .tr-ed-hdr {
+    padding: 20px 16px 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .tr-ed-hdr-left {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .tr-ed-hdr-text { align-items: center; text-align: center; }
+  .tr-ed-hero {
+    font-size: 26px;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .tr-ed-subhero {
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+  .tr-ed-logo { width: 44px !important; height: 44px !important; flex-shrink: 0; }
+
+  /* Stats row — 3 cols equal width, centrados y bien espaciados */
+  .tr-ed-hdr-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    flex-wrap: nowrap;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .tr-ed-teamstat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+  }
+  .tr-ed-teamcount {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .tr-ed-teamlbl { font-size: 8px; letter-spacing: 1.5px; }
+
+  /* Live strip */
+  .tr-ed-live-strip { padding: 10px 12px 12px; }
+  .tr-ed-live-row { padding: 6px 8px; gap: 8px; }
+  .tr-ed-live-team { font-size: 12px; min-width: 32px; }
+  .tr-ed-live-logo { width: 20px !important; height: 20px !important; }
+  .tr-ed-live-score-num { font-size: 16px; }
+  .tr-ed-live-bo { font-size: 9px; }
+
+  /* Match cards — flex row compacto y SIMETRICO.
+     Padding lateral simetrico: ambos lados 44px (derecho aloja el BO chip
+     en absolute, izquierdo se queda vacio para mantener la simetria del row). */
+  .tr-match-card { padding: 12px 44px; }
+  .tr-match-content {
+    display: flex !important;
+    align-items: center;
+    gap: 0;
+    grid-template-columns: none !important;
+  }
+  /* Nombres con ANCHO FIJO en ambos lados — sin esto las longitudes de
+     "GX" vs "SHFT" descentran el row */
+  .tr-team-name {
+    font-size: 11px;
+    flex: 0 0 48px;
+    width: 48px;
+    padding: 0 6px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tr-team-left { text-align: right; }
+  .tr-team-right { text-align: left; }
+  /* Logos con flex-basis fijo */
+  .tr-team-logo-wrap {
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px;
+  }
+  .tr-team-logo { width: 24px !important; height: 24px !important; }
+  /* Score central con flex 1 — absorbe el espacio sobrante de forma simetrica */
+  .tr-score-center { flex: 1 1 auto; min-width: 0; }
+  .tr-score { gap: 8px; justify-content: center; }
+  .tr-score-num {
+    font-size: 18px;
+    flex: 0 0 18px;
+    width: 18px;
+    text-align: center;
+  }
+  .tr-score-sep { font-size: 14px; flex: 0 0 auto; }
+  /* BO chip — vertical-centered en el carril reservado de la derecha */
+  .tr-bo-badge {
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    padding: 2px 5px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    width: auto;
+    min-width: 26px;
+    text-align: center;
+  }
+  /* Section/date headers compactos */
+  .tr-section-header { padding: 10px 8px; }
+  .tr-section-title { font-size: 10px; letter-spacing: 1.5px; }
+  .tr-section-count { font-size: 10px; }
+  .tr-date-header { margin: 18px 0 10px; }
+  .tr-date-label { font-size: 12px; letter-spacing: 1.5px; }
+
+  /* Expansion del detail bloqueada — mostrar mensaje en su lugar */
+  .tr-detail-wrap .p22-match-detail,
+  .tr-detail-wrap .p22-detail-collapse {
+    display: none !important;
+  }
+}
+
+/* Mensaje "no disponible" — solo se renderiza por el componente cuando isMobile */
+.tr-mobile-unavailable {
+  margin: 0;
+  padding: 18px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #7a8ba0);
+  line-height: 1.5;
+  letter-spacing: 0.3px;
 }
 
 /* ===========================================================================

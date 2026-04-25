@@ -746,4 +746,20 @@
   .p20-ed-pos-num { font-size: 12px; }
   .p20-ed-win, .p20-ed-loss, .p20-ed-wr, .p20-ed-streak { font-size: 11px; }
   .p20-ed-sub { display: none; } /* hide parenthetical game count on very small screens */
+
+  /* ───── Pro Vision: encoger sticky cols para que se vean mas stat columns
+     Por defecto la columna EQUIPO mide 258px y la # 56px (314px sticky), lo
+     que en 360px de viewport deja una sola columna de stats visible. */
+  .p20-th-pos,
+  .p20-td-pos { width: 32px !important; min-width: 32px !important; }
+  .p20-th-team,
+  .p20-td-team { width: 92px !important; min-width: 92px !important; padding-left: 6px !important; padding-right: 6px !important; }
+  .p20-sticky-team { left: 32px !important; }
+  .p20-sticky-team::after { right: -10px; width: 10px; }
+  .p20-pro-team-cell { gap: 6px; }
+  .p20-pro-logo { width: 20px !important; height: 20px !important; }
+  .p20-pro-abbr { font-size: 11px; letter-spacing: 0.2px; }
+  .p20-td-stat { padding: 10px 3px; font-size: 10px; }
+  .p20-pro-table { font-size: 10px; }
+  .p20-th-stat { font-size: 9px; padding: 8px 4px; letter-spacing: 0.5px; }
 }

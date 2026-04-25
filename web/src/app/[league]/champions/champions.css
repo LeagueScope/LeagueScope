@@ -666,20 +666,45 @@
   .p25-ed-subhero { font-size: 9px; letter-spacing: 2px; }
   .p25-ed-logo { width: 40px !important; height: 40px !important; }
   .p25-ed-teamcount { font-size: 20px; }
-  .p25-ed-filters { padding: 10px 14px; gap: 8px; }
+  /* Filtros de rol — todos los botones en una sola fila en mobile */
+  .p25-ed-filters { padding: 10px 12px; gap: 6px; flex-wrap: nowrap; }
   .p25-ed-filters-lbl { display: none; }
+  .p25-ed-filters-group {
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .p25-filter-btn {
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 0.6px;
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+  }
 
-  /* Mobile compact: sólo mostramos las 4 métricas esenciales
-     pos(40) | champ(flex) | PICKS(44) | WR(52) | PICK%(48) | BAN%(48) | KDA(52)
-     → mantenemos 8 columnas y escondemos BANS (menos crítica) mediante nth */
+  /* Mobile compact: solo 3 metricas + pos + champ.
+     Orden visual: # | Campeon | PICKS | BANS | WR%
+     DOM original: # | Campeon | PICKS | WR | PICK% | BANS | BAN% | KDA
+     Escondemos PICK% (5), BAN% (7), KDA (8). Reordenamos BANS (6) antes de WR (4). */
   .p25-ed-thead,
   .p25-ed-row {
-    grid-template-columns: 40px minmax(0,1fr) 44px 52px 48px 0px 48px 52px;
-    padding: 12px 14px; gap: 3px;
+    grid-template-columns: 36px minmax(0,1fr) 48px 48px 56px;
+    padding: 12px 14px; gap: 4px;
   }
-  /* Hide BANS column (6th child after pos+champ+picks+wr+pick+ = col index 6) */
+  /* Hide PICK%, BAN%, KDA */
+  .p25-ed-thead > :nth-child(5),
+  .p25-ed-row > :nth-child(5),
+  .p25-ed-thead > :nth-child(7),
+  .p25-ed-row > :nth-child(7),
+  .p25-ed-thead > :nth-child(8),
+  .p25-ed-row > :nth-child(8) { display: none; }
+  /* Reorder: BANS (6) -> 4ª posicion, WR (4) -> 5ª posicion */
   .p25-ed-thead > :nth-child(6),
-  .p25-ed-row > :nth-child(6) { display: none; }
+  .p25-ed-row > :nth-child(6) { order: 4; }
+  .p25-ed-thead > :nth-child(4),
+  .p25-ed-row > :nth-child(4) { order: 5; }
 
   .p25-ed-champ { gap: 8px; }
   .p25-ed-champ-name { font-size: 11px; }
@@ -688,4 +713,19 @@
   .p25-ed-medal { width: 6px; height: 6px; }
   .p25-ed-pos-num { font-size: 12px; }
   .p25-ed-num { font-size: 11px; }
+
+  /* ───── Pro Vision: encoger sticky cols (pos+champ) para que se vean mas
+     stat columns. Por defecto: 56 + 200 = 256px sticky en 360px viewport. */
+  .p25-th-pos,
+  .p25-td-pos { width: 30px !important; min-width: 30px !important; }
+  .p25-th-champ,
+  .p25-td-champ { width: 100px !important; min-width: 100px !important; padding-left: 6px !important; padding-right: 6px !important; }
+  .p25-sticky-champ { left: 30px !important; }
+  .p25-sticky-champ::after { right: -10px; width: 10px; }
+  .p25-pro-champ-cell { gap: 6px; }
+  .p25-pro-champ-img { width: 20px !important; height: 20px !important; }
+  .p25-pro-champ-name { font-size: 11px; letter-spacing: 0.2px; }
+  .p25-td-stat { padding: 10px 3px; font-size: 10px; }
+  .p25-pro-table { font-size: 10px; }
+  .p25-th-stat { font-size: 9px; padding: 8px 4px; letter-spacing: 0.5px; }
 }

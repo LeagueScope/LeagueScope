@@ -450,7 +450,10 @@ export async function getMatchesPg(req, res) {
       scheduled_at: m.scheduled_at, date: m.begin_at, date_str: dateStr, begin_at: m.begin_at,
       winner_id: m.winner_id,
       winner: winnerOpp ? { id: winnerOpp.team_id, name: winnerOpp.name, acronym: winnerOpp.acronym } : null,
-      match_label: m.has_bracket ? ((m.match_name || '').split(':')[0].trim() || deriveMatchLabel(m.slug, m.match_name)) : null,
+      match_label: m.has_bracket
+        ? (deriveMatchLabel(m.slug, m.match_name)
+            || ((m.match_name || '').split(':').slice(1).join(':').trim() || null))
+        : null,
       teamA: { id: tA.team_id, name: tA.name, abbr: tA.acronym, acronym: tA.acronym, logo_url: tA.image_url, score: tA.score },
       teamB: { id: tB.team_id, name: tB.name, abbr: tB.acronym, acronym: tB.acronym, logo_url: tB.image_url, score: tB.score },
       teams: opps.map(o => ({ id: o.team_id, name: o.name, abbr: o.acronym, acronym: o.acronym, logo_url: o.image_url, image_url: o.image_url })),

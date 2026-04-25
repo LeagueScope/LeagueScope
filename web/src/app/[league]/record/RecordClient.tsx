@@ -1403,6 +1403,18 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [scheduledOpen, setScheduledOpen] = useState(false);
 
+  // Detectar viewport mobile (<=600px) para bloquear la expansion del detail
+  // y mostrar mensaje "no disponible" en su lugar
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 600px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   // Refetch on filter change
   useEffect(() => {
     if (!filters.ready) return;
@@ -1560,7 +1572,15 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
         </div>
         {!isLive && (
           <div className="tr-detail-wrap">
-            <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
+            {isMobile ? (
+              isSelected && (
+                <div className="tr-mobile-unavailable">
+                  Lo sentimos, este contenido no esta disponible en esta resolucion.
+                </div>
+              )
+            ) : (
+              <DetailCollapse isOpen={isSelected} matchId={m.matchid} />
+            )}
           </div>
         )}
       </div>
@@ -1710,6 +1730,7 @@ export default function RecordClient(props: RecordClientProps): React.ReactEleme
             {finishedMatches.map((m, i) => {
               const currentDate = m.date_str || trFormatDate(m.date);
               const prevDate = i > 0
+
                 ? (finishedMatches[i - 1].date_str || trFormatDate(finishedMatches[i - 1].date))
                 : null;
               const isNewDate = currentDate !== prevDate;

@@ -26,7 +26,7 @@ import { getPlayerHistoryPg, getTeamHistoryPg } from '../../controllers/pg/pgHis
 import { getOverviewPg, getTournamentPg, getHomeOverviewPg, getLiveStatusPg } from '../../controllers/pg/pgHome.js';
 import { getFilterYearsPg, getFilterSeriesPg, getFilterStagesPg, getFilterInitPg } from '../../controllers/pg/pgFilters.js';
 import { getHeadToHeadPg } from '../../controllers/pg/pgHeadToHead.js';
-import { compareTeamsPg, comparePlayersPg, getPlayerSeriesPg, getTeamSeriesPg } from '../../controllers/pg/pgCompare.js';
+import { compareTeamsPg, comparePlayersPg, getPlayerSeriesPg, getTeamSeriesPg, getPlayerRoleBaselinePg } from '../../controllers/pg/pgCompare.js';
 import { searchPg } from '../../controllers/pg/pgSearch.js';
 import { getPlayerEvaluation } from '../../controllers/pg/pgEvaluation.js';
 
@@ -88,10 +88,11 @@ router.get('/pg/champion-history/:name',      ...commonWithUrl,  asyncHandler(ge
 router.get('/pg/headtohead', ...common, validateH2H, asyncHandler(getHeadToHeadPg));
 
 // ── Compare (Global H2H) ─────────────────────────────────────────────────────
-router.get('/pg/compare/teams',          asyncHandler(compareTeamsPg));
-router.get('/pg/compare/players',        asyncHandler(comparePlayersPg));
-router.get('/pg/compare/player-series',  asyncHandler(getPlayerSeriesPg));
-router.get('/pg/compare/team-series',    asyncHandler(getTeamSeriesPg));
+router.get('/pg/compare/teams',                 asyncHandler(compareTeamsPg));
+router.get('/pg/compare/players',               asyncHandler(comparePlayersPg));
+router.get('/pg/compare/player-series',         asyncHandler(getPlayerSeriesPg));
+router.get('/pg/compare/team-series',           asyncHandler(getTeamSeriesPg));
+router.get('/pg/compare/player-role-baseline',  asyncHandler(getPlayerRoleBaselinePg));
 
 // ── Search ──────────────────────────────────────────────────────────────────
 router.get('/pg/search', validateSearch, asyncHandler(searchPg));
