@@ -348,14 +348,15 @@
 
 .p50-side-durations {
   display: flex; gap: 0;
-  padding-top: 16px;
+  padding-top: 22px;
+  margin-top: 6px;
   border-top: 1px solid var(--p50-border);
 }
 
 .p50-dur-item {
   flex: 1;
   text-align: center;
-  padding: 8px 4px;
+  padding: 12px 4px;
   position: relative;
 }
 
@@ -369,8 +370,9 @@
 
 .p50-dur-val {
   display: block;
-  font-size: 18px; font-weight: 900;
+  font-size: 26px; font-weight: 900;
   font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.5px;
 }
 
 .p50-dur-val.win { color: #4ade80; }
@@ -834,4 +836,102 @@
     grid-template-columns: 32px 1fr 56px 56px 56px;
   }
   .p50-r-champs { display: none; }
+}
+
+/* ============================================================================
+   Editorial overrides: th-ed-card actuando como wrapper de .p50-card-body
+   y de las tablas internas. Mantiene el min-height para grids uniformes.
+   ============================================================================ */
+
+/* min-height SOLO para cards dentro de los grids de stats (uniformidad);
+   el Hero y la Plantilla no lo necesitan */
+.p50-container.th-page .p50-grid-3 .th-ed-card,
+.p50-container.th-page .p50-grid-2 .th-ed-card {
+  min-height: 280px;
+}
+.p50-container.th-page .p50-card-body {
+  /* Antes era hijo de .p50-card; ahora de .th-ed-card. Mantiene padding */
+  padding: 16px 24px 24px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Tabla pseudo-grid: header con border-bottom acento sutil */
+.p50-container.th-page .p50-table-hdr {
+  border-bottom: 1px solid var(--border-inner);
+  margin-bottom: 8px;
+}
+
+/* Hover de filas con accent border-left (consistente con th-h2h) */
+.p50-container.th-page .p50-table-row {
+  border-left: 2px solid transparent;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+.p50-container.th-page .p50-table-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-left-color: var(--th-accent, var(--accent));
+}
+.p50-container.th-page .p50-active-row {
+  border-left-color: var(--th-accent, var(--accent));
+}
+
+/* Banner de fallback más editorial (sin ser saturado) */
+.p50-container.th-page .p50-fallback-notice {
+  background: rgba(255, 170, 0, 0.06) !important;
+  border-color: rgba(255, 170, 0, 0.25) !important;
+  border-radius: 2px !important;
+}
+
+/* Roster en team_profile: hover con accent + tipografía mono en stats */
+.p50-container.th-page .p50-roster-row {
+  border-left: 2px solid transparent;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+.p50-container.th-page .p50-roster-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-left-color: var(--th-accent, var(--accent));
+}
+.p50-container.th-page .p50-r-stat,
+.p50-container.th-page .p50-r-champ-count {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Header del roster con tracking + color muted (consistente con tablas) */
+.p50-container.th-page .p50-roster-hdr {
+  border-bottom: 1px solid var(--border-inner);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+
+/* Espaciado entre Hero y los grids de cards (mismo aire que .th-section) */
+.p50-container.th-page .p50-grid-3,
+.p50-container.th-page .p50-grid-2 {
+  margin-top: 40px;
+}
+.p50-container.th-page .p50-roster-card {
+  margin-top: 40px;
+}
+
+/* Hero KPI strip de 6 cols (team_profile): centrar contenido vertical y horizontal,
+   asegurar que las cells estiran al mismo alto y los dividers no parezcan cortados */
+.p50-container.th-page .th-hero-kpi-strip {
+  align-items: stretch;
+}
+.p50-container.th-page .th-hero-kpi {
+  padding: 18px 16px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+}
+.p50-container.th-page .th-hero-kpi-label {
+  font-size: 9px;
+  letter-spacing: 1.6px;
+}
+.p50-container.th-page .th-hero-kpi-value {
+  font-size: 22px;
 }

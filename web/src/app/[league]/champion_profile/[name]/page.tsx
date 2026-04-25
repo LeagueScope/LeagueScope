@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { getLeagueColors } from '@/lib/leagueColors';
 import { ChampionJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd';
 import './champion-profile.css';
+import '../../team_historical/[identifier]/team-historical.css';
 
 const ChampionProfileClient = dynamic(() => import('./ChampionProfileClient'));
 

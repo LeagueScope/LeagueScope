@@ -1341,3 +1341,56 @@
   .p40-hm-hcol-stat:nth-child(9) { display: none; } /* hide GPM */
   .p40-hm-stat:last-of-type { display: none; } /* hide GPM column on mobile */
 }
+
+/* ============================================================================
+   Editorial overrides: th-ed-card actuando como wrapper para player_profile
+   ============================================================================ */
+
+/* min-height SOLO para cards dentro de los grids (uniformidad) */
+.p40-container.th-page .p40-grid-3 .th-ed-card,
+.p40-container.th-page .p40-grid-2 .th-ed-card,
+.p40-container.th-page .p40-grid-4 .th-ed-card {
+  min-height: 280px;
+}
+
+.p40-container.th-page .p40-card-body {
+  padding: 16px 24px 24px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Espaciado entre filas de cards y entre Hero y siguientes */
+.p40-container.th-page .p40-grid-3,
+.p40-container.th-page .p40-grid-2,
+.p40-container.th-page .p40-grid-4 {
+  margin-top: 40px;
+}
+
+/* Tablas pseudo-grid: header con border-bottom + hover row con accent */
+.p40-container.th-page .p40-table-hdr,
+.p40-container.th-page .p40-pool-hdr,
+.p40-container.th-page .p40-mh-hdr {
+  border-bottom: 1px solid var(--border-inner);
+  margin-bottom: 6px;
+}
+
+.p40-container.th-page .p40-table-row,
+.p40-container.th-page .p40-pool-row,
+.p40-container.th-page .p40-mh-row {
+  border-left: 2px solid transparent;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+.p40-container.th-page .p40-table-row:hover,
+.p40-container.th-page .p40-pool-row:hover,
+.p40-container.th-page .p40-mh-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-left-color: var(--th-accent, var(--accent));
+}
+
+/* Stats numéricos en mono donde no estuvieran ya */
+.p40-container.th-page .p40-r-stat,
+.p40-container.th-page .p40-pool-stat,
+.p40-container.th-page .p40-mh-stat {
+  font-family: 'JetBrains Mono', monospace;
+}

@@ -557,6 +557,56 @@ export async function getChampionHistoryPg(req, res) {
     }
   }
 
+  // Profile add-ons (primary_league, international, best/worst split)
+  const leagueGamesC = {};
+  for (const c of career) {
+    leagueGamesC[c.league] = (leagueGamesC[c.league] || 0) + (c.games || 0);
+  }
+  const primarySlugC = Object.entries(leagueGamesC).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const primary_league = primarySlugC ? { slug: primarySlugC.toLowerCase(), name: primarySlugC } : null;
+
+  const playableC = career.filter(c => (c.games || 0) >= 10);
+  const sortedByWrC = [...playableC].sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+  const buildSplitC = (c) => c ? {
+    serie_id: c.serie_id,
+    league: c.league,
+    year: c.year,
+    split: c.split,
+    games: c.games,
+    wins: c.wins,
+    losses: c.losses,
+    win_rate: c.win_rate,
+  } : null;
+  const best_split  = buildSplitC(sortedByWrC[0]);
+  const worst_split = sortedByWrC.length > 1 ? buildSplitC(sortedByWrC[sortedByWrC.length - 1]) : null;
+
+  const classifyIntlC = (leagueName) => {
+    const lg = (leagueName || '').toUpperCase();
+    if (lg.includes('WORLDS') || lg.includes('WORLD CHAMPIONSHIP')) return 'WORLDS';
+    if (lg.includes('MSI') || lg.includes('MID-SEASON')) return 'MSI';
+    if (lg.includes('EWC') || lg.includes('ESPORTS WORLD CUP')) return 'EWC';
+    if (lg.includes('FIRSTSTAND') || lg.includes('FIRST STAND')) return 'FIRST STAND';
+    if (lg.includes('ALLSTAR') || lg.includes('ALL-STAR') || lg.includes('ALL STAR')) return 'ALL-STAR';
+    return null;
+  };
+  const INTL_ORDER_C = ['WORLDS', 'MSI', 'FIRST STAND', 'EWC', 'ALL-STAR'];
+  const intlByLeagueC = {};
+  for (const c of career) {
+    const cls = classifyIntlC(c.league);
+    if (!cls) continue;
+    if (!intlByLeagueC[cls]) {
+      intlByLeagueC[cls] = { league: cls, appearances: 0, best_wr: null, best_year: null };
+    }
+    intlByLeagueC[cls].appearances++;
+    if (c.win_rate != null && (intlByLeagueC[cls].best_wr == null || c.win_rate > intlByLeagueC[cls].best_wr)) {
+      intlByLeagueC[cls].best_wr = c.win_rate;
+      intlByLeagueC[cls].best_year = c.year;
+    }
+  }
+  const international = Object.values(intlByLeagueC).sort(
+    (a, b) => INTL_ORDER_C.indexOf(a.league) - INTL_ORDER_C.indexOf(b.league)
+  );
+
   const profile = {
     name: champ.name,
     image_url: champ.image_url,
@@ -574,6 +624,10 @@ export async function getChampionHistoryPg(req, res) {
     unique_players: uniquePlayerIds.size,
     primary_role: primaryRole,
     role_distribution: roleHistory,
+    primary_league,
+    international,
+    best_split,
+    worst_split,
   };
 
   // Aggregate players across all series
@@ -634,7 +688,49 @@ export async function getChampionHistoryPg(req, res) {
     side: m.side,
   }));
 
-  res.json({ profile, career, players, roleHistory, matchLog });
+  // Synergies: top 5 ally champions (mismo team_id en mismo game)
+  let synergies = [];
+  try {
+    const { rows: synRows } = await pgDb.query(`
+      WITH champ_games AS (
+        SELECT DISTINCT gp.game_id, gp.team_id, g.winner_id, g.length
+        FROM game_players gp
+        JOIN games g ON g.id = gp.game_id
+        WHERE gp.champion_id = ANY($1::int[])
+          AND g.finished = true
+          AND g.length > 60
+      )
+      SELECT
+        ally_canon.id AS ally_id,
+        c.name AS ally_name,
+        c.image_url AS ally_image,
+        COUNT(*)::int AS games,
+        SUM(CASE WHEN cg.winner_id = cg.team_id THEN 1 ELSE 0 END)::int AS wins
+      FROM champ_games cg
+      JOIN game_players ally
+        ON ally.game_id = cg.game_id
+       AND ally.team_id = cg.team_id
+       AND ally.champion_id <> ALL($1::int[])
+      JOIN champion_aliases ca ON ca.pandascore_id = ally.champion_id
+      JOIN champions ally_canon ON ally_canon.id = ca.canonical_id
+      LEFT JOIN champions c ON c.id = ally_canon.id
+      GROUP BY ally_canon.id, c.name, c.image_url
+      ORDER BY COUNT(*) DESC
+      LIMIT 5
+    `, [aliasIds]);
+    synergies = synRows.map(r => ({
+      name: r.ally_name,
+      image_url: r.ally_image,
+      games: Number(r.games),
+      wins: Number(r.wins),
+      losses: Number(r.games) - Number(r.wins),
+      win_rate: r.games > 0 ? rnd(Number(r.wins) / Number(r.games) * 100, 1) : 0,
+    }));
+  } catch (e) {
+    console.warn('[getChampionHistoryPg] synergies query failed:', e.message);
+  }
+
+  res.json({ profile, career, players, roleHistory, matchLog, synergies });
 }
 
 // ── getChampionByNamePg ─────────────────────────────────────────────────────

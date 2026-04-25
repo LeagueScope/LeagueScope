@@ -3,6 +3,8 @@ import dynamic from 'next/dynamic';
 import { getLeagueColors } from '@/lib/leagueColors';
 import { BreadcrumbJsonLd, PlayerJsonLd } from '@/components/JsonLd';
 import './player-history.css';
+// Compartimos el CSS editorial con team_historical (.th-ed-* es genérico)
+import '../../team_historical/[identifier]/team-historical.css';
 
 const PlayerHistoricalClient = dynamic(() => import('./PlayerHistoricalClient'));
 

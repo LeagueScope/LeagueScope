@@ -6,9 +6,7 @@
     min-height: 100vh;
     color: white;
     font-family: 'Inter', system-ui, sans-serif;
-    /* Expand beyond the #app max-width a bit - ~300px extra total */
-    margin-left: -150px;
-    margin-right: -150px;
+    width: 100%;
 }
 
 .home-editorial-section {
@@ -100,7 +98,7 @@
     margin-bottom: 48px;
 }
 
-@media (max-width: 1150px) {
+@media (max-width: 1599px) {
     .p1-league-grid {
         grid-template-columns: 1fr;
     }
@@ -2545,3 +2543,47 @@
     color: #22c55e;
     flex-shrink: 0;
 }
+
+/* ============================================================================
+   Responsive home (fix definitivo) — aplica patrones fluidos sin zoom hack
+   ============================================================================ */
+
+/* Defensa global: hijos de grid/flex deben poder encoger */
+.p1-major-card,
+.p1-major-column,
+.p1-league-grid > *,
+.p1-major-top-grid > *,
+.p1-major-bottom-grid > * {
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Grids internos colapsan en viewports estrechos */
+@media (max-width: 1100px) {
+    .p1-major-top-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+@media (max-width: 900px) {
+    .p1-major-bottom-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Escalado de padding y tipografía */
+@media (max-width: 1366px) {
+    .p1-major-card-header { padding: 28px 32px; }
+    .p1-major-name-hero   { font-size: 40px; letter-spacing: -1.5px; }
+    .p1-major-column      { padding: 24px 28px; }
+    .home-editorial-container { padding: 40px 24px; }
+}
+
+@media (max-width: 1024px) {
+    .p1-major-card-header { padding: 20px 24px; }
+    .p1-major-name-hero   { font-size: 32px; letter-spacing: -1px; }
+    .p1-major-logo-small  { width: 48px; height: 48px; }
+    .p1-major-column      { padding: 20px 24px; }
+    .home-editorial-container { padding: 28px 16px; }
+}
+
+/* Sin breakout — container 100% siempre, centrado por #app */

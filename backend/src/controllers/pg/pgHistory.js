@@ -339,6 +339,65 @@ export async function getPlayerHistoryPg(req, res) {
     };
   });
 
+  // 8b. Profile add-ons (primary_league, international, best/worst split)
+  // — mismo patrón que getTeamHistoryPg —
+
+  // Primary league: la liga con más games en la carrera del jugador
+  const leagueGamesP = {};
+  for (const c of career) {
+    leagueGamesP[c.league] = (leagueGamesP[c.league] || 0) + (c.games || 0);
+  }
+  const primarySlugP = Object.entries(leagueGamesP).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const primary_league = primarySlugP ? { slug: primarySlugP.toLowerCase(), name: primarySlugP } : null;
+
+  // Best & Worst Split (min 10 games)
+  const playableP = career.filter(c => (c.games || 0) >= 10);
+  const sortedByWrP = [...playableP].sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+  const buildSplitP = (c) => c ? {
+    serie_id: c.serie_id,
+    league: c.league,
+    year: c.year,
+    split: c.split,
+    games: c.games,
+    wins: c.wins,
+    losses: c.losses,
+    win_rate: c.win_rate,
+    placement: c.placement ?? null,
+    team: c.team,
+    team_abbr: c.team_abbr,
+    team_logo: c.team_logo,
+  } : null;
+  const best_split  = buildSplitP(sortedByWrP[0]);
+  const worst_split = sortedByWrP.length > 1 ? buildSplitP(sortedByWrP[sortedByWrP.length - 1]) : null;
+
+  // International appearances (Worlds, MSI, EWC, First Stand, All-Star)
+  const classifyIntlP = (leagueName) => {
+    const lg = (leagueName || '').toUpperCase();
+    if (lg.includes('WORLDS') || lg.includes('WORLD CHAMPIONSHIP')) return 'WORLDS';
+    if (lg.includes('MSI') || lg.includes('MID-SEASON')) return 'MSI';
+    if (lg.includes('EWC') || lg.includes('ESPORTS WORLD CUP')) return 'EWC';
+    if (lg.includes('FIRSTSTAND') || lg.includes('FIRST STAND')) return 'FIRST STAND';
+    if (lg.includes('ALLSTAR') || lg.includes('ALL-STAR') || lg.includes('ALL STAR')) return 'ALL-STAR';
+    return null;
+  };
+  const INTL_ORDER_P = ['WORLDS', 'MSI', 'FIRST STAND', 'EWC', 'ALL-STAR'];
+  const intlByLeagueP = {};
+  for (const c of career) {
+    const cls = classifyIntlP(c.league);
+    if (!cls) continue;
+    if (!intlByLeagueP[cls]) {
+      intlByLeagueP[cls] = { league: cls, appearances: 0, best_placement: null, best_year: null };
+    }
+    intlByLeagueP[cls].appearances++;
+    if (c.placement && (intlByLeagueP[cls].best_placement == null || c.placement < intlByLeagueP[cls].best_placement)) {
+      intlByLeagueP[cls].best_placement = c.placement;
+      intlByLeagueP[cls].best_year = c.year;
+    }
+  }
+  const international = Object.values(intlByLeagueP).sort(
+    (a, b) => INTL_ORDER_P.indexOf(a.league) - INTL_ORDER_P.indexOf(b.league)
+  );
+
   // 9. Compute career totals for profile
   const totals = career.reduce((acc, s) => ({
     games: acc.games + s.games,
@@ -375,6 +434,10 @@ export async function getPlayerHistoryPg(req, res) {
     career_avg_assists: totals.games > 0 ? rnd(totals.assists / totals.games, 1) : 0,
     seasons_played: career.length,
     unique_champions: allChampions.length,
+    primary_league,
+    international,
+    best_split,
+    worst_split,
   };
 
   // 10. Recent games = match_log from the latest season
@@ -457,7 +520,9 @@ export async function getTeamHistoryPg(req, res) {
       SELECT DISTINCT ON (s.id, p.id)
         s.id AS serie_id, s.year, s.season AS split, l.name AS league_slug,
         p.id AS player_id, p.name AS player_name, p.image_url AS player_image,
-        p.nationality, COALESCE(gp_role.actual_role, tr.role::text, pc.role) AS role
+        p.nationality,
+        COALESCE(gp_role.actual_role, tr.role::text, pc.role) AS role,
+        COALESCE(gp_role.role_games, 0)::int AS role_games
       FROM tournament_rosters tr
       JOIN tournaments t ON t.id = tr.tournament_id
       JOIN series s ON s.id = t.serie_id
@@ -465,7 +530,7 @@ export async function getTeamHistoryPg(req, res) {
       JOIN players p ON p.id = tr.player_id
       LEFT JOIN player_career pc ON pc.player_id = tr.player_id AND pc.serie_id = s.id
       LEFT JOIN LATERAL (
-        SELECT gp.role::text AS actual_role
+        SELECT gp.role::text AS actual_role, COUNT(*)::int AS role_games
         FROM game_players gp
         JOIN games g ON g.id = gp.game_id
         WHERE gp.player_id = p.id AND g.serie_id = s.id AND gp.team_id = $1
@@ -534,6 +599,7 @@ export async function getTeamHistoryPg(req, res) {
       image_url: r.player_image,
       nationality: r.nationality,
       role: r.role,
+      games: Number(r.role_games || 0),
     });
   }
   const rosterTimeline = Object.values(rosterBySerie).sort((a, b) => b.year - a.year);
@@ -656,7 +722,124 @@ export async function getTeamHistoryPg(req, res) {
     };
   });
 
-  // 7. Build profile
+  // 7. Profile add-ons (primary_league, international, best/worst split, iconic_lineup)
+
+  // 7a. Primary league (la liga con más games en la carrera del equipo)
+  const leagueGames = {};
+  for (const c of career) {
+    leagueGames[c.league] = (leagueGames[c.league] || 0) + c.games;
+  }
+  const primaryLeagueSlug = Object.entries(leagueGames).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const primary_league = primaryLeagueSlug
+    ? { slug: primaryLeagueSlug.toLowerCase(), name: primaryLeagueSlug }
+    : null;
+
+  // 7b. Best & Worst split (min 10 games)
+  const playableSplits = career.filter(c => c.games >= 10);
+  const sortedByWr = [...playableSplits].sort((a, b) => b.win_rate - a.win_rate);
+  const buildSplit = (c) => c ? {
+    serie_id: c.serie_id,
+    league: c.league,
+    year: c.year,
+    split: c.split,
+    games: c.games,
+    wins: c.wins,
+    losses: c.losses,
+    win_rate: c.win_rate,
+    placement: c.placement,
+  } : null;
+  const best_split  = buildSplit(sortedByWr[0]);
+  const worst_split = sortedByWr.length > 1 ? buildSplit(sortedByWr[sortedByWr.length - 1]) : null;
+
+  // 7c. International appearances (con normalización de nombres reales en DB)
+  const classifyIntl = (leagueName) => {
+    const lg = (leagueName || '').toUpperCase();
+    if (lg.includes('WORLDS') || lg.includes('WORLD CHAMPIONSHIP')) return 'WORLDS';
+    if (lg.includes('MSI') || lg.includes('MID-SEASON')) return 'MSI';
+    if (lg.includes('EWC') || lg.includes('ESPORTS WORLD CUP')) return 'EWC';
+    if (lg.includes('FIRSTSTAND') || lg.includes('FIRST STAND')) return 'FIRST STAND';
+    if (lg.includes('ALLSTAR') || lg.includes('ALL-STAR') || lg.includes('ALL STAR')) return 'ALL-STAR';
+    return null;
+  };
+  const INTL_ORDER = ['WORLDS', 'MSI', 'FIRST STAND', 'EWC', 'ALL-STAR'];
+  const intlByLeague = {};
+  for (const c of career) {
+    const cls = classifyIntl(c.league);
+    if (!cls) continue;
+    if (!intlByLeague[cls]) {
+      intlByLeague[cls] = { league: cls, appearances: 0, best_placement: null, best_year: null };
+    }
+    intlByLeague[cls].appearances++;
+    if (c.placement && (intlByLeague[cls].best_placement == null || c.placement < intlByLeague[cls].best_placement)) {
+      intlByLeague[cls].best_placement = c.placement;
+      intlByLeague[cls].best_year = c.year;
+    }
+  }
+  const international = Object.values(intlByLeague).sort(
+    (a, b) => INTL_ORDER.indexOf(a.league) - INTL_ORDER.indexOf(b.league)
+  );
+
+  // 7d. Iconic lineup (5 jugadores que más games han jugado juntos)
+  let iconic_lineup = null;
+  try {
+    const { rows: iconicRows } = await pgDb.query(`
+      WITH team_lineups AS (
+        SELECT
+          g.id AS game_id, g.winner_id, g.begin_at,
+          MAX(CASE WHEN LOWER(gp.role) = 'top' THEN gp.player_id END) AS top_id,
+          MAX(CASE WHEN LOWER(gp.role) IN ('jun','jungle','jng') THEN gp.player_id END) AS jng_id,
+          MAX(CASE WHEN LOWER(gp.role) = 'mid' THEN gp.player_id END) AS mid_id,
+          MAX(CASE WHEN LOWER(gp.role) IN ('adc','bot') THEN gp.player_id END) AS adc_id,
+          MAX(CASE WHEN LOWER(gp.role) IN ('sup','support') THEN gp.player_id END) AS sup_id
+        FROM games g
+        JOIN game_players gp ON gp.game_id = g.id AND gp.team_id = $1
+        WHERE g.finished = true AND g.length > 60
+        GROUP BY g.id, g.winner_id, g.begin_at
+      )
+      SELECT
+        top_id, jng_id, mid_id, adc_id, sup_id,
+        COUNT(*)::int AS games,
+        SUM(CASE WHEN winner_id = $1 THEN 1 ELSE 0 END)::int AS wins,
+        MIN(begin_at) AS first_game,
+        MAX(begin_at) AS last_game
+      FROM team_lineups
+      WHERE top_id IS NOT NULL AND jng_id IS NOT NULL
+        AND mid_id IS NOT NULL AND adc_id IS NOT NULL AND sup_id IS NOT NULL
+      GROUP BY top_id, jng_id, mid_id, adc_id, sup_id
+      ORDER BY COUNT(*) DESC
+      LIMIT 1
+    `, [teamId]);
+
+    if (iconicRows.length > 0) {
+      const r = iconicRows[0];
+      const ids = [r.top_id, r.jng_id, r.mid_id, r.adc_id, r.sup_id];
+      const { rows: playerRows } = await pgDb.query(`
+        SELECT id, name, image_url, nationality
+        FROM players
+        WHERE id = ANY($1::int[])
+      `, [ids]);
+      const byId = Object.fromEntries(playerRows.map(p => [p.id, p]));
+      iconic_lineup = {
+        players: [
+          { role: 'TOP', ...byId[r.top_id] },
+          { role: 'JNG', ...byId[r.jng_id] },
+          { role: 'MID', ...byId[r.mid_id] },
+          { role: 'ADC', ...byId[r.adc_id] },
+          { role: 'SUP', ...byId[r.sup_id] },
+        ],
+        games: r.games,
+        wins: r.wins,
+        win_rate: r.games > 0 ? rnd(r.wins / r.games * 100, 1) : 0,
+        first_game: r.first_game,
+        last_game: r.last_game,
+      };
+    }
+  } catch (e) {
+    // Si la query falla por cualquier motivo, dejamos iconic_lineup en null y el frontend oculta la card
+    console.warn('[getTeamHistoryPg] iconic_lineup query failed:', e.message);
+  }
+
+  // 8. Build profile
   const totG = career.reduce((s, c) => s + c.games, 0);
   const totW = career.reduce((s, c) => s + c.wins, 0);
   const totL = career.reduce((s, c) => s + c.losses, 0);
@@ -682,6 +865,11 @@ export async function getTeamHistoryPg(req, res) {
     career_avg_assists: totG > 0 ? rnd(totA / totG, 1) : 0,
     seasons_played: career.length,
     leagues_played: [...new Set(career.map(c => c.league))],
+    primary_league,
+    international,
+    iconic_lineup,
+    best_split,
+    worst_split,
   };
 
   const tResponse = { profile, career, rosterTimeline, rivals };

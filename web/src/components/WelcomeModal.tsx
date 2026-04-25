@@ -36,35 +36,52 @@ export default function WelcomeModal() {
           <img src="/LeagueScope_Logo.png" alt="LeagueScope" className="wm-logo" />
         </div>
 
-        {/* English */}
+        {/* Español (primero) */}
         <div className="wm-section">
-          <h2 className="wm-title">Welcome to LeagueScope!</h2>
+          <h2 className="wm-title">¡Hola!</h2>
           <p className="wm-text">
-            This is the <strong>first phase</strong> of the project — we are actively building
-            and improving every day. You may find bugs or missing data,
-            and we&apos;d love your help spotting them.
+            Bienvenido. <strong>LeagueScope</strong> es la primera plataforma de datos competitivos
+            de League of Legends con un fin social y por y para la comunidad. Queremos que formes
+            parte del proyecto, que influyas en la dirección de la web o que crees contenido en redes.
           </p>
           <p className="wm-text">
-            If you run into any issue, please let us know through our social media
-            or Discord. Your feedback makes LeagueScope better for everyone.
+            LeagueScope no contiene ni contendrá <strong>anuncios</strong>. Esperamos que la web se
+            sustente a base de aportaciones voluntarias para mantener el acceso a la API de datos
+            y el hosting; todo el excedente será destinado a la <strong>AECC</strong> entre otras
+            asociaciones que apoyen causas sociales nobles.
           </p>
+          <p className="wm-text">
+            Seguimos mejorando y corrigiendo errores, pero si encuentras uno o algún dato
+            incompleto, nos encantaría que nos ayudaras a detectarlos. Si encuentras cualquier
+            problema, dínoslo a través de nuestras redes sociales o Discord. Tu feedback hace que
+            LeagueScope sea mejor para todos.
+          </p>
+          <p className="wm-text">Muchas gracias por visitarnos.</p>
         </div>
 
         {/* Divider */}
         <div className="wm-divider" />
 
-        {/* Español */}
+        {/* English (después) */}
         <div className="wm-section">
-          <h2 className="wm-title">¡Bienvenido a LeagueScope!</h2>
+          <h2 className="wm-title">Hello!</h2>
           <p className="wm-text">
-            Esta es la <strong>primera fase</strong> del proyecto — estamos construyendo
-            y mejorando cada día. Es posible que encuentres errores o datos incompletos,
-            y nos encantaría que nos ayudaras a detectarlos.
+            Welcome. <strong>LeagueScope</strong> is the first competitive League of Legends data
+            platform built with a social purpose, by and for the community. We want you to be part
+            of the project — to influence where the site is heading or to create content on social media.
           </p>
           <p className="wm-text">
-            Si encuentras cualquier problema, dínoslo a través de nuestras redes sociales
-            o Discord. Tu feedback hace que LeagueScope sea mejor para todos.
+            LeagueScope does not contain and will never contain <strong>ads</strong>. We hope the
+            site can sustain itself through voluntary contributions to keep the data API and hosting
+            running; any surplus will be donated to the <strong>AECC</strong> (Spanish Association
+            Against Cancer) and other organizations supporting noble social causes.
           </p>
+          <p className="wm-text">
+            We&apos;re still improving and fixing bugs, so if you spot any error or missing data,
+            we&apos;d love your help in catching them. If you run into any issue, let us know through
+            our social media or Discord. Your feedback makes LeagueScope better for everyone.
+          </p>
+          <p className="wm-text">Thanks a lot for visiting us.</p>
         </div>
 
         {/* Social links */}

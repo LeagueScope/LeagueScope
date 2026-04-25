@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { getLeagueColors } from '@/lib/leagueColors';
 import { useRouter } from 'next/navigation';
 import { teamImg, champImg, getWinRateClass } from '@/lib/constants';
 import { clientFetch } from '@/lib/clientFetch';
@@ -378,8 +379,18 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
   const physicalPct = totalDpm > 0 ? ((Number(team.avg_physical_dpm) || 0) / totalDpm * 100) : 0;
   const truePct = totalDpm > 0 ? ((Number(team.avg_true_dpm) || 0) / totalDpm * 100) : 0;
 
+  // Accent dinámico: usa la liga de la URL (en team_profile la liga ya es la principal)
+  const dynColors = getLeagueColors(league);
+
   return (
-    <div className="p50-container" style={{ opacity: refreshing ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
+    <div
+      className="p50-container th-page"
+      style={{
+        opacity: refreshing ? 0.6 : 1,
+        transition: 'opacity 0.3s ease',
+        '--p2-league-accent': dynColors.accent,
+      } as React.CSSProperties}
+    >
       {/* Fallback notice */}
       {team.fallback && (
         <div className="p50-fallback-notice" style={{
@@ -390,47 +401,101 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
       )}
 
-      {/* ═══════════ HERO ═══════════ */}
-      <div className="p50-hero">
-        <div className="p50-hero-left">
-          <div className="p50-hero-logo-wrap">
-            <Image src={teamImg(team.logo_url, team.abbr, league)} className="p50-hero-logo" alt={team.abbr} width={64} height={64} />
-          </div>
-          <div className="p50-hero-text">
-            <h1 className="p50-hero-name">{team.team}</h1>
-            <div className="p50-hero-meta">
-              <span className="p50-hero-league">{league.toUpperCase()}</span>
+      {/* ═══════════ HERO IDENTITY (editorial) ═══════════ */}
+      <section className="th-section">
+        <div className="th-ed-card">
+          {team.logo_url && (
+            <Image
+              src={teamImg(team.logo_url, team.abbr, league)}
+              alt=""
+              aria-hidden
+              className="th-ed-watermark"
+              width={240}
+              height={240}
+            />
+          )}
+
+          <div className="th-ed-card-header">
+            <div className="th-hero-layout">
+              <div>
+                <Image
+                  src={teamImg(team.logo_url, team.abbr, league)}
+                  alt={team.abbr}
+                  className="th-hero-logo"
+                  width={192}
+                  height={192}
+                />
+              </div>
+
+              <div>
+                <span className="th-ed-eyebrow">Team Profile</span>
+                <h1 className="th-ed-hero-name">{team.team}</h1>
+                <span className="th-ed-acronym-mono">{team.abbr}</span>
+              </div>
+
+              <div className="th-hero-meta">
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-muted)', marginBottom: 10 }}>
+                  {league.toUpperCase()}
+                </div>
+                <div className="th-ed-meta">
+                  <span style={{ color: 'var(--clr-win)' }}><AnimatedNumber value={team.wins} decimals={0} />W</span>
+                  <span className="pipe">·</span>
+                  <span style={{ color: 'var(--clr-loss)' }}><AnimatedNumber value={team.losses} decimals={0} />L</span>
+                  <span className="pipe">·</span>
+                  <span><AnimatedNumber value={totalGames} decimals={0} /> GAMES</span>
+                </div>
+              </div>
             </div>
-            <div className="p50-hero-wl">
-              <span className="w"><AnimatedNumber value={team.wins} decimals={0} />W</span>{' – '}<span className="l"><AnimatedNumber value={team.losses} decimals={0} />L</span>
-              <span className="p50-hero-games"><AnimatedNumber value={totalGames} decimals={0} /> GAMES</span>
+          </div>
+
+          <div className="th-hero-kpi-strip" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Win Rate</span>
+              <span className={`th-hero-kpi-value ${getWinRateClass(team.win_rate)}`}>
+                {team.win_rate != null ? <><AnimatedNumber value={team.win_rate} decimals={1} />%</> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">KDA</span>
+              <span className="th-hero-kpi-value">
+                {team.kda != null ? <AnimatedNumber value={team.kda} decimals={2} /> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Kills / Game</span>
+              <span className="th-hero-kpi-value">
+                {team.avg_kills != null ? <AnimatedNumber value={team.avg_kills} decimals={1} /> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Deaths / Game</span>
+              <span className="th-hero-kpi-value">
+                {team.avg_deaths != null ? <AnimatedNumber value={team.avg_deaths} decimals={1} /> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Avg Duration</span>
+              <span className="th-hero-kpi-value">{team.avg_duration_formatted ?? '—'}</span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Champions</span>
+              <span className="th-hero-kpi-value">
+                {team.unique_champions != null ? <AnimatedNumber value={team.unique_champions} decimals={0} /> : '—'}
+              </span>
             </div>
           </div>
         </div>
-        <div className="p50-hero-stats">
-          {[
-            { val: team.win_rate != null ? <><AnimatedNumber value={team.win_rate} decimals={1} />%</> : '—', lbl: 'WIN RATE', cls: getWinRateClass(team.win_rate) },
-            { val: team.kda != null ? <AnimatedNumber value={team.kda} decimals={2} /> : '—', lbl: 'KDA', cls: '' },
-            { val: team.avg_kills != null ? <AnimatedNumber value={team.avg_kills} decimals={1} /> : '—', lbl: 'KILLS/GAME', cls: '' },
-            { val: team.avg_deaths != null ? <AnimatedNumber value={team.avg_deaths} decimals={1} /> : '—', lbl: 'DEATHS/GAME', cls: '' },
-            { val: team.avg_duration_formatted ?? '—', lbl: 'DURACIÓN', cls: '' },
-            { val: team.unique_champions != null ? <AnimatedNumber value={team.unique_champions} decimals={0} /> : '—', lbl: 'CAMPEONES', cls: '' },
-          ].map(s => (
-            <div key={s.lbl} className="p50-hstat">
-              <span className={`p50-hstat-val ${s.cls}`}>{s.val}</span>
-              <span className="p50-hstat-lbl">{s.lbl}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {/* ═══════════ ROW 1: Gold Diff + Objectives + Side Performance ═══════════ */}
       <div className="p50-grid-3">
         {/* Gold Differential Timeline */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">DIFERENCIAL DE ORO</span>
-            <span className="p50-card-sub">MEDIA POR TIMESTAMP · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MEDIA POR TIMESTAMP · {sampleTag}</span>
+              <h3 className="th-card-title">Diferencial de Oro</h3>
+            </div>
           </div>
           <div className="p50-card-body">
             {(() => {
@@ -457,22 +522,32 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* First Objectives */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">CONTROL DE OBJETIVOS</span>
-            <span className="p50-card-sub">% PRIMER OBJETIVO · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">% PRIMER OBJETIVO · {sampleTag}</span>
+              <h3 className="th-card-title">Control de Objetivos</h3>
+            </div>
           </div>
           <div className="p50-card-body">
             <div className="p50-obj-rows">
-              {([
-                ['FIRST BLOOD', team.first_blood_rate],
-                ['FIRST DRAGON', team.first_dragon_rate],
-                ['FIRST HERALD', team.first_herald_rate],
-                ['FIRST TOWER', team.first_tower_rate],
-                ['FIRST BARON', team.first_baron_rate],
-                ['FIRST VOIDGRUB', team.first_voidgrub_rate],
-                ['FIRST ATAKHAN', team.first_atakhan_rate],
-              ] as const).filter(([, v]) => v != null).map(([label, value]) => (
+              {(() => {
+                // Atakhan solo existió en LoL durante 2025 (Season 1+2). Si el año no es 2025
+                // (incluyendo el fallback cuando el equipo no jugó la serie seleccionada),
+                // ocultamos la fila para no mostrar 0% engañoso.
+                const effYearStr = team.fallback?.year ?? filters.year;
+                const effYear = effYearStr ? Number(effYearStr) : null;
+                const showAtakhan = effYear === 2025;
+                const rows: Array<readonly [string, number | undefined]> = [
+                  ['FIRST BLOOD', team.first_blood_rate],
+                  ['FIRST DRAGON', team.first_dragon_rate],
+                  ['FIRST HERALD', team.first_herald_rate],
+                  ['FIRST TOWER', team.first_tower_rate],
+                  ['FIRST BARON', team.first_baron_rate],
+                  ['FIRST VOIDGRUB', team.first_voidgrub_rate],
+                ];
+                if (showAtakhan) rows.push(['FIRST ATAKHAN', team.first_atakhan_rate]);
+                return rows.filter(([, v]) => v != null).map(([label, value]) => (
                 <div key={label} className="p50-obj-row">
                   <div className="p50-obj-info">
                     <span className="p50-obj-label">{label}</span>
@@ -482,16 +557,19 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
                     <div className="p50-obj-fill" style={{ width: `${value}%` }} />
                   </div>
                 </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>
 
         {/* Side Performance */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">RENDIMIENTO POR LADO</span>
-            <span className="p50-card-sub">BLUE VS RED · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">BLUE VS RED · {sampleTag}</span>
+              <h3 className="th-card-title">Rendimiento por Lado</h3>
+            </div>
           </div>
           <div className="p50-card-body">
             <div className="p50-side-versus">
@@ -530,10 +608,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
       {/* ═══════════ ROW 2: Per Game Averages + Damage + Per Minute ═══════════ */}
       <div className="p50-grid-3">
         {/* Per Game Averages */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">PROMEDIOS POR PARTIDA</span>
-            <span className="p50-card-sub">OBJETIVOS · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">OBJETIVOS · {sampleTag}</span>
+              <h3 className="th-card-title">Promedios por Partida</h3>
+            </div>
           </div>
           <div className="p50-card-body">
             <div className="p50-avg-rows">
@@ -567,10 +647,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* Damage Type Breakdown */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">TIPO DE DAÑO</span>
-            <span className="p50-card-sub">DPM POR TIPO · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">DPM POR TIPO · {sampleTag}</span>
+              <h3 className="th-card-title">Tipo de Daño</h3>
+            </div>
           </div>
           <div className="p50-card-body p50-dmg-body">
             <div className="p50-dmg-legend">
@@ -599,10 +681,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* Per Minute Production */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">PRODUCCIÓN POR MINUTO</span>
-            <span className="p50-card-sub">RITMO DE EQUIPO · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">RITMO DE EQUIPO · {sampleTag}</span>
+              <h3 className="th-card-title">Producción por Minuto</h3>
+            </div>
           </div>
           <div className="p50-card-body">
             <div className="p50-avg-rows">
@@ -630,10 +714,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
       {/* ═══════════ ROW 3: Bans + Picks ═══════════ */}
       <div className="p50-grid-2">
         {/* Ban Priority */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">PRIORIDAD DE BANS</span>
-            <span className="p50-card-sub">CAMPEONES MÁS BANEADOS POR LADO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">CAMPEONES MÁS BANEADOS POR LADO</span>
+              <h3 className="th-card-title">Prioridad de Bans</h3>
+            </div>
           </div>
           <div className="p50-card-body p50-bans-body">
             <div className="p50-bans-side">
@@ -666,10 +752,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* Pick Priority */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">PRIORIDAD DE PICKS</span>
-            <span className="p50-card-sub">CAMPEONES MÁS PICKEADOS POR LADO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">CAMPEONES MÁS PICKEADOS POR LADO</span>
+              <h3 className="th-card-title">Prioridad de Picks</h3>
+            </div>
           </div>
           <div className="p50-card-body p50-bans-body">
             <div className="p50-bans-side">
@@ -705,10 +793,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
       {/* ═══════════ ROW 4: Series History + Top Champs + Standings ═══════════ */}
       <div className="p50-grid-3">
         {/* Series History */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">HISTORIAL DE SERIES</span>
-            <span className="p50-card-sub">ÚLTIMAS 10 SERIES</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">ÚLTIMAS 10 SERIES</span>
+              <h3 className="th-card-title">Historial de Series</h3>
+            </div>
           </div>
           <div className="p50-card-body" style={{ padding: '0 24px 16px' }}>
             <div className="p50-table-hdr p50-table-hdr-series">
@@ -732,10 +822,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* Top Champions */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">TOP CAMPEONES</span>
-            <span className="p50-card-sub">MÁS JUGADOS · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MÁS JUGADOS · {sampleTag}</span>
+              <h3 className="th-card-title">Top Campeones</h3>
+            </div>
           </div>
           <div className="p50-card-body" style={{ padding: '0 24px 16px' }}>
             <div className="p50-table-hdr p50-table-hdr-champs">
@@ -761,10 +853,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
         </div>
 
         {/* League Standings */}
-        <div className="p50-card">
-          <div className="p50-card-hdr">
-            <span className="p50-card-title">CLASIFICACIÓN</span>
-            <span className="p50-card-sub">{league.toUpperCase()} · SPLIT COMPLETO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">{league.toUpperCase()} · SPLIT COMPLETO</span>
+              <h3 className="th-card-title">Clasificación</h3>
+            </div>
           </div>
           <div className="p50-card-body" style={{ padding: '0 24px 16px' }}>
             <div className="p50-table-hdr p50-table-hdr-standings">
@@ -793,10 +887,12 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
       </div>
 
       {/* ═══════════ ROW 5: Roster (full width) ═══════════ */}
-      <div className="p50-card p50-roster-card">
-        <div className="p50-card-hdr">
-          <span className="p50-card-title">PLANTILLA</span>
-          <span className="p50-card-sub">{players.length} JUGADORES · {sampleTag}</span>
+      <div className="th-ed-card p50-roster-card">
+        <div className="th-ed-card-header">
+          <div className="th-card-headline">
+            <span className="th-card-eyebrow">{players.length} JUGADORES · {sampleTag}</span>
+            <h3 className="th-card-title">Plantilla</h3>
+          </div>
         </div>
         <div className="p50-roster-hdr">
           <span className="p50-r-hdr-c">ROL</span>

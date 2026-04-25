@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { getLeagueColors } from '@/lib/leagueColors';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { champImg, teamImg } from '@/lib/constants';
@@ -290,60 +291,87 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
   const posEntries = Object.entries(positions).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="p60-container" style={{ opacity: refreshing ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
+    <div
+      className="p60-container th-page"
+      style={{
+        '--p2-league-accent': getLeagueColors(league).accent,
+        opacity: refreshing ? 0.6 : 1,
+        transition: 'opacity 0.3s ease',
+      } as React.CSSProperties}
+    >
 
-      {/* ══════════════════════════════════════
-          HERO
-      ══════════════════════════════════════ */}
-      <div className="p60-hero">
-        <div className="p60-hero-left">
-          <div className="p60-hero-icon-wrap">
-            <Image src={champImg(champ.image_url) ?? ''} className="p60-hero-icon" alt={champ.name} width={64} height={64}
-              onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
-          </div>
-          <div className="p60-hero-text">
-            <h1 className="p60-hero-name">{champ.name}</h1>
-            <div className="p60-hero-meta">
-              {champ.position && <span className="p60-hero-role">{champ.position.toUpperCase()}</span>}
-              <span className="p60-hero-tag">CHAMPION</span>
+      {/* ═══════════ HERO IDENTITY (editorial) ═══════════ */}
+      <section className="th-section">
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-hero-layout">
+              <div>
+                {champ.image_url ? (
+                  <Image
+                    src={champImg(champ.image_url) ?? ''}
+                    alt={champ.name}
+                    className="th-hero-logo"
+                    width={256}
+                    height={256}
+                    style={{ borderRadius: '50%', border: '2px solid var(--border-card)', objectFit: 'cover' }}
+                    onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+                    unoptimized
+                  />
+                ) : (
+                  <div className="th-hero-logo" style={{ borderRadius: '50%', background: 'var(--surface-inset)' }} />
+                )}
+              </div>
+
+              <div>
+                <span className="th-ed-eyebrow">Champion Profile</span>
+                <h1 className="th-ed-hero-name">{champ.name}</h1>
+              </div>
+
+              <div className="th-hero-meta">
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--text-muted)', marginBottom: 10 }}>
+                  {league.toUpperCase()}
+                </div>
+                <div className="th-ed-meta">
+                  <span style={{ color: 'var(--clr-win)' }}><AnimatedNumber value={champ.wins || 0} decimals={0} />W</span>
+                  <span className="pipe">·</span>
+                  <span style={{ color: 'var(--clr-loss)' }}><AnimatedNumber value={losses} decimals={0} />L</span>
+                  <span className="pipe">·</span>
+                  <span><AnimatedNumber value={champ.games || 0} decimals={0} /> PARTIDAS</span>
+                </div>
+              </div>
             </div>
-            <div className="p60-hero-wl">
-              <span className="w"><AnimatedNumber value={champ.wins || 0} decimals={0} />W</span>{' – '}
-              <span className="l"><AnimatedNumber value={losses} decimals={0} />L</span>
-              <span className="p60-hero-games"><AnimatedNumber value={champ.games || 0} decimals={0} /> partidas</span>
+          </div>
+
+          <div className="th-hero-kpi-strip" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Win Rate</span>
+              <span className={`th-hero-kpi-value ${wrClass(champ.win_rate)}`}>
+                {champ.win_rate != null ? <><AnimatedNumber value={champ.win_rate} decimals={1} />%</> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Presencia</span>
+              <span className="th-hero-kpi-value">
+                {champ.presence != null ? <><AnimatedNumber value={Number(champ.presence)} decimals={1} />%</> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">KDA</span>
+              <span className="th-hero-kpi-value">
+                {champ.kda != null ? <AnimatedNumber value={Number(champ.kda)} decimals={1} /> : '—'}
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">K / D / A</span>
+              <span className="th-hero-kpi-value">
+                {champ.avg_kills != null
+                  ? <><AnimatedNumber value={Number(champ.avg_kills)} decimals={1} />/<AnimatedNumber value={Number(champ.avg_deaths)} decimals={1} />/<AnimatedNumber value={Number(champ.avg_assists)} decimals={1} /></>
+                  : '—'}
+              </span>
             </div>
           </div>
         </div>
-
-        <div className="p60-hero-stats">
-          <div className="p60-hstat">
-            <span className={`p60-hstat-val ${wrClass(champ.win_rate)}`}>
-              {champ.win_rate != null ? <><AnimatedNumber value={champ.win_rate} decimals={1} />%</> : '—'}
-            </span>
-            <span className="p60-hstat-lbl">WIN RATE</span>
-          </div>
-          <div className="p60-hstat">
-            <span className="p60-hstat-val">
-              {champ.presence != null ? <><AnimatedNumber value={Number(champ.presence)} decimals={1} />%</> : '—'}
-            </span>
-            <span className="p60-hstat-lbl">PRESENCIA</span>
-          </div>
-          <div className="p60-hstat">
-            <span className="p60-hstat-val">
-              {champ.kda != null ? <AnimatedNumber value={Number(champ.kda)} decimals={1} /> : '—'}
-            </span>
-            <span className="p60-hstat-lbl">KDA</span>
-          </div>
-          <div className="p60-hstat">
-            <span className="p60-hstat-val">
-              {champ.avg_kills != null
-                ? <><AnimatedNumber value={Number(champ.avg_kills)} decimals={1} />/<AnimatedNumber value={Number(champ.avg_deaths)} decimals={1} />/<AnimatedNumber value={Number(champ.avg_assists)} decimals={1} /></>
-                : '—'}
-            </span>
-            <span className="p60-hstat-lbl">AVG K / D / A</span>
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* ══════════════════════════════════════
           ROW 1 (3 cols): KDA | PER MINUTE | DAMAGE
@@ -351,10 +379,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
       <div className="p60-grid-3">
 
         {/* ── KDA Card ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">KDA BREAKDOWN</span>
-            <span className="p60-card-sub">KILLS · DEATHS · ASSISTS</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">KILLS · DEATHS · ASSISTS</span>
+              <h3 className="th-card-title">Kda Breakdown</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             <div className="p60-kda-ring-row">
@@ -404,10 +434,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* ── Per Minute Card ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">PRODUCCIÓN / MIN</span>
-            <span className="p60-card-sub">RENDIMIENTO POR MINUTO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">RENDIMIENTO POR MINUTO</span>
+              <h3 className="th-card-title">Producción / Min</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             <div className="p60-pm-rows">
@@ -447,10 +479,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* ── Damage Breakdown ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">TIPO DE DAÑO</span>
-            <span className="p60-card-sub">DISTRIBUCIÓN DPM</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">DISTRIBUCIÓN DPM</span>
+              <h3 className="th-card-title">Tipo de Daño</h3>
+            </div>
           </div>
           <div className="p60-card-body p60-dmg-body">
             <div className="p60-dmg-legend">
@@ -480,10 +514,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
       <div className="p60-grid-3">
 
         {/* ── Side Performance ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">WIN RATE POR LADO</span>
-            <span className="p60-card-sub">BLUE SIDE VS RED SIDE</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">BLUE SIDE VS RED SIDE</span>
+              <h3 className="th-card-title">Win Rate por Lado</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             <div className="p60-side-versus">
@@ -524,17 +560,19 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
             <div className="p60-side-extras" style={{ borderTop: '1px solid var(--p60-border)', paddingTop: 12, justifyContent: 'center' }}>
               <div className="p60-side-extra-item">
                 <span className="p60-side-extra-val accent">{champ.players_count ?? '—'}</span>
-                <span className="p60-side-extra-lbl">JUGADORES</span>
+                <span className="p60-side-extra-lbl">JUGADORES ÚNICOS</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── Ban Stats ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">ESTADÍSTICAS DE BAN</span>
-            <span className="p60-card-sub">FRECUENCIA POR LADO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">FRECUENCIA POR LADO</span>
+              <h3 className="th-card-title">Estadísticas de Ban</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             <div className="p60-ban-rows">
@@ -581,10 +619,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* ── Vision & Economy ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">VISIÓN & ECONOMÍA</span>
-            <span className="p60-card-sub">PROMEDIOS POR PARTIDA</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">PROMEDIOS POR PARTIDA</span>
+              <h3 className="th-card-title">Visión & Economía</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             <div className="p60-pm-rows">
@@ -616,10 +656,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
       ══════════════════════════════════════ */}
       <div className="p60-grid-2">
         {/* Best Matchups */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">MEJORES MATCHUPS</span>
-            <span className="p60-card-sub">MAYOR WIN RATE CONTRA</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MAYOR WIN RATE CONTRA</span>
+              <h3 className="th-card-title">Mejores Matchups</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             {(champ.best_matchups?.length ?? 0) > 0 ? (
@@ -645,10 +687,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* Worst Matchups */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">PEORES MATCHUPS</span>
-            <span className="p60-card-sub">MENOR WIN RATE CONTRA</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MENOR WIN RATE CONTRA</span>
+              <h3 className="th-card-title">Peores Matchups</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             {(champ.worst_matchups?.length ?? 0) > 0 ? (
@@ -680,10 +724,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
       <div className="p60-grid-3">
 
         {/* ── Top Players ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">TOP PLAYERS</span>
-            <span className="p60-card-sub">MÁS PARTIDAS CON ESTE CAMPEÓN</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MÁS PARTIDAS CON ESTE CAMPEÓN</span>
+              <h3 className="th-card-title">Top Players</h3>
+            </div>
           </div>
           <div className="p60-card-body p60-players-body">
             <div className="p60-players-hdr">
@@ -719,10 +765,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* ── Top Items ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">ITEMS CORE</span>
-            <span className="p60-card-sub">MÁS Y MENOS COMPRADOS</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">MÁS Y MENOS COMPRADOS</span>
+              <h3 className="th-card-title">Items Core</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             {(champ.top_items?.length ?? 0) > 0 ? (
@@ -777,10 +825,12 @@ export default function ChampionProfileClient({ league, name, accent }: Props) {
         </div>
 
         {/* ── Keystones + Patch Breakdown ── */}
-        <div className="p60-card">
-          <div className="p60-card-hdr">
-            <span className="p60-card-title">RUNAS & PARCHES</span>
-            <span className="p60-card-sub">KEYSTONES Y RENDIMIENTO POR PARCHE</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">KEYSTONES Y RENDIMIENTO POR PARCHE</span>
+              <h3 className="th-card-title">Runas & Parches</h3>
+            </div>
           </div>
           <div className="p60-card-body">
             {(champ.keystones?.length ?? 0) > 0 && (

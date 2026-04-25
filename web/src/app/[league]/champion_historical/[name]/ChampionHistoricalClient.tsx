@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { getLeagueColors } from '@/lib/leagueColors';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { champImg, ROLE_ICON } from '@/lib/constants';
@@ -44,6 +45,17 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 /* ── Interfaces ───────────────────────────────────────── */
+interface ChampSplitSummary {
+  serie_id?: number;
+  league: string;
+  year: number;
+  split: string;
+  games: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+}
+
 interface ChampProfile {
   name: string;
   image_url?: string;
@@ -59,6 +71,11 @@ interface ChampProfile {
   career_bans?: number;
   patches_played?: number;
   seasons_played?: number;
+  unique_players?: number;
+  primary_league?: { slug: string; name: string } | null;
+  international?: Array<{ league: string; appearances: number; best_wr: number | null; best_year: number | null }>;
+  best_split?: ChampSplitSummary | null;
+  worst_split?: ChampSplitSummary | null;
   [key: string]: unknown;
 }
 
@@ -141,6 +158,7 @@ interface ChampHistoryData {
   players: PlayerEntry[];
   roleHistory: RoleEntry[];
   matchLog: MatchLogEntry[];
+  synergies?: Array<{ name: string; image_url?: string; games: number; wins: number; losses: number; win_rate: number }>;
 }
 
 /* ── Chevron ───────────────────────────────────────────── */
@@ -155,42 +173,46 @@ function SectionChevron({ open }: { open: boolean }) {
 }
 
 /* ── Collapsible Section ───────────────────────────────── */
-function Section({ title, count, defaultOpen = false, children }: {
+function Section({ title, eyebrow, count, defaultOpen = false, children }: {
   title: string;
+  eyebrow?: string;
   count?: number | null;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const [render, setRender] = useState(defaultOpen);
-  const [anim, setAnim] = useState(defaultOpen ? 'ch-collapse-open' : '');
-
-  const handleToggle = () => {
-    if (!open) {
-      setRender(true);
-      requestAnimationFrame(() => requestAnimationFrame(() => setAnim('ch-collapse-open')));
-      setOpen(true);
-    } else {
-      setAnim('');
-      setOpen(false);
-      setTimeout(() => setRender(false), 350);
-    }
-  };
 
   return (
-    <div className="ch-section">
-      <div className="ch-section-header" onClick={handleToggle}>
-        <span className={`ch-section-title ${open ? 'open' : ''}`}>
-          {title}
-        </span>
-        <SectionChevron open={open} />
-      </div>
-      {render && (
-        <div className={`ch-collapse ${anim}`}>
-          <div className="ch-collapse-inner">{children}</div>
+    <section className="th-section">
+      <div className="th-ed-card">
+        <div className="th-ed-card-header th-career-toggle" onClick={() => setOpen(o => !o)}>
+          <div className="th-card-headline">
+            {eyebrow && <span className="th-card-eyebrow">{eyebrow}</span>}
+            <h3 className="th-card-title">{title}</h3>
+          </div>
+          {count != null && (
+            <span className="th-career-summary">
+              {count} {count === 1 ? 'ENTRY' : 'ENTRIES'}
+            </span>
+          )}
+          <svg
+            className={`th-career-chevron ${open ? 'open' : ''}`}
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M4 2l4 4-4 4" />
+          </svg>
         </div>
-      )}
-    </div>
+        <div className={`th-career-body ${open ? 'open' : ''}`}>
+          <div style={{ padding: '20px 24px 24px' }}>{children}</div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -560,6 +582,57 @@ function PresenceChart({ patches }: { patches: PatchData[] }) {
   );
 }
 
+/* ── Role Distribution Donut (estilo overview/dragons) ──────────────────── */
+function RoleDonut({ roleHistory, totalGames }: { roleHistory: RoleEntry[]; totalGames: number }) {
+  const [hovered, setHovered] = useState<{ role: string; games: number; percentage: number } | null>(null);
+  const filtered = roleHistory.filter(r => r.games > 0);
+  return (
+    <svg className="ch-role-donut" viewBox="0 0 100 100" width={210} height={210}>
+      {(() => {
+        let offset = 0;
+        const circumference = 2 * Math.PI * 40;
+        return filtered.map(r => {
+          const percent = totalGames > 0 ? r.games / totalGames : 0;
+          const dash = percent * circumference;
+          const color = ROLE_COLORS[r.role?.toLowerCase()] ?? '#666';
+          const circle = (
+            <circle
+              key={r.role}
+              cx="50" cy="50" r="40"
+              fill="none"
+              stroke={color}
+              strokeWidth="12"
+              strokeDasharray={`${dash} ${circumference}`}
+              strokeDashoffset={-offset}
+              transform="rotate(-90 50 50)"
+              style={{ cursor: 'pointer', transition: 'stroke-width 0.2s' }}
+              onMouseEnter={() => setHovered({ role: r.role, games: r.games, percentage: r.percentage })}
+              onMouseLeave={() => setHovered(null)}
+            />
+          );
+          offset += dash;
+          return circle;
+        });
+      })()}
+      <circle cx="50" cy="50" r="28" fill="var(--surface-card)" pointerEvents="none" />
+      {hovered ? (
+        <>
+          <text x="50" y="43" textAnchor="middle" fill={ROLE_COLORS[hovered.role?.toLowerCase()] ?? '#fff'} fontSize="8" fontWeight="800" style={{ textTransform: 'uppercase' }}>
+            {ROLE_LABEL[hovered.role?.toLowerCase()] ?? hovered.role}
+          </text>
+          <text x="50" y="53" textAnchor="middle" fill="white" fontSize="11" fontWeight="700">{hovered.games}</text>
+          <text x="50" y="61" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="5.5">{hovered.percentage.toFixed(1)}%</text>
+        </>
+      ) : (
+        <>
+          <text x="50" y="47" textAnchor="middle" fill="white" fontSize="11" fontWeight="700">{totalGames}</text>
+          <text x="50" y="57" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="6">TOTAL</text>
+        </>
+      )}
+    </svg>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════ */
@@ -607,7 +680,7 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
     </div>
   );
 
-  const { profile, career, players, roleHistory, matchLog } = data;
+  const { profile, career, players, roleHistory, matchLog, synergies } = data;
 
   const toggleSeason = (sId: string) => {
     setExpandedSeasons(prev => {
@@ -717,105 +790,174 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
   }).filter(Boolean) as { label: string; color: string; games: number; values: Record<string, number> }[];
 
   return (
-    <div className="ch-container" style={{ '--nav-accent': accent, '--nav-glow': glow } as React.CSSProperties}>
+    <div
+      className="ch-container th-page"
+      style={{
+        '--nav-accent': getLeagueColors(league).accent,
+        '--nav-glow': getLeagueColors(league).glow,
+        '--p2-league-accent': getLeagueColors(league).accent,
+      } as React.CSSProperties}
+    >
 
-      {/* ═══════ HERO ═══════ */}
-      <div className="ch-hero">
-        <div className="ch-hero-left">
-          <Image className="ch-hero-img"
-            src={champImg(profile.image_url) ?? ''}
-            alt={profile.name}
-            width={64}
-            height={64}
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        </div>
-        <div className="ch-hero-info">
-          <h1 className="ch-hero-name">{profile.name}</h1>
-          <div className="ch-hero-meta">
-            {profile.primary_role && (
-              <span className="ch-badge">
-                <Image src={ROLE_ICON(profile.primary_role as string)} alt={profile.primary_role} width={48} height={48} className="ch-role-icon" />
-                {ROLE_LABEL[(profile.primary_role as string)?.toLowerCase()] ?? profile.primary_role}
-              </span>
-            )}
-            {roleHistory && roleHistory.filter(r => r.percentage >= 15).length >= 2 && (
-              <span className="ch-badge ch-badge-flex">FLEX PICK</span>
-            )}
-            <span className="ch-badge ch-badge-seasons">{profile.patches_played ?? profile.seasons_played} parches</span>
-          </div>
-          {/* Role distribution mini-bar */}
-          {roleHistory && roleHistory.length > 0 && (
-            <div className="ch-role-bar-wrap">
-              <div className="ch-role-bar">
-                {roleHistory.map((r, i) => (
-                  <div key={i} className="ch-role-bar-segment"
-                    style={{ width: `${r.percentage}%`, background: ROLE_COLORS[r.role?.toLowerCase()] ?? '#666' }}
-                    title={`${ROLE_LABEL[r.role?.toLowerCase()] ?? r.role}: ${r.percentage.toFixed(1)}%`} />
-                ))}
+      {/* ═══════════ HERO IDENTITY (editorial) ═══════════ */}
+      <section className="th-section">
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-hero-layout">
+              <div>
+                {profile.image_url ? (
+                  <Image
+                    src={champImg(profile.image_url) ?? ''}
+                    alt={profile.name}
+                    className="th-hero-logo"
+                    width={256}
+                    height={256}
+                    style={{ borderRadius: '50%', border: '2px solid var(--border-card)', objectFit: 'cover' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    unoptimized
+                  />
+                ) : (
+                  <div className="th-hero-logo" style={{ borderRadius: '50%', background: 'var(--surface-inset)' }} />
+                )}
               </div>
-              <div className="ch-role-bar-labels">
-                {roleHistory.map((r, i) => (
-                  <span key={i} className="ch-role-bar-label" style={{ color: ROLE_COLORS[r.role?.toLowerCase()] ?? '#aaa' }}>
-                    {ROLE_LABEL[r.role?.toLowerCase()] ?? r.role} {r.percentage.toFixed(0)}%
-                  </span>
-                ))}
+
+              <div>
+                <span className="th-ed-eyebrow">Champion History</span>
+                <h1 className="th-ed-hero-name">{profile.name}</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  {profile.primary_role && (
+                    <span className="ph-hero-role-badge">
+                      <Image src={ROLE_ICON(profile.primary_role as string)} alt={profile.primary_role as string} width={48} height={48} />
+                      {ROLE_LABEL[(profile.primary_role as string)?.toLowerCase()] ?? (profile.primary_role as string)}
+                    </span>
+                  )}
+                  {roleHistory && roleHistory.filter(r => r.percentage >= 15).length >= 2 && (
+                    <span className="ph-hero-role-badge" style={{ color: 'var(--th-accent)' }}>FLEX PICK</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="th-hero-meta">
+                <div className="th-ed-meta">
+                  <span>{profile.seasons_played ?? 0} {profile.seasons_played === 1 ? 'SEASON' : 'SEASONS'}</span>
+                  <span className="pipe">·</span>
+                  <span>{profile.patches_played ?? 0} PATCHES</span>
+                  <span className="pipe">·</span>
+                  <span>{profile.unique_players ?? 0} PLAYERS</span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-        <div className="ch-hero-right">
-          <div className="ch-hero-stat"><span className="ch-hero-stat-val">{profile.career_games}</span><span className="ch-hero-stat-lbl">PARTIDAS</span></div>
-          <div className="ch-hero-stat">
-            <span className="ch-hero-stat-val">
-              <span className="ch-val-win">{profile.career_wins}</span> / <span className="ch-val-loss">{profile.career_losses}</span>
-            </span>
-            <span className="ch-hero-stat-lbl">W / L</span>
           </div>
-          <div className="ch-hero-stat"><span className={`ch-hero-stat-val ${wrClass(profile.career_wr)}`}>{pct(profile.career_wr)}</span><span className="ch-hero-stat-lbl">WIN RATE</span></div>
-          <div className="ch-hero-stat"><span className={`ch-hero-stat-val ${kdaClass(profile.career_kda)}`}>{fmt(profile.career_kda, 2)}</span><span className="ch-hero-stat-lbl">KDA</span></div>
-          <div className="ch-hero-stat">
-            <span className="ch-hero-stat-val">{fmt(profile.career_avg_kills)} / {fmt(profile.career_avg_deaths)} / {fmt(profile.career_avg_assists)}</span>
-            <span className="ch-hero-stat-lbl">K / D / A</span>
+
+          <div className="th-hero-kpi-strip" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Career Games</span>
+              <span className="th-hero-kpi-value">{profile.career_games ?? 0}</span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Win Rate</span>
+              <span className={`th-hero-kpi-value ${wrClass(profile.career_wr)}`}>{pct(profile.career_wr)}</span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">KDA</span>
+              <span className={`th-hero-kpi-value ${kdaClass(profile.career_kda)}`}>{fmt(profile.career_kda, 2)}</span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Record</span>
+              <span className="th-hero-kpi-value">
+                <span style={{ color: 'var(--clr-win)' }}>{profile.career_wins ?? 0}</span>
+                <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>/</span>
+                <span style={{ color: 'var(--clr-loss)' }}>{profile.career_losses ?? 0}</span>
+              </span>
+            </div>
+            <div className="th-hero-kpi">
+              <span className="th-hero-kpi-label">Bans</span>
+              <span className="th-hero-kpi-value">{profile.career_bans ?? 0}</span>
+            </div>
           </div>
-          <div className="ch-hero-stat"><span className="ch-hero-stat-val">{profile.career_bans ?? 0}</span><span className="ch-hero-stat-lbl">BANS</span></div>
         </div>
-      </div>
+      </section>
+
+      {/* ═══════ SINERGIAS (full-width, siempre visible) ═══════ */}
+      {synergies && synergies.length > 0 && (
+        <section className="th-section">
+          <div className="th-ed-card">
+            <div className="th-ed-card-header">
+              <div className="th-card-headline">
+                <span className="th-card-eyebrow">Synergies</span>
+                <h3 className="th-card-title">Campeones con Más Sinergia</h3>
+              </div>
+            </div>
+            <div className="ch-synergy-grid">
+              {synergies.map((s, i) => (
+                <div key={`${s.name}-${i}`} className="ch-synergy-card"
+                  onClick={() => router.push(`/${league}/champion_historical/${encodeURIComponent(s.name)}`)}
+                >
+                  {s.image_url ? (
+                    <Image
+                      src={champImg(s.image_url) ?? ''}
+                      alt={s.name}
+                      className="ch-synergy-photo"
+                      width={128}
+                      height={128}
+                      onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+                    />
+                  ) : (
+                    <div className="ch-synergy-photo" />
+                  )}
+                  <span className="ch-synergy-name">{s.name}</span>
+                  <div className="ch-synergy-stats">
+                    <span className={`ch-synergy-wr ${wrClass(s.win_rate)}`}>{pct(s.win_rate)}</span>
+                    <div className="ch-synergy-record">
+                      <span className="w">{s.wins}W</span>
+                      <span className="l">{s.losses}L</span>
+                    </div>
+                    <span>{s.games} juntos</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═══════ PRESENCIA POR PARCHE ═══════ */}
       {trendData?.patches && (
-        <Section title="Presencia por Parche" defaultOpen={false}>
+        <Section eyebrow="Presence" title="Presencia por Parche" defaultOpen={false}>
           <PresenceChart patches={trendData.patches} />
         </Section>
       )}
 
       {/* ═══════ DISTRIBUCIÓN DE ROLES ═══════ */}
       {roleHistory && roleHistory.length > 1 && (
-        <Section title="Distribución de Roles" count={roleHistory.length} defaultOpen={false}>
-          <div className="ch-role-grid">
-            {roleHistory.map((r, i) => (
-              <div key={i} className="ch-role-card">
-                <div className="ch-role-card-icon">
-                  <Image src={ROLE_ICON(r.role)} alt={r.role} width={48} height={48} />
-                </div>
-                <div className="ch-role-card-info">
-                  <span className="ch-role-card-name">{ROLE_LABEL[r.role?.toLowerCase()] ?? r.role}</span>
-                  <span className="ch-role-card-games">{r.games} partidas</span>
-                </div>
-                <div className="ch-role-card-bar-wrap">
-                  <div className="ch-role-card-bar" style={{ width: `${r.percentage}%`, background: ROLE_COLORS[r.role?.toLowerCase()] ?? '#666' }} />
-                </div>
-                <span className="ch-role-card-pct" style={{ color: ROLE_COLORS[r.role?.toLowerCase()] ?? '#aaa' }}>
-                  {r.percentage.toFixed(1)}%
-                </span>
-              </div>
-            ))}
+        <Section eyebrow="Roles" title="Distribución de Roles" count={roleHistory.length} defaultOpen={false}>
+          <div className="ch-role-donut-layout">
+            <div className="ch-role-donut-list">
+              {roleHistory.map((r, i) => {
+                const color = ROLE_COLORS[r.role?.toLowerCase()] ?? '#666';
+                const label = ROLE_LABEL[r.role?.toLowerCase()] ?? r.role;
+                return (
+                  <div key={i} className="ch-role-donut-item">
+                    <span className="ch-role-donut-dot" style={{ background: color }} />
+                    <Image src={ROLE_ICON(r.role)} alt={r.role} width={20} height={20} />
+                    <span className="ch-role-donut-name">{label}</span>
+                    <span className="ch-role-donut-count">{r.games}</span>
+                    <span className="ch-role-donut-pct" style={{ color }}>{r.percentage.toFixed(1)}%</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="ch-role-donut-chart">
+              <RoleDonut roleHistory={roleHistory} totalGames={profile.career_games ?? 0} />
+            </div>
           </div>
         </Section>
       )}
 
-      {/* ═══════ MEJORES JUGADORES ═══════ */}
+
+            {/* ═══════ MEJORES JUGADORES ═══════ */}
       {players && players.length > 0 && (
-        <Section title="Mejores Jugadores" count={players.length} defaultOpen={false}>
+        <Section eyebrow="Signature Players" title="Mejores Jugadores" count={players.length} defaultOpen={false}>
           <div className="ch-table-wrap">
             <table className="ch-table">
               <thead>
@@ -861,7 +1003,7 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
 
       {/* ═══════ ESTADÍSTICAS GENERALES ═══════ */}
       {statsData.length > 0 && (
-        <Section title="Estadísticas Generales" defaultOpen={false}>
+        <Section eyebrow="Career" title="Estadísticas Generales" defaultOpen={false}>
           {leagueMarkers.length > 0 && (
             <div className="ch-stat-legend">
               <span className="ch-stat-legend-item"><span className="ch-stat-legend-dot" style={{ background: 'var(--ch-accent)' }} />Global</span>
@@ -925,7 +1067,7 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
 
       {/* ═══════ HISTORIAL POR TEMPORADA ═══════ */}
       {career.length > 0 && (
-        <Section title="Historial por Temporada" count={career.length} defaultOpen={false}>
+        <Section eyebrow="Career Timeline" title="Historial por Temporada" count={career.length} defaultOpen={false}>
           <div className="ch-table-wrap">
             <table className="ch-table ch-season-table">
               <thead>
@@ -969,7 +1111,7 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
 
       {/* ═══════ PARTIDAS RECIENTES ═══════ */}
       {matchLog && matchLog.length > 0 && (
-        <Section title="Partidas Recientes" count={matchLog.length}>
+        <Section eyebrow="Match Log" title="Partidas Recientes" count={matchLog.length}>
           <div className="ch-table-wrap">
             <table className="ch-table ch-matchlog-table">
               <thead>

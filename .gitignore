@@ -44,3 +44,6 @@ Thumbs.db
 *.log
 *.tsbuildinfo
 AUDITORIA_LIMPIEZA.md
+
+# Logos descargados localmente para plantillas de redes (no van al repo)
+team-logos/

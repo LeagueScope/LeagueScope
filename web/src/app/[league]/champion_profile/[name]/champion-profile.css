@@ -1250,3 +1250,56 @@
   .p60-items-grid { grid-template-columns: 1fr 1fr; }
   .p60-keystones-grid { justify-content: center; }
 }
+
+/* ============================================================================
+   Editorial overrides: th-ed-card actuando como wrapper para champion_profile
+   ============================================================================ */
+
+.p60-container.th-page .p60-grid-3 .th-ed-card,
+.p60-container.th-page .p60-grid-2 .th-ed-card,
+.p60-container.th-page .p60-grid-4 .th-ed-card {
+  min-height: 280px;
+}
+
+.p60-container.th-page .p60-card-body {
+  padding: 16px 24px 24px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.p60-container.th-page .p60-grid-3,
+.p60-container.th-page .p60-grid-2,
+.p60-container.th-page .p60-grid-4 {
+  margin-top: 40px;
+}
+
+.p60-container.th-page .p60-table-hdr,
+.p60-container.th-page .p60-mh-hdr,
+.p60-container.th-page .p60-pool-hdr {
+  border-bottom: 1px solid var(--border-inner);
+  margin-bottom: 6px;
+}
+
+.p60-container.th-page .p60-table-row,
+.p60-container.th-page .p60-mh-row,
+.p60-container.th-page .p60-pool-row,
+.p60-container.th-page .p60-matchup-row,
+.p60-container.th-page .p60-patch-row {
+  border-left: 2px solid transparent;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+.p60-container.th-page .p60-table-row:hover,
+.p60-container.th-page .p60-mh-row:hover,
+.p60-container.th-page .p60-pool-row:hover,
+.p60-container.th-page .p60-matchup-row:hover,
+.p60-container.th-page .p60-patch-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-left-color: var(--th-accent, var(--accent));
+}
+
+.p60-container.th-page .p60-stat,
+.p60-container.th-page .p60-mh-stat,
+.p60-container.th-page .p60-pool-stat {
+  font-family: 'JetBrains Mono', monospace;
+}

@@ -1731,3 +1731,177 @@
   .p21-stat-label { min-width: 80px; font-size: 9px; }
   .p21-gc-name { min-width: 60px; max-width: 60px; font-size: 10px; }
 }
+
+/* ============================================================================
+   PH-* helpers — específico de player_historical
+   El resto del look editorial viene de team-historical.css (.th-ed-*)
+   ============================================================================ */
+
+/* ── Hero player KPIs (mismo strip 4 KPIs que team) ──────────────────────── */
+.ph-hero-current-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.ph-hero-current-team img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.ph-hero-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+.ph-hero-role-badge img {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Signature Champions (top 5 cards) ───────────────────────────────────── */
+.ph-champ-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border-inner);
+}
+.ph-champ-card {
+  background: var(--surface-card);
+  padding: 22px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.ph-champ-card:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+.ph-champ-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-inner);
+  background: var(--surface-inset);
+}
+.ph-champ-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+.ph-champ-stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  letter-spacing: 0.5px;
+}
+.ph-champ-wr {
+  font-size: 14px;
+  font-weight: 800;
+}
+.ph-champ-record {
+  display: flex;
+  gap: 4px;
+}
+.ph-champ-record .w { color: var(--clr-win); }
+.ph-champ-record .l { color: var(--clr-loss); }
+
+@media (max-width: 1100px) {
+  .ph-champ-grid { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-width: 768px) {
+  .ph-champ-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Teams Timeline (chips horizontales) ─────────────────────────────────── */
+.ph-teams-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 24px 28px;
+}
+.ph-teams-wrap::-webkit-scrollbar { height: 4px; }
+.ph-teams-wrap::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 2px; }
+
+.ph-teams-line {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+}
+.ph-team-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  cursor: pointer;
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+.ph-team-chip:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+.ph-team-chip-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.ph-team-chip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ph-team-chip-abbr {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.ph-team-chip-period {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+.ph-team-arrow {
+  color: var(--border-card);
+  font-size: 14px;
+  font-weight: 100;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+/* ── Hero KPI strip de 5 columnas (sólo player_historical) ───────────────── */
+.th-hero-kpi-strip.ph-hero-kpi-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 768px) {
+  .th-hero-kpi-strip.ph-hero-kpi-5 { grid-template-columns: repeat(2, 1fr); }
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { getLeagueColors } from '@/lib/leagueColors';
 import { teamImg, champImg, getWinRateClass } from '@/lib/constants';
 import { clientFetch } from '@/lib/clientFetch';
 import { useFilters } from '@/context/FilterContext';
@@ -451,60 +452,113 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
   const truePct = totalDpm > 0 ? ((Number(player.avg_true_dpm) || 0) / totalDpm * 100) : 0;
 
   return (
-    <div className="p40-container" style={{ opacity: refreshing ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
-      {/* ═══════════ HERO ═══════════ */}
-      <div className="p40-hero">
-        <div className="p40-hero-left">
-          {player.image_url && (
-            <div className="p40-hero-photo-wrap">
-              <Image src={player.image_url} className="p40-hero-photo" alt={player.name} width={80} height={80} />
-            </div>
+    <div
+      className="p40-container th-page"
+      style={{
+        opacity: refreshing ? 0.6 : 1,
+        transition: 'opacity 0.3s ease',
+        '--p2-league-accent': getLeagueColors(league).accent,
+      } as React.CSSProperties}
+    >
+      {/* ═══════════ HERO IDENTITY (editorial) ═══════════ */}
+      <section className="th-section">
+        <div className="th-ed-card">
+          {player.team_logo_url && (
+            <Image
+              src={teamImg(player.team_logo_url, player.team_abbr, league)}
+              alt=""
+              aria-hidden
+              className="th-ed-watermark"
+              width={240}
+              height={240}
+            />
           )}
-          <div className="p40-hero-text">
-            <h1 className="p40-hero-name">{player.name}</h1>
-            <div className="p40-hero-meta">
-              <span className="p40-hero-role">
-                <Image src={`/rol/${player.position?.toLowerCase()}.png` || ''} alt={player.position || ''} className="p40-role-icon" width={20} height={20} />
-                {player.position?.toUpperCase()}
-              </span>
-              <span className="p40-hero-team">
-                <Image src={teamImg(player.team_logo_url, player.team_abbr, league) || ''} className="p40-hero-team-logo" alt={player.team_abbr || ''} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} width={64} height={64} />
-                {player.team_name ?? player.team_abbr}
-              </span>
-              <span className="p40-hero-league">{league.toUpperCase()}</span>
-            </div>
-            <div className="p40-hero-wl">
-              <span className="w"><AnimatedNumber value={wins} decimals={0} /></span>W{' – '}<span className="l"><AnimatedNumber value={losses} decimals={0} /></span>L
-              <span className="p40-hero-games"><AnimatedNumber value={totalGames} decimals={0} /> GAMES</span>
+
+          <div className="th-ed-card-header">
+            <div className="th-hero-layout">
+              <div>
+                {player.image_url ? (
+                  <Image
+                    src={player.image_url}
+                    alt={player.name}
+                    className="th-hero-logo"
+                    width={384}
+                    height={384}
+                    style={{ borderRadius: '50%', border: '2px solid var(--border-card)', objectFit: 'cover', objectPosition: 'center top' }}
+                    unoptimized
+                  />
+                ) : (
+                  <div className="th-hero-logo" style={{ borderRadius: '50%', background: 'var(--surface-inset)' }} />
+                )}
+              </div>
+
+              <div>
+                <span className="th-ed-eyebrow">Player Profile</span>
+                <h1 className="th-ed-hero-name">{player.name}</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  {player.position && (
+                    <span className="ph-hero-role-badge">
+                      <Image src={`/rol/${player.position.toLowerCase()}.png`} alt={player.position} width={48} height={48} />
+                      {player.position.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="th-hero-meta">
+                {player.team_abbr && (
+                  <div className="ph-hero-current-team">
+                    <Image
+                      src={teamImg(player.team_logo_url, player.team_abbr, league)}
+                      alt={player.team_abbr}
+                      width={56}
+                      height={56}
+                      onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                    />
+                    <span>{player.team_name ?? player.team_abbr}</span>
+                  </div>
+                )}
+                <div className="th-ed-meta">
+                  <span>{league.toUpperCase()}</span>
+                  <span className="pipe">·</span>
+                  <span style={{ color: 'var(--clr-win)' }}><AnimatedNumber value={wins} decimals={0} />W</span>
+                  <span className="pipe">·</span>
+                  <span style={{ color: 'var(--clr-loss)' }}><AnimatedNumber value={losses} decimals={0} />L</span>
+                  <span className="pipe">·</span>
+                  <span><AnimatedNumber value={totalGames} decimals={0} /> GAMES</span>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="th-hero-kpi-strip" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            {[
+              { val: player.win_rate, lbl: 'Win Rate',  cls: getWinRateClass(player.win_rate as number), decimals: 1, suffix: '%' },
+              { val: player.kda,      lbl: 'KDA',       style: { color: kdaColor(player.kda) }, decimals: 2 },
+              { val: player.avg_cspm, lbl: 'CS / Min',  decimals: 1 },
+              { val: player.avg_dpm,  lbl: 'DMG / Min', decimals: 0 },
+              { val: player.avg_gpm,  lbl: 'Gold / Min',decimals: 0 },
+            ].map(s => (
+              <div key={s.lbl} className="th-hero-kpi">
+                <span className="th-hero-kpi-label">{s.lbl}</span>
+                <span className={`th-hero-kpi-value ${s.cls || ''}`} style={s.style}>
+                  {s.val != null ? <AnimatedNumber value={Number(s.val)} decimals={s.decimals} suffix={s.suffix || ''} /> : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="p40-hero-stats">
-          {[
-            { val: player.win_rate, lbl: 'WIN RATE', rank: getRank('win_rate'), cls: getWinRateClass(player.win_rate as any), decimals: 1, suffix: '%' },
-            { val: player.kda, lbl: 'KDA', rank: getRank('kda'), style: { color: kdaColor(player.kda) }, decimals: 2 },
-            { val: player.avg_cspm, lbl: 'CS/MIN', rank: getRank('avg_cspm'), decimals: 1 },
-            { val: player.avg_dpm, lbl: 'DMG/MIN', rank: getRank('avg_dpm'), decimals: 0 },
-            { val: player.avg_gpm, lbl: 'GOLD/MIN', rank: getRank('avg_gpm'), decimals: 0 },
-          ].map(s => (
-            <div key={s.lbl} className="p40-hstat">
-              <span className={`p40-hstat-val ${s.cls || ''}`} style={s.style}>
-                {s.val != null ? <AnimatedNumber value={Number(s.val)} decimals={s.decimals} suffix={s.suffix || ''} /> : '—'}
-              </span>
-              <span className="p40-hstat-lbl">{s.lbl}</span>
-              {s.rank && <span className="p40-hstat-rank">#{s.rank}</span>}
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {/* ═══════════ ROW 1: KDA Breakdown + Per Minute + Laning Diffs ═══════════ */}
       <div className="p40-grid-3">
         {/* KDA Breakdown */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">KDA DESGLOSE</span>
-            <span className="p40-card-sub">PROMEDIOS · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">PROMEDIOS · {sampleTag}</span>
+              <h3 className="th-card-title">Kda Desglose</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             <div className="p40-kda-ring-row">
@@ -559,10 +613,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Per Minute Production */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">PRODUCCIÓN POR MINUTO</span>
-            <span className="p40-card-sub">RANKING EN ROL · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">RANKING EN ROL · {sampleTag}</span>
+              <h3 className="th-card-title">Producción por Minuto</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             <div className="p40-pm-rows">
@@ -599,10 +655,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Laning Phase Diffs */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">FASE DE LÍNEAS</span>
-            <span className="p40-card-sub">CS Y NIVEL DIFF · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">CS Y NIVEL DIFF · {sampleTag}</span>
+              <h3 className="th-card-title">Fase de Líneas</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             {(() => {
@@ -634,10 +692,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
       {/* ═══════════ ROW 2: BEG/BMG/BLG + Damage Breakdown + Vision ═══════════ */}
       <div className="p40-grid-3">
         {/* BEG / BMG / BLG */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">RENDIMIENTO POR FASE</span>
-            <span className="p40-card-sub">SCORE 0–100 VS ROL · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">SCORE 0–100 VS ROL · {sampleTag}</span>
+              <h3 className="th-card-title">Rendimiento por Fase</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             {[
@@ -667,10 +727,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Damage Type Breakdown */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">TIPO DE DAÑO</span>
-            <span className="p40-card-sub">DPM POR TIPO · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">DPM POR TIPO · {sampleTag}</span>
+              <h3 className="th-card-title">Tipo de Daño</h3>
+            </div>
           </div>
           <div className="p40-card-body p40-dmg-body">
             <div className="p40-dmg-legend">
@@ -699,10 +761,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Vision & Wards */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">VISIÓN</span>
-            <span className="p40-card-sub">RANKING EN ROL · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">RANKING EN ROL · {sampleTag}</span>
+              <h3 className="th-card-title">Visión</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             <div className="p40-vis-rows">
@@ -744,10 +808,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
       {/* ═══════════ ROW 3: Champions + Side Performance + Role Standings ═══════════ */}
       <div className="p40-grid-3">
         {/* Champions Pool */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">CHAMPION POOL</span>
-            <span className="p40-card-sub">{player.unique_champions ?? 0} ÚNICOS · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">{player.unique_champions ?? 0} ÚNICOS · {sampleTag}</span>
+              <h3 className="th-card-title">Champion Pool</h3>
+            </div>
           </div>
           <div className="p40-card-body p40-champ-body">
             <div className="p40-champ-hdr">
@@ -777,10 +843,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Side Performance */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">RENDIMIENTO POR LADO</span>
-            <span className="p40-card-sub">BLUE VS RED · {sampleTag}</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">BLUE VS RED · {sampleTag}</span>
+              <h3 className="th-card-title">Rendimiento por Lado</h3>
+            </div>
           </div>
           <div className="p40-card-body">
             <div className="p40-side-versus">
@@ -846,10 +914,12 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
         </div>
 
         {/* Role Standings */}
-        <div className="p40-card">
-          <div className="p40-card-hdr">
-            <span className="p40-card-title">RANKING EN EL ROL</span>
-            <span className="p40-card-sub">{player.position?.toUpperCase()} · {league.toUpperCase()} · SPLIT COMPLETO</span>
+        <div className="th-ed-card">
+          <div className="th-ed-card-header">
+            <div className="th-card-headline">
+              <span className="th-card-eyebrow">{player.position?.toUpperCase()} · {league.toUpperCase()} · SPLIT COMPLETO</span>
+              <h3 className="th-card-title">Ranking en el Rol</h3>
+            </div>
           </div>
           <div className="p40-card-body p40-standings-body">
             <div className="p40-std-hdr">

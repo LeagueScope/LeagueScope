@@ -51,6 +51,10 @@ body {
   background: var(--surface-base);
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
 a { color: inherit; text-decoration: none; }
 
 #app {
