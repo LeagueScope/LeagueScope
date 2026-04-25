@@ -881,6 +881,7 @@ export async function getHomeOverviewPg(req, res) {
       return {
         id: m.id,
         begin_at: m.begin_at,
+        number_of_games: m.number_of_games || 1,
         opponents: [
           { opponent: { acronym: opps[0]?.abbr || 'TBD', dark_mode_image_url: opps[0]?.logo_url, image_url: opps[0]?.logo_url } },
           { opponent: { acronym: opps[1]?.abbr || 'TBD', dark_mode_image_url: opps[1]?.logo_url, image_url: opps[1]?.logo_url } },

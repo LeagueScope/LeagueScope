@@ -31,6 +31,30 @@
     letter-spacing: 0.5px;
 }
 
+/* Chip BO al final de cada fila de partido (Latest Results / Upcoming / Live) */
+.p1-bo-mini {
+    flex-shrink: 0;
+    margin-left: 8px;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: var(--text-muted, #7a8ba0);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    text-transform: uppercase;
+    line-height: 1.4;
+    white-space: nowrap;
+    align-self: center;
+}
+.p1-bo-mini-live {
+    color: rgba(248, 113, 113, 0.85);
+    border-color: rgba(248, 113, 113, 0.25);
+    background: rgba(248, 113, 113, 0.06);
+}
+
 .p1-playoffs-tag {
     font-size: 9px;
     font-weight: 900;
@@ -816,6 +840,9 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    /* Altura minima fija — todas las cards del carousel mantienen el mismo
+       tamaño aunque haya 0/1/2/3 upcoming, partido en vivo o no, etc. */
+    min-height: 760px;
 }
 
 .t3-editorial-watermark {
@@ -978,6 +1005,15 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    /* Altura minima fija — todas las cards del carousel mantienen el mismo
+       tamaño aunque haya 0/1/2/3 upcoming, partido en vivo o no, etc.
+       Sin esto, una card con live + 3 upcoming era mas alta que una vacia
+       y se descuadraba el carousel */
+    min-height: 760px;
+}
+/* Reservar espacio en UPCOMING para 3 filas siempre (~36px cada una incluyendo gap) */
+.mc-editorial-card .p1-data-table.slim:has(> .p1-table-row.compact) {
+    min-height: 130px;
 }
 
 .mc-editorial-watermark {
@@ -1356,6 +1392,20 @@
     background: var(--surface-card);
     border-top: 1px solid var(--border-inner);
     padding: 20px 40px;
+    /* Altura minima reservada para que la card no cambie de tamaño cuando
+       aparece o desaparece un partido en vivo. Cubre header + 1 fila de live-card. */
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+}
+.p1-live-section .p1-live-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+.p1-live-section .p1-live-matches {
+    flex: 1;
+    align-items: center;
 }
 
 .p1-live-header {

@@ -78,6 +78,10 @@ function McCard({ league }: { league: LeagueOverview }) {
   const region = league.region;
   const regionLower = region.toLowerCase();
 
+  // Excluir de "upcoming" cualquier match que ya este en "live" — evita duplicados
+  const liveIds = new Set((league.liveMatches || []).map(m => m.id));
+  const filteredUpcoming = (league.upcoming || []).filter(m => !liveIds.has(m.id));
+
   return (
     <div className="mc-editorial-card" data-league={regionLower}>
       <Image src={LEAGUE_LOGO(region)} alt="" className="mc-editorial-watermark" aria-hidden="true" width={200} height={200} />
@@ -116,6 +120,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                     <span style={{ opacity: 0.3 }}>-</span>
                     <span className={m.winner === 'red' ? 'red-text' : ''}>{m.red.score}</span>
                   </div>
+                  <span className="p1-bo-mini">BO{m.numberOfGames || 1}</span>
                 </div>
               ))}
             </div>
@@ -147,12 +152,12 @@ function McCard({ league }: { league: LeagueOverview }) {
                 <span className="p1-section-title-text">UPCOMING</span>
               </div>
               <div className="p1-data-table slim">
-                {(!league.upcoming || league.upcoming.length === 0) ? (
+                {(!filteredUpcoming || filteredUpcoming.length === 0) ? (
                   <div className="p1-table-row compact">
                     <span className="p1-table-cell-val" style={{ width: '100%', textAlign: 'center' }}>NO DATA</span>
                   </div>
                 ) : (
-                  league.upcoming.slice(0, 3).map((m) => {
+                  filteredUpcoming.slice(0, 3).map((m) => {
                     const date = new Date(m.begin_at);
                     const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
                     const opp1 = m.opponents?.[0]?.opponent;
@@ -161,6 +166,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                     const t2 = opp2?.acronym ?? 'TBD';
                     const logo1 = opp1?.dark_mode_image_url ?? opp1?.image_url ?? null;
                     const logo2 = opp2?.dark_mode_image_url ?? opp2?.image_url ?? null;
+                    const bo = m.number_of_games || 1;
 
                     return (
                       <div key={m.id} className="p1-table-row compact">
@@ -178,6 +184,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                             <Image src={logo2} alt={t2} className="p1-team-mini" width={24} height={24} />
                           )}
                         </div>
+                        <span className="p1-bo-mini">BO{bo}</span>
                       </div>
                     );
                   })
@@ -268,6 +275,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                           : <span className={m.winner === 'blue' ? 'blue-text' : m.winner === 'red' ? 'red-text' : ''}>WIN</span>
                       }
                     </div>
+                    <span className="p1-bo-mini">BO{m.numberOfGames || 1}</span>
                   </div>
                 ))}
               </div>
@@ -278,12 +286,12 @@ function McCard({ league }: { league: LeagueOverview }) {
                 <span className="p1-section-title-text">UPCOMING</span>
               </div>
               <div className="p1-data-table slim">
-                {(!league.upcoming || league.upcoming.length === 0) ? (
+                {(!filteredUpcoming || filteredUpcoming.length === 0) ? (
                   <div className="p1-table-row compact">
                     <span className="p1-table-cell-val" style={{ width: '100%', textAlign: 'center' }}>NO DATA</span>
                   </div>
                 ) : (
-                  league.upcoming.slice(0, 3).map((m) => {
+                  filteredUpcoming.slice(0, 3).map((m) => {
                     const date = new Date(m.begin_at);
                     const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
                     const opp1 = m.opponents?.[0]?.opponent;
@@ -292,6 +300,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                     const t2 = opp2?.acronym ?? 'TBD';
                     const logo1 = opp1?.dark_mode_image_url ?? opp1?.image_url ?? null;
                     const logo2 = opp2?.dark_mode_image_url ?? opp2?.image_url ?? null;
+                    const bo = m.number_of_games || 1;
 
                     return (
                       <div key={m.id} className="p1-table-row compact">
@@ -309,6 +318,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                             <Image src={logo2} alt={t2} className="p1-team-mini" width={24} height={24} />
                           )}
                         </div>
+                        <span className="p1-bo-mini">BO{bo}</span>
                       </div>
                     );
                   })
@@ -352,6 +362,7 @@ function McCard({ league }: { league: LeagueOverview }) {
                   <span className="p1-live-abbr">{m.red.abbr}</span>
                   {m.red.logo_url && <Image src={m.red.logo_url} alt={m.red.abbr} className="p1-live-logo" width={32} height={32} />}
                 </div>
+                <span className="p1-bo-mini p1-bo-mini-live">BO{m.number_of_games || 1}</span>
               </div>
             ))}
           </div>

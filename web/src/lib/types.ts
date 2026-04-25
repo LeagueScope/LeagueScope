@@ -42,6 +42,7 @@ export interface RecentMatch {
 export interface UpcomingMatch {
   id: number;
   begin_at: string;
+  number_of_games?: number;
   opponents: Array<{
     opponent: {
       acronym: string;
