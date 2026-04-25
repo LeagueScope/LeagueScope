@@ -1,10 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Client-side fetch helper — AbortController timeout + in-memory cache
-   Mirrors frontend/src/utils/api.js caching & timeout behaviour
+   Client-side fetch helper — AbortController timeout + in-memory cache + retry
+   Reintenta automaticamente en errores transitorios (5xx, timeout, network).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const DEFAULT_TIMEOUT = 15_000;   // 15 seconds
+const CACHE_TTL = 5 * 60 * 1000;
+const DEFAULT_TIMEOUT = 15_000;
+const DEFAULT_RETRIES = 1;
+const RETRY_DELAY_BASE = 600;
 
 interface CacheEntry<T> {
   data: T;
@@ -13,24 +15,27 @@ interface CacheEntry<T> {
 
 const cache = new Map<string, CacheEntry<unknown>>();
 
-/**
- * Fetch JSON from a client-side API endpoint with:
- * - AbortController timeout (default 15s)
- * - In-memory cache with 5-minute TTL
- * - Automatic JSON parsing
- *
- * @param url  Full URL or path (e.g. `/api/v1/pg/overview?league=LEC`)
- * @param opts.timeout  Timeout in ms (default 15000)
- * @param opts.skipCache  Bypass cache for this request
- * @param opts.signal  External AbortSignal (e.g. from useEffect cleanup)
- */
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function isRetriable(err: unknown, status: number | null): boolean {
+  if (status != null && status >= 500) return true;
+  if (status === 408 || status === 429) return true;
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error && /timeout|aborted|network/i.test(err.message)) return true;
+  return false;
+}
+
 export async function clientFetch<T = unknown>(
   url: string,
-  opts: { timeout?: number; skipCache?: boolean; signal?: AbortSignal } = {},
+  opts: { timeout?: number; skipCache?: boolean; signal?: AbortSignal; retries?: number } = {},
 ): Promise<T> {
-  const { timeout = DEFAULT_TIMEOUT, skipCache = false, signal: externalSignal } = opts;
+  const {
+    timeout = DEFAULT_TIMEOUT,
+    skipCache = false,
+    signal: externalSignal,
+    retries = DEFAULT_RETRIES,
+  } = opts;
 
-  // ── Check cache ────────────────────────────────────────────────────────
   if (!skipCache) {
     const cached = cache.get(url);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -38,41 +43,55 @@ export async function clientFetch<T = unknown>(
     }
   }
 
-  // ── Fetch with timeout ─────────────────────────────────────────────────
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
+  let lastErr: unknown = null;
 
-  // Combine external signal (useEffect cleanup) with our timeout signal
-  if (externalSignal?.aborted) {
-    clearTimeout(timer);
-    controller.abort();
-    throw new DOMException('The operation was aborted.', 'AbortError');
-  }
-  const onExternalAbort = () => controller.abort();
-  externalSignal?.addEventListener('abort', onExternalAbort);
-
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
-    const data = (await res.json()) as T;
-
-    // ── Store in cache ─────────────────────────────────────────────────
-    cache.set(url, { data, ts: Date.now() });
-
-    return data;
-  } catch (err: unknown) {
-    // Silently swallow AbortError — normal during React StrictMode remounts / useEffect cleanup
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      return new Promise<T>(() => {}); // never resolves — component is unmounting
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (externalSignal?.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError');
     }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-    externalSignal?.removeEventListener('abort', onExternalAbort);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    const onExternalAbort = () => controller.abort();
+    externalSignal?.addEventListener('abort', onExternalAbort);
+
+    let httpStatus: number | null = null;
+
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      httpStatus = res.status;
+      if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+      const data = (await res.json()) as T;
+      cache.set(url, { data, ts: Date.now() });
+      return data;
+    } catch (err: unknown) {
+      lastErr = err;
+
+      if (externalSignal?.aborted) {
+        return new Promise<T>(() => {});
+      }
+
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      const canRetry = attempt < retries && (isAbort || isRetriable(err, httpStatus));
+
+      if (!canRetry) {
+        if (isAbort && !externalSignal?.aborted) {
+          return new Promise<T>(() => {});
+        }
+        throw err;
+      }
+
+      const delay = RETRY_DELAY_BASE * Math.pow(2, attempt);
+      await sleep(delay);
+    } finally {
+      clearTimeout(timer);
+      externalSignal?.removeEventListener('abort', onExternalAbort);
+    }
   }
+
+  throw lastErr instanceof Error ? lastErr : new Error('clientFetch: unknown error');
 }
 
-/** Build query string from filter params + league */
 export function buildFilterQs(
   league: string,
   filters: { year?: number | null; split?: string | null; stage?: string | null },

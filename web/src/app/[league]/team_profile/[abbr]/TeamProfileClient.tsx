@@ -251,17 +251,23 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
 
   const filters = useFilters();
 
   useEffect(() => {
-    if (!filters.ready) return;
+    // No solo esperamos a filters.ready: tambien que year y split tengan
+    // valores reales. Sin esto, el primer dispatch del context puede salir
+    // con year=null y mandar peticiones invalidas que devuelven vacio
+    if (!filters.ready || filters.year == null || !filters.split) return;
+
     let cancelled = false;
     async function loadData() {
       const isRefresh = !isFirstLoad.current;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
+      setPartialWarning(null);
       try {
         // Build filter query string
         const fqs = new URLSearchParams();
@@ -280,11 +286,22 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
           ? `&year=${teamData.fallback.year}&split=${teamData.fallback.split}`
           : `&year=${filters.year}&split=${filters.split}${filters.stage && filters.stage !== 'all' ? `&stage=${filters.stage}` : ''}`;
 
-        const [playersData, champsData, teamsData] = await Promise.all([
-          clientFetch<PlayerData[]>(`/api/v1/pg/players?league=${encodeURIComponent(league)}${suppQs}`).catch(() => []),
-          clientFetch<ChampionData[]>(`/api/v1/pg/champions?league=${encodeURIComponent(league)}${suppQs}`).catch(() => []),
-          clientFetch<StandingsTeam[]>(`/api/v1/pg/teams?league=${encodeURIComponent(league)}${suppQs}`).catch(() => []),
+        // Promise.allSettled para detectar fallos parciales y avisar al usuario
+        // (antes era .catch(() => []) y se quedaba todo en silencio)
+        const [playersResult, champsResult, teamsResult] = await Promise.allSettled([
+          clientFetch<PlayerData[]>(`/api/v1/pg/players?league=${encodeURIComponent(league)}${suppQs}`),
+          clientFetch<ChampionData[]>(`/api/v1/pg/champions?league=${encodeURIComponent(league)}${suppQs}`),
+          clientFetch<StandingsTeam[]>(`/api/v1/pg/teams?league=${encodeURIComponent(league)}${suppQs}`),
         ]);
+
+        const playersData = playersResult.status === 'fulfilled' ? playersResult.value : [];
+        const champsData  = champsResult.status  === 'fulfilled' ? champsResult.value  : [];
+        const teamsData   = teamsResult.status   === 'fulfilled' ? teamsResult.value   : [];
+
+        const failed: string[] = [];
+        if (playersResult.status === 'rejected') failed.push('plantilla');
+        if (champsResult.status  === 'rejected') failed.push('campeones');
+        if (teamsResult.status   === 'rejected') failed.push('clasificacion');
 
         if (!cancelled) {
           setTeam(teamData);
@@ -292,8 +309,15 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
           setChampions(champsData || []);
           setAllTeams(teamsData || []);
           isFirstLoad.current = false;
+          if (failed.length > 0) {
+            setPartialWarning(
+              `No se pudieron cargar: ${failed.join(', ')}. Pulsa recargar para reintentar.`
+            );
+          }
         }
       } catch (err) {
+        // AbortError silencioso (cleanup) — no es un error real
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         if (!cancelled) {
@@ -398,6 +422,42 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
           borderRadius: 8, padding: '10px 16px', margin: '0 0 16px', color: '#ffaa00', fontSize: 13
         }}>
           Este equipo no participó en la serie seleccionada. Mostrando datos de <strong>{team.fallback.serie_name}</strong>.
+        </div>
+      )}
+
+      {/* Partial load warning — alguno de los fetches supplementarios fallo */}
+      {partialWarning && (
+        <div style={{
+          background: 'rgba(248,113,113,0.10)',
+          border: '1px solid rgba(248,113,113,0.30)',
+          borderRadius: 8,
+          padding: '10px 16px',
+          margin: '0 0 16px',
+          color: '#fca5a5',
+          fontSize: 13,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <span>{partialWarning}</span>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: 'rgba(248,113,113,0.18)',
+              border: '1px solid rgba(248,113,113,0.45)',
+              color: '#fecaca',
+              padding: '5px 12px',
+              borderRadius: 4,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >
+            Recargar
+          </button>
         </div>
       )}
 
