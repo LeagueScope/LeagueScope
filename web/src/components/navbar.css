@@ -643,225 +643,29 @@
 .gs-dropdown::-webkit-scrollbar { width: 4px; }
 .gs-dropdown::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 2px; }
 
-/* ============================================
-   RESPONSIVE MEDIA QUERIES
-   ============================================ */
+/* ============================================================================
+   RESPONSIVE MEDIA QUERIES — clean breakpoints
+     desktop full nav   : >= 1200px
+     tablet compact     : 768px - 1199px (hide search, brand text, individual
+                          tier dropdowns; show unified "Ligas" dropdown)
+     mobile drawer      : <= 767px (hamburger fullscreen accordion)
+   ============================================================================ */
 
-/* 1200px: Hide less important items, reduce search width */
-@media (max-width: 1200px) {
-  .arcane-navbar {
-    padding: 0 24px;
-  }
-
-  .arcane-nav-center {
-    flex: 0.8;
-  }
-
-  /* Hide Tier 3 and Extintas dropdowns at 1200px */
-  .arcane-dropdown-container:has(.dropdown-trigger:contains("Tier 3")),
-  .arcane-dropdown-container:has(.dropdown-trigger:contains("Extintas")) {
-    display: none;
-  }
-
-  /* Reduce search bar width */
-  .gs-input-wrap {
-    width: 180px;
-  }
-
-  .gs-input-wrap:focus-within,
-  .gs-input-wrap.gs-input-active {
-    width: 260px;
-  }
-
-  /* Reduce padding on nav items */
-  .arcane-item {
-    padding: 0 12px;
-    font-size: 10px;
-  }
+/* Por defecto en desktop: ocultar los dropdowns unificados, mostrar individuales */
+.nav-tier-individual,
+.nav-filters-individual { display: flex; align-items: center; height: 100%; }
+.nav-tier-combined,
+.nav-filters-combined { display: none; }
+.nav-tier-individual.arcane-nav-separator,
+.nav-filters-individual.arcane-nav-separator {
+  display: block;
+  width: 1px;
+  height: 20px;
+  background: var(--border-card);
+  margin: 0 8px;
 }
 
-/* 1024px: Reduce padding, hide brand text, shrink search bar */
-@media (max-width: 1024px) {
-  .arcane-navbar {
-    padding: 0 16px;
-    height: 52px;
-  }
-
-  .arcane-brand {
-    margin-right: 20px;
-    gap: 6px;
-  }
-
-  /* Hide brand text */
-  .arcane-brand-text {
-    display: none;
-  }
-
-  .arcane-nav-center {
-    flex: 0.6;
-  }
-
-  /* Hide some nav items */
-  .arcane-menu {
-    gap: 0;
-  }
-
-  .arcane-item {
-    padding: 0 10px;
-    font-size: 9px;
-    letter-spacing: 0.05em;
-  }
-
-  /* Shrink search bar */
-  .gs-wrap {
-    margin-right: 8px;
-  }
-
-  .gs-input-wrap {
-    width: 160px;
-    height: 30px;
-    padding: 0 8px;
-  }
-
-  .gs-input-wrap:focus-within,
-  .gs-input-wrap.gs-input-active {
-    width: 220px;
-  }
-
-  .gs-input {
-    font-size: 10px;
-  }
-
-  /* Reduce league bar button sizes */
-  .arcane-league-btn {
-    height: 28px;
-    padding: 0 6px;
-    font-size: 9px;
-  }
-
-  .arcane-league-btn-logo {
-    width: 12px;
-    height: 12px;
-  }
-
-  /* Reduce intl button sizes */
-  .arcane-intl-btn {
-    height: 26px;
-    padding: 0 8px;
-    font-size: 9px;
-  }
-
-  /* Reduce separator spacing */
-  .arcane-nav-separator {
-    margin: 0 4px;
-  }
-}
-
-/* 768px: Make nav scrollable on tablet, hide filter dropdowns */
-@media (max-width: 768px) {
-  .arcane-navbar {
-    padding: 0 12px;
-    height: 48px;
-    gap: 8px;
-  }
-
-  .arcane-brand {
-    margin-right: 12px;
-    gap: 4px;
-  }
-
-  /* Make nav center scrollable horizontally */
-  .arcane-nav-center {
-    flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
-    min-width: 0;
-    scrollbar-width: none; /* Firefox */
-    scroll-behavior: smooth;
-  }
-
-  .arcane-nav-center::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
-  }
-
-  .arcane-menu {
-    flex-shrink: 0;
-    gap: 0;
-  }
-
-  .arcane-item {
-    padding: 0 8px;
-    font-size: 8px;
-    letter-spacing: 0.04em;
-  }
-
-  /* Hide filter dropdowns on tablet */
-  .arcane-dropdown-container.filter {
-    display: none;
-  }
-
-  /* Reduce search bar further */
-  .gs-wrap {
-    margin-right: 4px;
-    min-width: 0;
-  }
-
-  .gs-input-wrap {
-    width: 140px;
-    height: 28px;
-    padding: 0 6px;
-  }
-
-  .gs-input-wrap:focus-within,
-  .gs-input-wrap.gs-input-active {
-    width: 180px;
-  }
-
-  .gs-input {
-    font-size: 9px;
-  }
-
-  .gs-icon {
-    width: 14px;
-    height: 14px;
-  }
-
-  /* Reduce league buttons */
-  .arcane-league-bar {
-    gap: 1px;
-    margin-right: 2px;
-  }
-
-  .arcane-league-btn {
-    height: 26px;
-    padding: 0 4px;
-    font-size: 8px;
-    min-width: auto;
-  }
-
-  .arcane-league-btn-logo {
-    width: 10px;
-    height: 10px;
-  }
-
-  /* Hide intl buttons on tablet */
-  .arcane-intl-btn {
-    display: none;
-  }
-
-  /* Hide separators */
-  .arcane-nav-separator {
-    display: none;
-  }
-
-  /* Reduce user profile */
-  .arcane-user-profile {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-/* ── Hamburger button (hidden on desktop) ───────────────────────────── */
+/* Hamburger oculto por defecto (desktop full nav) */
 .arcane-hamburger {
   display: none;
   flex-direction: column;
@@ -891,12 +695,64 @@
 .hamburger-line.open:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
 /* ============================================================================
-   MOBILE NAVBAR (<= 600px) — Unified drawer
-   Hamburger toggles a fullscreen drawer with all items as a single
-   accordion menu. Tiers / Extintas appear as big links inline with HOME,
-   OVERVIEW, etc., and expand inline on tap.
+   TABLET COMPACT (768px - 1199px)
+   - Navbar 52px height, padding reducido
+   - Brand text oculto (solo logo)
+   - Search oculto (sin lupa, demasiado tight)
+   - Tier 1/2/3/Internacional/Extintas individuales OCULTOS
+   - Dropdown unificado "Ligas" VISIBLE
+   - Filtros (Year/Split/Stage) compactos
    ============================================================================ */
-@media (max-width: 600px) {
+@media (max-width: 1199px) and (min-width: 768px) {
+  .arcane-navbar {
+    padding: 0 16px;
+    height: 52px;
+    gap: 4px;
+  }
+  .arcane-brand { margin-right: 16px; gap: 6px; }
+  .arcane-brand-text { display: none; }
+
+  /* Items del menu central mas compactos */
+  .arcane-item {
+    padding: 0 10px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  .arcane-nav-center { flex: 0.6; }
+
+  /* Esconder buscador por completo en tablet (recuperar espacio) */
+  .gs-wrap { display: none; }
+
+  /* Tier individuales OCULTOS, dropdown unificado VISIBLE */
+  .nav-tier-individual { display: none !important; }
+  .nav-tier-combined { display: flex; align-items: center; height: 100%; }
+
+  /* Filtros (Year/Split/Stage) individuales OCULTOS, dropdown unificado VISIBLE */
+  .nav-filters-individual { display: none !important; }
+  .nav-filters-combined { display: flex; align-items: center; height: 100%; }
+
+  /* Filtros compactos */
+  .arcane-nav-separator { margin: 0 4px; }
+  .arcane-dropdown-container.standalone .dropdown-trigger {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 10px;
+    min-width: 60px;
+    max-width: 140px;
+  }
+
+  /* About icon */
+  .arcane-user-profile { width: 28px; height: 28px; }
+}
+
+/* ============================================================================
+   MOBILE DRAWER (<= 767px) — Unified accordion
+   Hamburger toggles a fullscreen drawer with all items as a single
+   accordion menu. Tiers / Extintas individuales aparecen como big-links
+   inline con HOME/OVERVIEW/etc dentro del drawer. El dropdown unificado
+   "Ligas" se oculta dentro del drawer (los individuales hacen su trabajo).
+   ============================================================================ */
+@media (max-width: 767px) {
   /* Compact navbar header (drawer NOT open) */
   .arcane-navbar {
     height: 52px;
@@ -933,6 +789,10 @@
     display: none !important;
   }
 
+  /* Dropdowns unificados no se usan en mobile (los individuales hacen el trabajo) */
+  .nav-tier-combined,
+  .nav-filters-combined { display: none !important; }
+
   /* ─── DRAWER OPEN ─── */
   .arcane-navbar.is-drawer-open {
     flex-direction: column;
@@ -946,14 +806,14 @@
     background: var(--surface-base, #0e1117);
   }
 
-  /* Header sticky (brand + hamburger occupy the top row) */
+  /* Header sticky (brand + hamburger) */
   .arcane-navbar.is-drawer-open > .arcane-brand {
     position: sticky;
     top: 0;
     z-index: 10;
     height: 52px;
     width: 100%;
-    padding: 0 60px 0 12px; /* leave room for hamburger absolute */
+    padding: 0 60px 0 12px;
     margin: 0;
     background: var(--surface-card, #141820);
     border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
@@ -980,6 +840,7 @@
     overflow: visible;
   }
   .arcane-navbar.is-drawer-open .gs-wrap {
+    display: block;
     width: 100%;
     margin: 0 0 24px;
     flex-shrink: 0;
@@ -993,7 +854,7 @@
   }
   .arcane-navbar.is-drawer-open .gs-input { font-size: 14px; }
 
-  /* Primary links (HOME, OVERVIEW, …) big & bold */
+  /* Primary links (HOME, OVERVIEW...) big & bold */
   .arcane-navbar.is-drawer-open .arcane-menu {
     flex-direction: column;
     gap: 0;
@@ -1017,11 +878,10 @@
     color: var(--accent, #f0a500);
   }
   .arcane-navbar.is-drawer-open .arcane-item.active::after {
-    display: none; /* sin underline en drawer */
+    display: none;
   }
 
-  /* nav-right: misma columna, mismo padding lateral, sin separación visual
-     respecto a nav-center (los Tier appear como big-links unificados) */
+  /* nav-right: misma columna unificada */
   .arcane-navbar.is-drawer-open > .arcane-nav-right.mobile-open {
     display: flex !important;
     flex-direction: column;
@@ -1032,6 +892,17 @@
     border: none;
     overflow: visible;
     flex-wrap: nowrap;
+  }
+
+  /* Tier y filtros individuales SI visibles en drawer (los que se ocultan en tablet) */
+  .arcane-navbar.is-drawer-open .nav-tier-individual,
+  .arcane-navbar.is-drawer-open .nav-filters-individual {
+    display: block !important;
+    width: 100%;
+  }
+  .arcane-navbar.is-drawer-open .nav-tier-individual.arcane-nav-separator,
+  .arcane-navbar.is-drawer-open .nav-filters-individual.arcane-nav-separator {
+    display: none !important;  /* sin separadores en drawer */
   }
 
   /* Cada Tier/Extintas = un big-link igual que HOME, OVERVIEW, etc. */
@@ -1080,7 +951,7 @@
     flex-shrink: 0;
   }
 
-  /* Dropdown panels = inline accordion (no float, no shadow) */
+  /* Dropdown panels = inline accordion */
   .arcane-navbar.is-drawer-open .arcane-dropdown {
     position: static !important;
     width: 100% !important;
@@ -1134,7 +1005,7 @@
     padding: 8px 0 !important;
   }
 
-  /* Separadores ocultos en drawer (los borde-bottom de cada item ya separan) */
+  /* Separadores ocultos en drawer */
   .arcane-navbar.is-drawer-open .arcane-nav-separator {
     display: none;
   }

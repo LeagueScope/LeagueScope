@@ -328,6 +328,311 @@ function ExtinctasDropdown({
   );
 }
 
+// ── LeaguesAllDropdown ───────────────────────────────────────────────────────
+// Dropdown unificado para tablet (768-1199px): Tier 1/2/3/Internacional/Extintas
+// en un único panel con secciones colapsables.
+
+function LeaguesAllDropdown({
+  currentLeague,
+  onNav,
+}: {
+  currentLeague: string;
+  onNav: (path: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (title: string) =>
+    setExpanded(prev => ({ ...prev, [title]: !prev[title] }));
+
+  const sections: { title: string; leagues: LeagueDef[] }[] = [
+    { title: 'Tier 1', leagues: TIER1_LEAGUES },
+    { title: 'Tier 2', leagues: TIER2_LEAGUES },
+    { title: 'Tier 3', leagues: TIER3_LEAGUES },
+    { title: 'Internacional', leagues: INTL_LEAGUES },
+  ];
+
+  // Comprobar si la liga actual está en alguna sección activa
+  const isAnyActive = sections.some(s => s.leagues.some(l => l.id === currentLeague))
+    || EXTINCT_SECTIONS.some(s => s.leagues.some(l => l.id === currentLeague));
+
+  return (
+    <div className="arcane-dropdown-container standalone" ref={ref}>
+      <button
+        className={`dropdown-trigger ${isAnyActive ? 'group-active' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { setOpen(false); }
+          else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); }
+        }}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label="Ligas"
+        style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer',
+                 color: 'var(--text-secondary)', fontWeight: 600, fontFamily: 'inherit' }}
+      >
+        <span>Ligas</span>
+        <Chevron />
+      </button>
+      {open && (
+        <div className="arcane-dropdown extintas-mega-dropdown" role="listbox" aria-label="Todas las ligas">
+          {sections.map(section => {
+            const isExpanded = !!expanded[section.title];
+            const hasActive = section.leagues.some(l => l.id === currentLeague);
+            return (
+              <div className="extintas-section" key={section.title}>
+                <div
+                  role="option"
+                  aria-selected={false}
+                  className={`extintas-section-header ${isExpanded ? 'expanded' : ''} ${hasActive ? 'has-active' : ''}`}
+                  onClick={() => toggle(section.title)}
+                >
+                  <span className={`extintas-chevron ${isExpanded ? 'rotated' : ''}`}><Chevron /></span>
+                  <span>{section.title}</span>
+                  <span className="extintas-count">{section.leagues.length}</span>
+                </div>
+                {isExpanded && (
+                  <div className="extintas-section-items">
+                    {section.leagues.map(l => (
+                      <div
+                        key={l.id}
+                        role="option"
+                        aria-selected={currentLeague === l.id}
+                        className={`arcane-dropdown-item extintas-league-item ${currentLeague === l.id ? 'filter-active' : ''}`}
+                        onClick={() => { onNav(`/${l.id}/overview`); setOpen(false); }}
+                      >
+                        <Image
+                          className="arcane-dropdown-logo"
+                          src={LEAGUE_LOGO(l.id)}
+                          alt={`${l.name} logo`}
+                          width={40}
+                          height={40}
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <span>{l.name}</span>
+                        <span className="arcane-dropdown-region">{l.region}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {/* Separador antes de Extintas */}
+          <div className="extintas-section">
+            <div className="extintas-section-header" style={{ pointerEvents: 'none', opacity: 0.5, fontSize: '9px' }}>
+              <span>EXTINTAS</span>
+            </div>
+            {EXTINCT_SECTIONS.map(section => {
+              const key = `ext-${section.title}`;
+              const isExpanded = !!expanded[key];
+              const hasActive = section.leagues.some(l => l.id === currentLeague);
+              return (
+                <div className="extintas-section" key={key}>
+                  <div
+                    role="option"
+                    aria-selected={false}
+                    className={`extintas-section-header ${isExpanded ? 'expanded' : ''} ${hasActive ? 'has-active' : ''}`}
+                    onClick={() => toggle(key)}
+                  >
+                    <span className={`extintas-chevron ${isExpanded ? 'rotated' : ''}`}><Chevron /></span>
+                    <span>{section.title}</span>
+                    <span className="extintas-count">{section.leagues.length}</span>
+                  </div>
+                  {isExpanded && (
+                    <div className="extintas-section-items">
+                      {section.leagues.map(l => (
+                        <div
+                          key={l.id}
+                          role="option"
+                          aria-selected={currentLeague === l.id}
+                          className={`arcane-dropdown-item extintas-league-item ${currentLeague === l.id ? 'filter-active' : ''}`}
+                          onClick={() => { onNav(`/${l.id}/overview`); setOpen(false); }}
+                        >
+                          <Image
+                            className="arcane-dropdown-logo"
+                            src={LEAGUE_LOGO(l.id)}
+                            alt={`${l.name} logo`}
+                            width={40}
+                            height={40}
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <span>{l.name}</span>
+                          {l.note && <span className="extintas-note">{l.note}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── FiltersAllDropdown ───────────────────────────────────────────────────────
+// Dropdown unificado para tablet (768-1199px): Year + Split + Stage en un
+// único panel con secciones colapsables. Mismo patrón visual que
+// LeaguesAllDropdown.
+
+interface FiltersAllDropdownProps {
+  year: number | null;
+  yearOptions: { value: string | number; label: string }[];
+  onYearChange: (v: number) => void;
+  split: string | null;
+  splitOptions: { value: string | number; label: string }[];
+  onSplitChange: (v: string) => void;
+  stage: string | null;
+  stageOptions: { value: string | number; label: string }[];
+  onStageChange: (v: string) => void;
+  showStage: boolean;
+}
+
+function FiltersAllDropdown({
+  year, yearOptions, onYearChange,
+  split, splitOptions, onSplitChange,
+  stage, stageOptions, onStageChange, showStage,
+}: FiltersAllDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (k: string) => setExpanded(p => ({ ...p, [k]: !p[k] }));
+
+  const yearLabel = year != null ? String(year) : '—';
+  const splitLabel = split ?? '—';
+  const stageLabel = stage === 'all' ? 'All' : (stage ?? '—');
+
+  return (
+    <div className="arcane-dropdown-container standalone" ref={ref}>
+      <button
+        className="dropdown-trigger"
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') setOpen(false);
+          else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); }
+        }}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label="Filtros"
+        style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer',
+                 color: 'var(--text-secondary)', fontWeight: 600, fontFamily: 'inherit' }}
+      >
+        <span>Filtros</span>
+        <Chevron />
+      </button>
+      {open && (
+        <div className="arcane-dropdown extintas-mega-dropdown" role="listbox" aria-label="Filtros">
+          {/* Year */}
+          {yearOptions.length > 0 && (
+            <div className="extintas-section">
+              <div
+                className={`extintas-section-header ${expanded.year ? 'expanded' : ''}`}
+                onClick={() => toggle('year')}
+              >
+                <span className={`extintas-chevron ${expanded.year ? 'rotated' : ''}`}><Chevron /></span>
+                <span>Year</span>
+                <span className="extintas-count">{yearLabel}</span>
+              </div>
+              {expanded.year && (
+                <div className="extintas-section-items">
+                  {yearOptions.map(opt => (
+                    <div
+                      key={String(opt.value)}
+                      role="option"
+                      aria-selected={String(opt.value) === String(year)}
+                      className={`arcane-dropdown-item extintas-league-item ${String(opt.value) === String(year) ? 'filter-active' : ''}`}
+                      onClick={() => { onYearChange(opt.value as number); setOpen(false); }}
+                    >
+                      <span>{opt.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Split */}
+          {splitOptions.length > 0 && (
+            <div className="extintas-section">
+              <div
+                className={`extintas-section-header ${expanded.split ? 'expanded' : ''}`}
+                onClick={() => toggle('split')}
+              >
+                <span className={`extintas-chevron ${expanded.split ? 'rotated' : ''}`}><Chevron /></span>
+                <span>Split</span>
+                <span className="extintas-count">{splitLabel}</span>
+              </div>
+              {expanded.split && (
+                <div className="extintas-section-items">
+                  {splitOptions.map(opt => (
+                    <div
+                      key={String(opt.value)}
+                      role="option"
+                      aria-selected={String(opt.value) === String(split)}
+                      className={`arcane-dropdown-item extintas-league-item ${String(opt.value) === String(split) ? 'filter-active' : ''}`}
+                      onClick={() => { onSplitChange(opt.value as string); setOpen(false); }}
+                    >
+                      <span>{opt.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Stage */}
+          {showStage && stageOptions.length > 0 && (
+            <div className="extintas-section">
+              <div
+                className={`extintas-section-header ${expanded.stage ? 'expanded' : ''}`}
+                onClick={() => toggle('stage')}
+              >
+                <span className={`extintas-chevron ${expanded.stage ? 'rotated' : ''}`}><Chevron /></span>
+                <span>Stage</span>
+                <span className="extintas-count">{stageLabel}</span>
+              </div>
+              {expanded.stage && (
+                <div className="extintas-section-items">
+                  {stageOptions.map(opt => (
+                    <div
+                      key={String(opt.value)}
+                      role="option"
+                      aria-selected={String(opt.value) === String(stage)}
+                      className={`arcane-dropdown-item extintas-league-item ${String(opt.value) === String(stage) ? 'filter-active' : ''}`}
+                      onClick={() => { onStageChange(opt.value as string); setOpen(false); }}
+                    >
+                      <span>{opt.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── GlobalSearchBar ──────────────────────────────────────────────────────────
 
 interface SearchResult {
@@ -661,55 +966,13 @@ export default function Navbar() {
       {/* Center Nav — Page links */}
       <div className={`arcane-nav-center ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="arcane-menu">
-          <Link
-            href="/home"
-            className={`arcane-item ${isExactActive('/home') ? 'active' : ''}`}
-          >
-            Home
-          </Link>
-
-          <Link
-            href={`/${currentLeague}/overview`}
-            className={`arcane-item ${isActive(`/${currentLeague}/overview`) ? 'active' : ''}`}
-          >
-            Overview
-          </Link>
-
-          <Link
-            href={`/${currentLeague}/record`}
-            className={`arcane-item ${isActive(`/${currentLeague}/record`) ? 'active' : ''}`}
-          >
-            Record
-          </Link>
-
-          <Link
-            href={`/${currentLeague}/standings`}
-            className={`arcane-item ${isActive(`/${currentLeague}/standings`) ? 'active' : ''}`}
-          >
-            Standings
-          </Link>
-
-          <Link
-            href={`/${currentLeague}/players`}
-            className={`arcane-item ${isActive(`/${currentLeague}/players`) ? 'active' : ''}`}
-          >
-            Players
-          </Link>
-
-          <Link
-            href={`/${currentLeague}/champions`}
-            className={`arcane-item ${isActive(`/${currentLeague}/champions`) ? 'active' : ''}`}
-          >
-            Champions
-          </Link>
-
-          <Link
-            href="/head2head"
-            className={`arcane-item ${isActive('/head2head') ? 'active' : ''}`}
-          >
-            H2H
-          </Link>
-
+          <Link href="/home" className={`arcane-item ${isExactActive('/home') ? 'active' : ''}`}>Home</Link>
+          <Link href={`/${currentLeague}/overview`} className={`arcane-item ${isActive(`/${currentLeague}/overview`) ? 'active' : ''}`}>Overview</Link>
+          <Link href={`/${currentLeague}/record`} className={`arcane-item ${isActive(`/${currentLeague}/record`) ? 'active' : ''}`}>Record</Link>
+          <Link href={`/${currentLeague}/standings`} className={`arcane-item ${isActive(`/${currentLeague}/standings`) ? 'active' : ''}`}>Standings</Link>
+          <Link href={`/${currentLeague}/players`} className={`arcane-item ${isActive(`/${currentLeague}/players`) ? 'active' : ''}`}>Players</Link>
+          <Link href={`/${currentLeague}/champions`} className={`arcane-item ${isActive(`/${currentLeague}/champions`) ? 'active' : ''}`}>Champions</Link>
+          <Link href="/head2head" className={`arcane-item ${isActive('/head2head') ? 'active' : ''}`}>H2H</Link>
         </div>
 
         {/* Global Search */}
@@ -718,48 +981,85 @@ export default function Navbar() {
 
       {/* Right section — Leagues + Filters + About */}
       <div className={`arcane-nav-right ${mobileOpen ? 'mobile-open' : ''}`}>
-        {/* Tier Dropdowns */}
-        <LeagueDropdown label="Tier 1" leagues={TIER1_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
-        <LeagueDropdown label="Tier 2" leagues={TIER2_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
-        <LeagueDropdown label="Tier 3" leagues={TIER3_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
-        <LeagueDropdown label="Internacional" leagues={INTL_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        {/* Tier Dropdowns individuales (visibles >=1200px y dentro del drawer mobile) */}
+        <div className="nav-tier-individual">
+          <LeagueDropdown label="Tier 1" leagues={TIER1_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        </div>
+        <div className="nav-tier-individual">
+          <LeagueDropdown label="Tier 2" leagues={TIER2_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        </div>
+        <div className="nav-tier-individual">
+          <LeagueDropdown label="Tier 3" leagues={TIER3_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        </div>
+        <div className="nav-tier-individual">
+          <LeagueDropdown label="Internacional" leagues={INTL_LEAGUES} currentLeague={currentLeague} onNav={onNav} />
+        </div>
 
-        <div className="arcane-nav-separator" />
+        <div className="nav-tier-individual arcane-nav-separator" />
 
         {/* Extintas Mega-Dropdown */}
-        <ExtinctasDropdown currentLeague={currentLeague} onNav={onNav} />
+        <div className="nav-tier-individual">
+          <ExtinctasDropdown currentLeague={currentLeague} onNav={onNav} />
+        </div>
+
+        {/* Dropdown unificado "Ligas" (solo visible en tablet 768-1199px) */}
+        <div className="nav-tier-combined">
+          <LeaguesAllDropdown currentLeague={currentLeague} onNav={onNav} />
+        </div>
 
         {/* Filter Dropdowns (Year / Split / Stage) */}
         {isLeaguePage && filters.initialized && (
           <>
-            <div className="arcane-nav-separator" />
+            <div className="nav-filters-individual arcane-nav-separator" />
             {yearOptions.length > 0 && (
-              <FilterDropdown
-                label={filters.year != null ? String(filters.year) : '—'}
-                value={filters.year}
-                options={yearOptions}
-                onChange={v => filters.changeYear(v as number)}
-                headerText="Year"
-              />
+              <div className="nav-filters-individual">
+                <FilterDropdown
+                  label={filters.year != null ? String(filters.year) : '—'}
+                  value={filters.year}
+                  options={yearOptions}
+                  onChange={v => filters.changeYear(v as number)}
+                  headerText="Year"
+                />
+              </div>
             )}
             {splitOptions.length > 0 && (
-              <FilterDropdown
-                label={filters.split ?? '—'}
-                value={filters.split}
-                options={splitOptions}
-                onChange={v => filters.changeSplit(v as string)}
-                headerText="Split"
-              />
+              <div className="nav-filters-individual">
+                <FilterDropdown
+                  label={filters.split ?? '—'}
+                  value={filters.split}
+                  options={splitOptions}
+                  onChange={v => filters.changeSplit(v as string)}
+                  headerText="Split"
+                />
+              </div>
             )}
             {filters.stages.length > 0 && (
-              <FilterDropdown
-                label={filters.stage === 'all' ? 'All' : (filters.stage ?? '—')}
-                value={filters.stage}
-                options={stageOptions}
-                onChange={v => filters.changeStage(v as string)}
-                headerText="Stage"
-              />
+              <div className="nav-filters-individual">
+                <FilterDropdown
+                  label={filters.stage === 'all' ? 'All' : (filters.stage ?? '—')}
+                  value={filters.stage}
+                  options={stageOptions}
+                  onChange={v => filters.changeStage(v as string)}
+                  headerText="Stage"
+                />
+              </div>
             )}
+
+            {/* Dropdown unificado de filtros (solo visible en tablet 768-1199px) */}
+            <div className="nav-filters-combined">
+              <FiltersAllDropdown
+                year={filters.year}
+                yearOptions={yearOptions}
+                onYearChange={v => filters.changeYear(v)}
+                split={filters.split}
+                splitOptions={splitOptions}
+                onSplitChange={v => filters.changeSplit(v)}
+                stage={filters.stage}
+                stageOptions={stageOptions}
+                onStageChange={v => filters.changeStage(v)}
+                showStage={filters.stages.length > 0}
+              />
+            </div>
           </>
         )}
 
