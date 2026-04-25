@@ -160,7 +160,8 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
                 ) : (
                   filteredUpcoming.slice(0, 3).map((m) => {
                     const date = new Date(m.begin_at);
-                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'Europe/Madrid' });
+                    const timeStr = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
                     const opp1 = m.opponents?.[0]?.opponent;
                     const opp2 = m.opponents?.[1]?.opponent;
                     const t1 = opp1?.acronym ?? 'TBD';
@@ -171,8 +172,9 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
 
                     return (
                       <div key={m.id} className="p1-table-row compact">
-                        <div className="p1-table-cell-val" style={{ textAlign: 'left', width: '45px', opacity: 0.6, fontSize: '10px' }}>
-                          {dateStr}
+                        <div className="p1-table-cell-val p1-upcoming-when" style={{ textAlign: 'left', width: '55px', opacity: 0.7, fontSize: '10px' }}>
+                          <span className="p1-upcoming-date">{dateStr}</span>
+                          <span className="p1-upcoming-time">{timeStr}</span>
                         </div>
                         <div className="p1-table-cell-team" style={{ fontSize: '11px', flex: 1 }}>
                           {logo1 && (
@@ -319,7 +321,8 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
                 ) : (
                   filteredUpcoming.slice(0, 3).map((m) => {
                     const date = new Date(m.begin_at);
-                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'Europe/Madrid' });
+                    const timeStr = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
                     const opp1 = m.opponents?.[0]?.opponent;
                     const opp2 = m.opponents?.[1]?.opponent;
                     const t1 = opp1?.acronym ?? 'TBD';
@@ -330,8 +333,9 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
 
                     return (
                       <div key={m.id} className="p1-table-row compact">
-                        <div className="p1-table-cell-val" style={{ textAlign: 'left', width: '45px', opacity: 0.6, fontSize: '10px' }}>
-                          {dateStr}
+                        <div className="p1-table-cell-val p1-upcoming-when" style={{ textAlign: 'left', width: '55px', opacity: 0.7, fontSize: '10px' }}>
+                          <span className="p1-upcoming-date">{dateStr}</span>
+                          <span className="p1-upcoming-time">{timeStr}</span>
                         </div>
                         <div className="p1-table-cell-team" style={{ fontSize: '11px', flex: 1 }}>
                           {logo1 && (
@@ -395,12 +399,6 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
         ) : (
           <div className="p1-live-empty">No hay partidos activos en este momento</div>
         )}
-      </div>
-
-      <div className="t3-editorial-footer">
-        <button className="t3-footer-btn" onClick={() => window.location.href = `/${regionLower}/standings`}>
-          VIEW FULL STANDINGS →
-        </button>
       </div>
     </div>
   );
