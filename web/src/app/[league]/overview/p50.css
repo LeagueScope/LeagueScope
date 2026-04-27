@@ -738,12 +738,17 @@
   object-fit: cover;
   object-position: center top;
 }
-/* Fallback: el logo del equipo no es una cara — contener centrado, sin
-   forzar el rect alto-estrecho. Se ve como un icono de equipo proporcional. */
+/* Fallback: el logo del equipo no es una cara. No estiramos el contenedor:
+   lo fijamos a un cuadrado pequeno centrado verticalmente para que el icono
+   ocupe el mismo espacio visual que las fotos de jugador. */
+.p50-avatar-rect.is-team-fallback {
+  align-self: center;
+  width: 32px;
+  height: 32px;
+}
 .p50-avatar-rect.is-team-fallback img {
   object-fit: contain;
   object-position: center;
-  padding: 6px 4px;
 }
 
 /* Stat group (champ icon + value) */
