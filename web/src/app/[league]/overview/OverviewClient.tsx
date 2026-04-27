@@ -229,12 +229,17 @@ function PlayerRankingCard({
                     const secondaryImg = rowIcon === 'champion'
                       ? (p.top_champion_image || '')
                       : teamImg(p.team_logo_url, p.team_abbr, league);
-                    const teamFallbackClass = hasPlayerPhoto ? '' : 'p50-podium-bg-team';
+                    // Si no hay foto y el secundario seria duplicado (rowIcon='team'), usar variante team-only.
+                    // Si rowIcon='champion' (Peak Kills), mantener el secundario y solo "contener" el logo arriba.
+                    const useFullTeamLogo = !hasPlayerPhoto && (rowIcon === 'team' || !secondaryImg);
+                    const slotFallbackClass = useFullTeamLogo ? 'p50-podium-bg-team' : '';
+                    const playerFallbackClass = !hasPlayerPhoto && !useFullTeamLogo ? 'is-team-fallback' : '';
+                    const showSecondary = Boolean(secondaryImg) && !useFullTeamLogo;
                     return (
-                      <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]} ${teamFallbackClass}`}>
+                      <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]} ${slotFallbackClass}`}>
                         <div className="p50-podium-bg-layer">
-                          <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                          {hasPlayerPhoto && secondaryImg && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${secondaryImg})` }} />}
+                          <div className={`p50-podium-bg-player ${playerFallbackClass}`} style={{ backgroundImage: `url(${playerImg})` }} />
+                          {showSecondary && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${secondaryImg})` }} />}
                         </div>
                         <span className="p50-podium-name">{p.name}</span>
                         <span className="p50-podium-val"><AnimNum value={valueOf(p)} decimals={decimals} suffix={suffix} /></span>
@@ -245,6 +250,7 @@ function PlayerRankingCard({
               )}
               {restList.map((p, i) => {
                 const rank = q ? i + 1 : i + 4;
+                const hasPlayerPhoto = Boolean(p.image_url);
                 const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
                 const iconImg = rowIcon === 'champion'
                   ? (p.top_champion_image || '')
@@ -254,7 +260,7 @@ function PlayerRankingCard({
                   <div key={`${p.name}-${i}`} className="p50-table-row">
                     <div className="p50-row-info">
                       <span className="p50-row-rank">{rank}</span>
-                      <div className="p50-avatar-rect"><Image src={playerImg} alt={p.name} width={72} height={90} /></div>
+                      <div className={`p50-avatar-rect ${hasPlayerPhoto ? '' : 'is-team-fallback'}`}><Image src={playerImg} alt={p.name} width={72} height={90} /></div>
                       <span className="p50-row-name">{p.name}</span>
                     </div>
                     <div className="p50-row-stat-group">
@@ -304,7 +310,7 @@ function PlayerPerformanceCard({
           <div key={`${p.name}-${i}`} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
             <div className="p50-row-info">
               <span className="p50-row-rank">{i + 1}</span>
-              <div className="p50-avatar"><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
+              <div className={`p50-avatar ${p.image_url ? '' : 'is-team-fallback'}`}><Image src={p.image_url || teamImg(p.team_logo_url, p.team_abbr, league)} alt={p.name} width={32} height={32} /></div>
               <span className="p50-row-name">{p.name}</span>
             </div>
             <span className="p50-row-val accent"><AnimNum value={value} decimals={1} suffix="%" /></span>

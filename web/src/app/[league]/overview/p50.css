@@ -247,6 +247,12 @@
   height: 55%;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
+/* Fallback al logo del equipo en la zona superior (cuando hay champion abajo).
+   Evita el cover/center top que recorta el logo: lo contiene centrado. */
+.p50-podium-bg-player.is-team-fallback {
+  background-size: 70% auto;
+  background-position: center;
+}
 
 .p50-podium-bg-champ {
   height: 45%;
@@ -707,6 +713,17 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .p50-avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* Fallback: cuando solo hay logo del equipo, quitar el redondeo y contenerlo
+   para que se vea como el icono del equipo en Team Performance, no como una
+   foto recortada en circulo. */
+.p50-avatar.is-team-fallback {
+  border-radius: 0;
+  border: none;
+  background: transparent;
+}
+.p50-avatar.is-team-fallback img {
+  object-fit: contain;
+}
 
 /* Rectangular avatar — fills row height */
 .p50-avatar-rect {
@@ -720,6 +737,13 @@
   height: 100%;
   object-fit: cover;
   object-position: center top;
+}
+/* Fallback: el logo del equipo no es una cara — contener centrado, sin
+   forzar el rect alto-estrecho. Se ve como un icono de equipo proporcional. */
+.p50-avatar-rect.is-team-fallback img {
+  object-fit: contain;
+  object-position: center;
+  padding: 6px 4px;
 }
 
 /* Stat group (champ icon + value) */
