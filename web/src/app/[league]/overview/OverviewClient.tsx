@@ -224,15 +224,17 @@ function PlayerRankingCard({
                   {[1, 0, 2].map(idx => {
                     const p = (data || [])[idx];
                     if (!p) return <div key={idx} className="p50-podium-slot" />;
+                    const hasPlayerPhoto = Boolean(p.image_url);
                     const playerImg = p.image_url || teamImg(p.team_logo_url, p.team_abbr, league);
                     const secondaryImg = rowIcon === 'champion'
                       ? (p.top_champion_image || '')
                       : teamImg(p.team_logo_url, p.team_abbr, league);
+                    const teamFallbackClass = hasPlayerPhoto ? '' : 'p50-podium-bg-team';
                     return (
-                      <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]}`}>
+                      <div key={p.name} className={`p50-podium-slot p50-podium-bg ${PODIUM_CLASS[idx]} ${teamFallbackClass}`}>
                         <div className="p50-podium-bg-layer">
                           <div className="p50-podium-bg-player" style={{ backgroundImage: `url(${playerImg})` }} />
-                          {secondaryImg && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${secondaryImg})` }} />}
+                          {hasPlayerPhoto && secondaryImg && <div className="p50-podium-bg-champ" style={{ backgroundImage: `url(${secondaryImg})` }} />}
                         </div>
                         <span className="p50-podium-name">{p.name}</span>
                         <span className="p50-podium-val"><AnimNum value={valueOf(p)} decimals={decimals} suffix={suffix} /></span>
