@@ -723,6 +723,9 @@ async function phase3_games(seriesList) {
 
             const color = normColor(gt.color);
             // game_teams — including drake breakdown columns
+            // ON CONFLICT DO UPDATE: si la fila ya existe (creada en una ingesta
+            // intermedia con valores nulos/false), actualiza con los valores
+            // nuevos. COALESCE evita perder datos buenos cuando llega un null.
             await upsert(`
               INSERT INTO game_teams (game_id, team_id, color, kills, gold_earned,
                 tower_kills, inhibitor_kills, baron_kills, dragon_kills, herald_kills,
@@ -732,7 +735,32 @@ async function phase3_games(seriesList) {
                 first_blood, first_tower, first_inhibitor, first_baron, first_dragon,
                 first_herald, first_voidgrub, first_atakhan)
               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
-              ON CONFLICT DO NOTHING
+              ON CONFLICT (game_id, team_id) DO UPDATE SET
+                color                = COALESCE(EXCLUDED.color, game_teams.color),
+                kills                = COALESCE(EXCLUDED.kills, game_teams.kills),
+                gold_earned          = COALESCE(EXCLUDED.gold_earned, game_teams.gold_earned),
+                tower_kills          = COALESCE(EXCLUDED.tower_kills, game_teams.tower_kills),
+                inhibitor_kills      = COALESCE(EXCLUDED.inhibitor_kills, game_teams.inhibitor_kills),
+                baron_kills          = COALESCE(EXCLUDED.baron_kills, game_teams.baron_kills),
+                dragon_kills         = COALESCE(EXCLUDED.dragon_kills, game_teams.dragon_kills),
+                herald_kills         = COALESCE(EXCLUDED.herald_kills, game_teams.herald_kills),
+                voidgrub_kills       = COALESCE(EXCLUDED.voidgrub_kills, game_teams.voidgrub_kills),
+                atakhan_kills        = COALESCE(EXCLUDED.atakhan_kills, game_teams.atakhan_kills),
+                elder_drake_kills    = COALESCE(EXCLUDED.elder_drake_kills, game_teams.elder_drake_kills),
+                chemtech_drake_kills = COALESCE(EXCLUDED.chemtech_drake_kills, game_teams.chemtech_drake_kills),
+                cloud_drake_kills    = COALESCE(EXCLUDED.cloud_drake_kills, game_teams.cloud_drake_kills),
+                hextech_drake_kills  = COALESCE(EXCLUDED.hextech_drake_kills, game_teams.hextech_drake_kills),
+                infernal_drake_kills = COALESCE(EXCLUDED.infernal_drake_kills, game_teams.infernal_drake_kills),
+                mountain_drake_kills = COALESCE(EXCLUDED.mountain_drake_kills, game_teams.mountain_drake_kills),
+                ocean_drake_kills    = COALESCE(EXCLUDED.ocean_drake_kills, game_teams.ocean_drake_kills),
+                first_blood          = COALESCE(EXCLUDED.first_blood, game_teams.first_blood),
+                first_tower          = COALESCE(EXCLUDED.first_tower, game_teams.first_tower),
+                first_inhibitor      = COALESCE(EXCLUDED.first_inhibitor, game_teams.first_inhibitor),
+                first_baron          = COALESCE(EXCLUDED.first_baron, game_teams.first_baron),
+                first_dragon         = COALESCE(EXCLUDED.first_dragon, game_teams.first_dragon),
+                first_herald         = COALESCE(EXCLUDED.first_herald, game_teams.first_herald),
+                first_voidgrub       = COALESCE(EXCLUDED.first_voidgrub, game_teams.first_voidgrub),
+                first_atakhan        = COALESCE(EXCLUDED.first_atakhan, game_teams.first_atakhan)
             `, [game.id, teamId, color,
                 gt.kills ?? null, gt.gold_earned ?? null,
                 gt.tower_kills ?? null, gt.inhibitor_kills ?? null, gt.baron_kills ?? null,
@@ -1919,6 +1947,9 @@ async function ingestSingleMatch(matchId) {
         if (!teamId) continue;
 
         const color = normColor(gt.color);
+        // Mismo fix que en phase3_games: ON CONFLICT DO UPDATE con COALESCE
+        // para que una segunda ingesta sobreescriba valores nulos/false con
+        // los datos correctos cuando llegan.
         await upsert(`
           INSERT INTO game_teams (game_id, team_id, color, kills, gold_earned,
             tower_kills, inhibitor_kills, baron_kills, dragon_kills, herald_kills,
@@ -1928,7 +1959,32 @@ async function ingestSingleMatch(matchId) {
             first_blood, first_tower, first_inhibitor, first_baron, first_dragon,
             first_herald, first_voidgrub, first_atakhan)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
-          ON CONFLICT DO NOTHING
+          ON CONFLICT (game_id, team_id) DO UPDATE SET
+            color                = COALESCE(EXCLUDED.color, game_teams.color),
+            kills                = COALESCE(EXCLUDED.kills, game_teams.kills),
+            gold_earned          = COALESCE(EXCLUDED.gold_earned, game_teams.gold_earned),
+            tower_kills          = COALESCE(EXCLUDED.tower_kills, game_teams.tower_kills),
+            inhibitor_kills      = COALESCE(EXCLUDED.inhibitor_kills, game_teams.inhibitor_kills),
+            baron_kills          = COALESCE(EXCLUDED.baron_kills, game_teams.baron_kills),
+            dragon_kills         = COALESCE(EXCLUDED.dragon_kills, game_teams.dragon_kills),
+            herald_kills         = COALESCE(EXCLUDED.herald_kills, game_teams.herald_kills),
+            voidgrub_kills       = COALESCE(EXCLUDED.voidgrub_kills, game_teams.voidgrub_kills),
+            atakhan_kills        = COALESCE(EXCLUDED.atakhan_kills, game_teams.atakhan_kills),
+            elder_drake_kills    = COALESCE(EXCLUDED.elder_drake_kills, game_teams.elder_drake_kills),
+            chemtech_drake_kills = COALESCE(EXCLUDED.chemtech_drake_kills, game_teams.chemtech_drake_kills),
+            cloud_drake_kills    = COALESCE(EXCLUDED.cloud_drake_kills, game_teams.cloud_drake_kills),
+            hextech_drake_kills  = COALESCE(EXCLUDED.hextech_drake_kills, game_teams.hextech_drake_kills),
+            infernal_drake_kills = COALESCE(EXCLUDED.infernal_drake_kills, game_teams.infernal_drake_kills),
+            mountain_drake_kills = COALESCE(EXCLUDED.mountain_drake_kills, game_teams.mountain_drake_kills),
+            ocean_drake_kills    = COALESCE(EXCLUDED.ocean_drake_kills, game_teams.ocean_drake_kills),
+            first_blood          = COALESCE(EXCLUDED.first_blood, game_teams.first_blood),
+            first_tower          = COALESCE(EXCLUDED.first_tower, game_teams.first_tower),
+            first_inhibitor      = COALESCE(EXCLUDED.first_inhibitor, game_teams.first_inhibitor),
+            first_baron          = COALESCE(EXCLUDED.first_baron, game_teams.first_baron),
+            first_dragon         = COALESCE(EXCLUDED.first_dragon, game_teams.first_dragon),
+            first_herald         = COALESCE(EXCLUDED.first_herald, game_teams.first_herald),
+            first_voidgrub       = COALESCE(EXCLUDED.first_voidgrub, game_teams.first_voidgrub),
+            first_atakhan        = COALESCE(EXCLUDED.first_atakhan, game_teams.first_atakhan)
         `, [game.id, teamId, color,
             gt.kills ?? null, gt.gold_earned ?? null,
             gt.tower_kills ?? null, gt.inhibitor_kills ?? null, gt.baron_kills ?? null,

@@ -1908,13 +1908,17 @@ async function autoBackfillIncomplete(pool) {
   }
 }
 
-// Auto-heal: matches marked as finished with at least one finished game that
-// has 0 rows in game_players. Root cause: PandaScore marks the match finished
-// before its telemetry pipeline has published player-per-game data (frequent
-// for tier-3 ERLs like LES/LFL/LRS). Detects both fully broken matches (no
-// telemetry on any game) and partial ones (e.g. game 1 has data, game 2 does
-// not). We retry up to 7 days after kickoff — anything older is treated as
-// permanent data rot and left alone.
+// Auto-heal: matches marked as finished with broken stats. Detecta dos
+// patrones distintos:
+//   1) no_players       → games sin filas en game_players (delay de telemetria
+//                         de PandaScore, frecuente en tier-3 ERLs)
+//   2) broken_team_stats → games con filas en game_teams pero todas con kills=0
+//                         y todas las flags first_* en false. Causado por el
+//                         antiguo bug del ON CONFLICT DO NOTHING en
+//                         fetch-to-postgres.js (ya arreglado, pero quedan
+//                         registros muertos que hay que reingestar).
+// Ventana de 30 dias para cubrir games con bug viejo; nada mas antiguo se
+// considera data rot permanente y se deja.
 async function autoHealBrokenMatches(pool) {
   try {
     const { rows: broken } = await pool.query(`
@@ -1923,24 +1927,47 @@ async function autoHealBrokenMatches(pool) {
       WHERE m.status = 'finished'
         AND m.games_ingested_at IS NOT NULL
         AND m.games_ingested_at < NOW() - INTERVAL '5 minutes'
-        AND m.begin_at > NOW() - INTERVAL '7 days'
+        AND m.begin_at > NOW() - INTERVAL '30 days'
         AND m.detailed_stats = true
-        AND EXISTS (
-          SELECT 1 FROM games g
-          WHERE g.match_id = m.id
-            AND g.finished = true
-            AND g.length > 60
-            AND NOT EXISTS (
-              SELECT 1 FROM game_players gp WHERE gp.game_id = g.id
-            )
+        AND (
+          -- 1) games sin player telemetry
+          EXISTS (
+            SELECT 1 FROM games g
+            WHERE g.match_id = m.id
+              AND g.finished = true
+              AND g.length > 60
+              AND NOT EXISTS (
+                SELECT 1 FROM game_players gp WHERE gp.game_id = g.id
+              )
+          )
+          -- 2) games con game_teams roto (kills=0 + ninguna flag first_*)
+          OR EXISTS (
+            SELECT 1
+            FROM games g
+            WHERE g.match_id = m.id
+              AND g.finished = true
+              AND g.length > 300
+              AND (
+                SELECT COALESCE(SUM(gt.kills), 0) +
+                       COUNT(*) FILTER (
+                         WHERE gt.first_blood OR gt.first_dragon OR gt.first_herald
+                            OR gt.first_tower  OR gt.first_baron
+                       )
+                FROM game_teams gt
+                WHERE gt.game_id = g.id
+              ) = 0
+              AND EXISTS (
+                SELECT 1 FROM game_teams gt2 WHERE gt2.game_id = g.id
+              )
+          )
         )
       ORDER BY m.begin_at DESC
-      LIMIT 20
+      LIMIT 30
     `);
 
     if (broken.length === 0) return;
 
-    log(`  Auto-heal: ${broken.length} recent match(es) without player telemetry`);
+    log(`  Auto-heal: ${broken.length} recent match(es) with broken stats (missing players or empty game_teams)`);
     for (const m of broken) {
       log(`    Re-ingesting match ${m.match_id} (${m.name})...`);
 
