@@ -261,6 +261,13 @@ export async function getOverviewPg(req, res) {
   for (const s of sideRows) {
     const g = Number(s.games) || 1;
     sideMap[s.color] = {
+      games: Number(s.games) || 0,
+      wins: Number(s.wins) || 0,
+      fb_count: Number(s.fb) || 0,
+      fd_count: Number(s.fd) || 0,
+      fh_count: Number(s.fh) || 0,
+      ft_count: Number(s.ft) || 0,
+      fba_count: Number(s.fba) || 0,
       win_rate: rnd(s.wins / g * 100, 1),
       first_blood_rate: rnd(s.fb / g * 100, 1),
       first_dragon_rate: rnd(s.fd / g * 100, 1),

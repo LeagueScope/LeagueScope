@@ -463,7 +463,8 @@ export async function getPlayerByNamePg(req, res) {
     pgDb.query(`
       SELECT pcs.champion_id, pcs.champion_name,
              pcs.games, pcs.wins, pcs.losses, pcs.win_rate,
-             pcs.kills_avg, pcs.deaths_avg, pcs.assists_avg, pcs.kda, pcs.dpm
+             pcs.kills_avg, pcs.deaths_avg, pcs.assists_avg, pcs.kda,
+             pcs.dpm, pcs.kill_participation
       FROM player_champion_stats pcs
       WHERE pcs.player_id = $1 AND pcs.serie_id = $2
       ORDER BY pcs.games DESC
@@ -608,10 +609,14 @@ export async function getPlayerByNamePg(req, res) {
           THEN ROUND(((SUM(gp.kills) + SUM(gp.assists))::numeric / SUM(gp.deaths)), 2)
           ELSE SUM(gp.kills) + SUM(gp.assists)
         END AS kda,
-        ROUND(AVG(CASE WHEN g.length > 60 THEN gp.total_damage_dealt_to_champions / (g.length / 60.0) END)::numeric, 0) AS dpm
+        ROUND(AVG(CASE WHEN g.length > 60 THEN gp.total_damage_dealt_to_champions / (g.length / 60.0) END)::numeric, 0) AS dpm,
+        ROUND(AVG(CASE WHEN team_kills.tk > 0 THEN (gp.kills + gp.assists)::numeric / team_kills.tk * 100 ELSE 0 END), 1) AS kill_participation
       FROM game_players gp
       JOIN games g ON g.id = gp.game_id
       JOIN champion_aliases ca ON ca.pandascore_id = gp.champion_id
+      LEFT JOIN LATERAL (
+        SELECT SUM(gp2.kills) AS tk FROM game_players gp2 WHERE gp2.game_id = gp.game_id AND gp2.team_id = gp.team_id
+      ) team_kills ON true
       WHERE gp.player_id = $1 AND g.serie_id = $2 ${sf}
         AND g.finished = true AND g.length > 60
       GROUP BY gp.champion_id, ca.name
@@ -711,6 +716,7 @@ export async function getPlayerByNamePg(req, res) {
       avg_deaths: rnd(cs.deaths_avg, 1),
       avg_assists: rnd(cs.assists_avg, 1),
       avg_dpm: rnd(cs.dpm, 0),
+      kill_participation: cs.kill_participation != null ? rnd(cs.kill_participation, 1) : null,
     };
   });
 

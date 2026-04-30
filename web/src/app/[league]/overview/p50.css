@@ -841,7 +841,27 @@
   color: #8d9db3;
   text-transform: uppercase;
   letter-spacing: 1px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
+
+.p50-side-lbl-text {
+  flex: 0 0 auto;
+}
+
+.p50-side-lbl-counts {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #8d9db3;
+}
+
+.p50-side-count.blue    { color: #60a5fa; }
+.p50-side-count.red     { color: #f87171; }
+.p50-side-count.neutral { color: #fbbf24; }
+.p50-side-count-sep     { color: #8d9db3; padding: 0 2px; }
 
 .p50-side-bar-wrap {
   display: flex;

@@ -759,7 +759,8 @@
 
 .p40-champ-hdr {
   display: grid;
-  grid-template-columns: 1fr 40px 50px 50px;
+  grid-template-columns: 1fr 36px 48px 44px 50px 50px;
+  gap: 6px;
   padding: 12px 8px 8px;
   font-size: 10px; font-weight: 800;
   color: var(--p40-muted);
@@ -774,12 +775,33 @@
 
 .p40-champ-row {
   display: grid;
-  grid-template-columns: 1fr 40px 50px 50px;
+  grid-template-columns: 1fr 36px 48px 44px 50px 50px;
+  gap: 6px;
   align-items: center;
   padding: 8px;
   border-bottom: 1px solid var(--p40-border);
   cursor: pointer;
   transition: background 0.15s;
+}
+
+.p40-champ-kp,
+.p40-champ-dpm {
+  font-size: 12px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  color: var(--p40-secondary);
+}
+
+/* En mobile/tablet ocultamos KP% y DPM para que la card siga siendo legible */
+@media (max-width: 900px) {
+  .p40-champ-hdr,
+  .p40-champ-row {
+    grid-template-columns: 1fr 40px 50px 50px;
+  }
+  .p40-champ-hdr-extra,
+  .p40-champ-extra {
+    display: none;
+  }
 }
 
 .p40-champ-row:hover {

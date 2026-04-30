@@ -17,6 +17,8 @@ interface Champion {
   games?: number;
   kda?: string | number;
   win_rate?: string | number;
+  kill_participation?: string | number;
+  avg_dpm?: string | number;
 }
 
 interface Keystone {
@@ -590,9 +592,9 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
                   <span className="p40-fb-val danger"><AnimatedNumber value={player.first_blood_victim ?? 0} decimals={0} /></span>
                   <span className="p40-fb-lbl">FB DEATHS</span>
                 </div>
-                <div className="p40-fb-item">
+                <div className="p40-fb-item" title="Participación en First Blood (kills + asistencias)">
                   <span className="p40-fb-val">{player.fb_rate != null ? <><AnimatedNumber value={Number(player.fb_rate)} decimals={1} />%</> : '—'}</span>
-                  <span className="p40-fb-lbl">FB RATE</span>
+                  <span className="p40-fb-lbl">FB PART.</span>
                 </div>
               </div>
               <div className="p40-multikills">
@@ -820,6 +822,8 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
               <span>CAMPEÓN</span>
               <span className="p40-champ-hdr-c">G</span>
               <span className="p40-champ-hdr-c">KDA</span>
+              <span className="p40-champ-hdr-c p40-champ-hdr-extra" title="Kill Participation">KP%</span>
+              <span className="p40-champ-hdr-c p40-champ-hdr-extra" title="Damage per minute">DPM</span>
               <span className="p40-champ-hdr-r">WR</span>
             </div>
             {player.champions_played?.slice(0, 8).map((c, i) => (
@@ -836,6 +840,8 @@ export default function PlayerProfileClient({ league, name, accent }: Props): Re
                 </div>
                 <span className="p40-champ-games"><AnimatedNumber value={c.games ?? 0} decimals={0} /></span>
                 <span className="p40-champ-kda">{c.kda != null ? <AnimatedNumber value={Number(c.kda)} decimals={2} /> : '—'}</span>
+                <span className="p40-champ-kp p40-champ-extra">{c.kill_participation != null ? <><AnimatedNumber value={Number(c.kill_participation)} decimals={0} />%</> : '—'}</span>
+                <span className="p40-champ-dpm p40-champ-extra">{c.avg_dpm != null ? <AnimatedNumber value={Number(c.avg_dpm)} decimals={0} /> : '—'}</span>
                 <span className={`p40-champ-wr ${getWinRateClass(c.win_rate as any)}`}>{c.win_rate != null ? <><AnimatedNumber value={Number(c.win_rate)} decimals={1} />%</> : '—'}</span>
               </div>
             ))}

@@ -1,6 +1,8 @@
-/* ============================================
-   ABOUT -- Editorial institucional
-   ============================================ */
+/* ============================================================
+   ABOUT — Editorial layout
+   Inspirado en revistas largas: numeración por sección, drop
+   caps, pull quotes, lead paragraph y manifiesto en cuadrícula
+   ============================================================ */
 
 .abt {
   font-family: 'Inter', -apple-system, sans-serif;
@@ -8,86 +10,347 @@
   min-height: 100vh;
 }
 
-/* -- Hero ------------------------------------------------ */
+/* ----------------------------------------------------------
+   HERO
+   ---------------------------------------------------------- */
 .abt-hero {
   text-align: center;
-  padding: 80px 32px 60px;
-  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  padding: 96px 32px 72px;
+  border-bottom: 1px solid var(--border-card, rgba(255, 255, 255, 0.08));
+  position: relative;
+}
+
+.abt-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent, #f0a500);
+  margin-bottom: 32px;
 }
 
 .abt-logo {
-  width: 56px; height: 56px; object-fit: contain; margin-bottom: 24px;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin: 0 auto 28px;
+  display: block;
 }
 
 .abt-hero h1 {
-  font-size: 42px; font-weight: 900; letter-spacing: -1.5px;
-  margin: 0 0 12px 0;
-}
-
-.abt-claim {
-  font-size: 17px; color: var(--text-secondary, #94a3b8);
-  margin: 0 auto; line-height: 1.6; max-width: 560px;
-}
-
-.abt-tagline {
-  font-size: 11px; font-weight: 700; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--accent, #f0a500);
-  margin: 20px 0 0 0;
-}
-
-/* -- Body ------------------------------------------------ */
-.abt-body {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 0 32px 80px;
-}
-
-.abt-body section {
-  padding: 48px 0;
-  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.05));
-}
-
-.abt-body section:last-of-type { border-bottom: none; }
-
-.abt-body h2 {
-  font-size: 13px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 2.5px; color: var(--accent, #f0a500);
-  margin: 0 0 24px 0;
-}
-
-.abt-body h3 {
-  font-size: 18px; font-weight: 700; color: var(--text-primary);
-  margin: 36px 0 18px 0; letter-spacing: -0.2px;
-}
-
-.abt-body p {
-  font-size: 17px; line-height: 1.9; color: var(--text-secondary, #94a3b8);
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1.05;
   margin: 0 0 18px 0;
 }
 
-.abt-body p:last-child { margin-bottom: 0; }
-.abt-body p strong { color: var(--text-primary); font-weight: 600; }
-.abt-body p em { color: var(--text-primary); font-style: italic; }
-
-/* -- Lists ----------------------------------------------- */
-.abt-body ul {
-  list-style: none; padding: 0; margin: 16px 0 0 0;
+.abt-claim {
+  font-size: 19px;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 auto;
+  line-height: 1.55;
+  max-width: 600px;
 }
 
-.abt-body ul li {
-  font-size: 16px; line-height: 1.8; color: var(--text-secondary, #94a3b8);
-  padding: 10px 0; border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
+.abt-tagline {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent, #f0a500);
+  margin: 28px 0 0 0;
 }
 
-.abt-body ul li:last-child { border-bottom: none; }
-.abt-body ul li strong { color: var(--text-primary); font-weight: 600; }
+.abt-hero-meta {
+  display: flex;
+  justify-content: center;
+  gap: 56px;
+  margin-top: 56px;
+  flex-wrap: wrap;
+}
 
-/* -- Tiers ----------------------------------------------- */
+.abt-hero-meta span {
+  font-size: 11px;
+  color: var(--text-muted, #7a8ba0);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.abt-hero-meta strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+  font-style: normal;
+}
+
+/* ----------------------------------------------------------
+   LEAD — Magazine-style opening paragraph
+   ---------------------------------------------------------- */
+.abt-lead {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 72px 32px 24px;
+}
+
+.abt-lead p {
+  font-size: 22px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  font-weight: 400;
+  letter-spacing: -0.2px;
+  margin: 0 auto;
+  text-align: center;
+  max-width: 680px;
+}
+
+/* ----------------------------------------------------------
+   BODY
+   ---------------------------------------------------------- */
+.abt-body {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 32px 100px;
+}
+
+.abt-body section {
+  padding: 64px 0;
+  border-bottom: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
+}
+
+.abt-body section:last-of-type {
+  border-bottom: none;
+}
+
+/* ----------------------------------------------------------
+   EYEBROW + SECTION NUMBER
+   ---------------------------------------------------------- */
+.abt-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent, #f0a500);
+  margin-bottom: 18px;
+}
+
+.abt-num {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--accent, #f0a500);
+  letter-spacing: 0;
+  padding-right: 14px;
+  border-right: 1px solid var(--border-card, rgba(255, 255, 255, 0.12));
+  text-transform: none;
+}
+
+/* ----------------------------------------------------------
+   HEADINGS
+   ---------------------------------------------------------- */
+.abt-body h2 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+  margin: 0 0 32px 0;
+  line-height: 1.18;
+  text-align: center;
+}
+
+.abt-body h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 44px 0 18px 0;
+  letter-spacing: -0.2px;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------
+   PARAGRAPHS
+   ---------------------------------------------------------- */
+.abt-body p {
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 20px 0;
+  text-align: center;
+  max-width: 620px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.abt-body p:last-child {
+  margin-bottom: 0;
+}
+
+.abt-body p strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.abt-body p em {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+/* ----------------------------------------------------------
+   DROP CAP — primer párrafo de cada sección (centrado)
+   ---------------------------------------------------------- */
+.abt-dropcap {
+  font-size: 19px !important;
+  color: var(--text-primary) !important;
+  line-height: 1.75 !important;
+  text-align: center !important;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  letter-spacing: -0.1px;
+}
+
+.abt-dropcap::first-letter {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent, #f0a500);
+  font-style: normal;
+}
+
+/* ----------------------------------------------------------
+   PULL QUOTE — centrado, con regla fina arriba/abajo
+   ---------------------------------------------------------- */
+.abt-pull {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 22px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--text-primary);
+  text-align: center;
+  border: none;
+  border-top: 1px solid var(--accent, #f0a500);
+  border-bottom: 1px solid var(--accent, #f0a500);
+  padding: 28px 24px;
+  margin: 40px auto 8px auto;
+  max-width: 600px;
+  letter-spacing: -0.2px;
+}
+
+/* ----------------------------------------------------------
+   PRINCIPLES (Manifiesto — listado editorial)
+   ---------------------------------------------------------- */
+.abt-principles {
+  list-style: none;
+  margin: 32px 0 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
+}
+
+.abt-principle {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 28px;
+  align-items: start;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
+}
+
+.abt-principle-num {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 32px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--accent, #f0a500);
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: left;
+  padding-top: 4px;
+}
+
+.abt-principle-body {
+  min-width: 0;
+}
+
+.abt-principle h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  letter-spacing: -0.2px;
+  text-align: left;
+}
+
+.abt-principle p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  text-align: left;
+  max-width: none;
+}
+
+/* ----------------------------------------------------------
+   THANKS — listado de gestos de agradecimiento
+   ---------------------------------------------------------- */
+.abt-thanks {
+  list-style: none;
+  margin: 16px 0 0 0;
+  padding: 0;
+}
+
+.abt-thanks li {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--text-secondary, #94a3b8);
+  padding: 18px 0 18px 22px;
+  border-top: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
+  position: relative;
+}
+
+.abt-thanks li:last-child {
+  border-bottom: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
+}
+
+.abt-thanks li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 28px;
+  width: 8px;
+  height: 1px;
+  background: var(--accent, #f0a500);
+}
+
+.abt-thanks li strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.abt-thanks {
+  text-align: left;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ----------------------------------------------------------
+   TIERS (legado — actualmente no se usa)
+   ---------------------------------------------------------- */
 .abt-tiers {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 1px; margin: 24px 0;
-  background: var(--border-inner, rgba(255,255,255,0.05));
-  border: 1px solid var(--border-inner, rgba(255,255,255,0.05));
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  margin: 28px 0;
+  background: var(--border-inner, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-inner, rgba(255, 255, 255, 0.05));
 }
 
 .abt-tier {
@@ -95,116 +358,331 @@
   padding: 28px 24px;
 }
 
-.abt-tier-open { border-left: 1px dashed var(--border-card, rgba(255,255,255,0.08)); }
+.abt-tier-open {
+  border-left: 1px dashed var(--border-card, rgba(255, 255, 255, 0.08));
+}
 
 .abt-tier-top {
-  display: flex; justify-content: space-between; align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   margin-bottom: 16px;
 }
 
 .abt-tier-name {
-  font-size: 13px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1px; color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-primary);
 }
 
 .abt-tier-price {
-  font-size: 22px; font-weight: 900; color: var(--accent, #f0a500);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent, #f0a500);
   letter-spacing: -0.5px;
 }
 
 .abt-tier-price small {
-  font-size: 12px; font-weight: 500; color: var(--text-muted, #64748b);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
 }
 
 .abt-tier-body {
-  font-size: 13px; line-height: 1.8; color: var(--text-muted, #64748b);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-muted, #64748b);
 }
 
-/* -- CTA ------------------------------------------------- */
+.abt-tier-body strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------
+   CTA BUTTONS
+   ---------------------------------------------------------- */
 .abt-cta {
-  display: flex; gap: 12px; margin: 28px 0 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 28px 0 0 0;
 }
 
 .abt-btn {
-  display: inline-flex; align-items: center;
+  display: inline-flex;
+  align-items: center;
   padding: 11px 28px;
-  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.12));
   border-radius: 2px;
-  color: var(--text-primary); font-weight: 600; font-size: 13px;
-  text-decoration: none; transition: all 0.15s; letter-spacing: 0.3px;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
 }
 
-.abt-btn:hover { border-color: var(--accent); color: var(--accent); }
+.abt-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 .abt-btn-primary {
-  background: var(--accent, #f0a500); border-color: var(--accent);
-  color: #0e1117; font-weight: 700;
+  background: var(--accent, #f0a500);
+  border-color: var(--accent);
+  color: #0e1117;
+  font-weight: 700;
 }
 
-.abt-btn-primary:hover { opacity: 0.9; color: #0e1117; }
+.abt-btn-primary:hover {
+  opacity: 0.9;
+  color: #0e1117;
+}
 
-/* -- Solidario highlight --------------------------------- */
-.abt-solidario p:last-child {
+/* ----------------------------------------------------------
+   SOLIDARIO highlight
+   ---------------------------------------------------------- */
+.abt-solidario {
+  position: relative;
+}
+
+.abt-solidario h2 {
   color: var(--text-primary);
-  font-weight: 500;
 }
 
-/* -- Wall of Fame ---------------------------------------- */
+/* ----------------------------------------------------------
+   WALL OF FAME
+   ---------------------------------------------------------- */
 .abt-wall {
-  font-size: 15px; line-height: 1.8;
-  color: var(--text-muted, #64748b);
-  text-align: center; padding: 48px 0;
-  border: 1px dashed var(--border-card, rgba(255,255,255,0.08));
-  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-muted, #7a8ba0);
+  text-align: center;
+  padding: 56px 24px;
+  border: 1px dashed var(--border-card, rgba(255, 255, 255, 0.12));
+  margin-top: 16px;
+  font-style: italic;
 }
 
-.abt-wall strong { color: var(--accent); font-weight: 600; }
+.abt-wall strong {
+  color: var(--accent);
+  font-weight: 600;
+  font-style: normal;
+}
 
-/* -- Contact --------------------------------------------- */
-.abt-contact { text-align: center; }
-
+/* ----------------------------------------------------------
+   CONTACT
+   ---------------------------------------------------------- */
 .abt-links {
-  display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 24px;
 }
 
 .abt-social-link {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 14px; font-weight: 600;
-  color: var(--text-secondary); text-decoration: none;
-  transition: opacity 0.2s; padding-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: opacity 0.2s, border-color 0.2s;
+  padding-bottom: 2px;
   border-bottom: 1px solid transparent;
 }
 
-.abt-social-link:hover { opacity: 0.8; border-bottom-color: var(--accent); }
+.abt-social-link:hover {
+  opacity: 0.85;
+  border-bottom-color: var(--accent);
+}
 
-/* -- Footer ---------------------------------------------- */
+/* ----------------------------------------------------------
+   FOOTER
+   ---------------------------------------------------------- */
 .abt-footer {
-  margin-top: 48px; padding-top: 32px;
-  border-top: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  margin-top: 56px;
+  padding-top: 36px;
+  border-top: 1px solid var(--border-card, rgba(255, 255, 255, 0.08));
   text-align: center;
-  font-size: 14px; color: var(--text-muted, #64748b);
-  line-height: 1.65;
+  color: var(--text-muted, #7a8ba0);
 }
 
 .abt-footer span {
-  display: block; margin-top: 12px;
-  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-  font-weight: 700; font-style: normal;
+  display: block;
+  margin-top: 14px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-style: normal;
 }
 
 .abt-quote {
-  font-size: 16px; line-height: 1.8;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1.7;
   color: var(--text-secondary, #94a3b8);
-  font-style: italic; margin: 0 0 8px 0;
+  font-style: italic;
+  margin: 0 auto 8px auto;
+  max-width: 560px;
+  text-align: center;
 }
 
-/* -- Responsive ------------------------------------------ */
-@media (max-width: 640px) {
-  .abt-hero { padding: 48px 20px 40px; }
-  .abt-hero h1 { font-size: 30px; }
-  .abt-body { padding: 0 20px 60px; }
-  .abt-body section { padding: 32px 0; }
-  .abt-tiers { grid-template-columns: 1fr; }
-  .abt-cta { flex-direction: column; }
-  .abt-links { flex-direction: column; align-items: center; gap: 12px; }
+.abt-footer .abt-quote-author {
+  display: block;
+  color: var(--accent, #f0a500);
+  margin-top: 14px;
+  margin-bottom: 18px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-style: normal;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------
+   RESPONSIVE
+   ---------------------------------------------------------- */
+@media (max-width: 768px) {
+  .abt-hero {
+    padding: 64px 20px 48px;
+  }
+
+  .abt-hero h1 {
+    font-size: 38px;
+    letter-spacing: -1.2px;
+  }
+
+  .abt-claim {
+    font-size: 17px;
+  }
+
+  .abt-hero-meta {
+    gap: 28px;
+    margin-top: 40px;
+  }
+
+  .abt-hero-meta strong {
+    font-size: 22px;
+  }
+
+  .abt-hero-meta span {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+  }
+
+  .abt-lead {
+    padding: 48px 20px 16px;
+  }
+
+  .abt-lead p {
+    font-size: 19px;
+    line-height: 1.6;
+  }
+
+  .abt-body {
+    padding: 0 20px 64px;
+  }
+
+  .abt-body section {
+    padding: 48px 0;
+  }
+
+  .abt-body h2 {
+    font-size: 26px;
+    letter-spacing: -0.6px;
+    margin-bottom: 24px;
+  }
+
+  .abt-body h3 {
+    font-size: 17px;
+    margin: 32px 0 14px 0;
+  }
+
+  .abt-body p {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .abt-dropcap {
+    font-size: 17px !important;
+  }
+
+  .abt-dropcap::first-letter {
+    font-size: 52px;
+    margin: 6px 10px 0 0;
+  }
+
+  .abt-pull {
+    font-size: 19px;
+    padding-left: 20px;
+    margin: 32px 0 8px 0;
+  }
+
+  .abt-principle {
+    grid-template-columns: 44px 1fr;
+    gap: 18px;
+    padding: 24px 0;
+  }
+
+  .abt-principle-num {
+    font-size: 26px;
+  }
+
+  .abt-principle h3 {
+    font-size: 16px;
+  }
+
+  .abt-principle p {
+    font-size: 14px;
+  }
+
+  .abt-tiers {
+    grid-template-columns: 1fr;
+  }
+
+  .abt-tier-open {
+    border-left: none;
+    border-top: 1px dashed var(--border-card, rgba(255, 255, 255, 0.08));
+  }
+
+  .abt-cta {
+    flex-direction: column;
+  }
+
+  .abt-cta .abt-btn {
+    justify-content: center;
+  }
+
+  .abt-links {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .abt-hero h1 {
+    font-size: 32px;
+  }
+
+  .abt-hero-meta {
+    gap: 20px;
+  }
+
+  .abt-eyebrow {
+    font-size: 10px;
+    letter-spacing: 2px;
+    gap: 10px;
+  }
+
+  .abt-num {
+    font-size: 13px;
+    padding-right: 10px;
+  }
 }

@@ -16,11 +16,23 @@ import './p50.css';
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ── Types for the API response ────────────────────────────────────────────
+interface SideStats {
+  win_rate?: number;
+  first_blood_rate?: number;
+  first_dragon_rate?: number;
+  first_herald_rate?: number;
+  first_tower_rate?: number;
+  first_baron_rate?: number;
+  games?: number;
+  wins?: number;
+  fb_count?: number;
+  fd_count?: number;
+  fh_count?: number;
+  ft_count?: number;
+  fba_count?: number;
+}
 interface OverviewTournament {
-  side_stats?: {
-    blue?: { win_rate?: number; first_blood_rate?: number; first_dragon_rate?: number; first_herald_rate?: number; first_tower_rate?: number; first_baron_rate?: number };
-    red?: { win_rate?: number; first_blood_rate?: number; first_dragon_rate?: number; first_herald_rate?: number; first_tower_rate?: number; first_baron_rate?: number };
-  };
+  side_stats?: { blue?: SideStats; red?: SideStats };
   dragons_by_type?: Record<string, number>;
 }
 
@@ -531,13 +543,21 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
   const dragons = tournament.dragons_by_type || {};
   const totalDragons = Object.values(dragons).reduce((a, b) => a + b, 0);
 
-  const sideStats: [string, number, number][] = [
-    ['Win Rate', blue.win_rate || 0, red.win_rate || 0],
-    ['First Blood', blue.first_blood_rate || 0, red.first_blood_rate || 0],
-    ['First Dragon', blue.first_dragon_rate || 0, red.first_dragon_rate || 0],
-    ['First Herald', blue.first_herald_rate || 0, red.first_herald_rate || 0],
-    ['First Tower', blue.first_tower_rate || 0, red.first_tower_rate || 0],
-    ['First Baron', blue.first_baron_rate || 0, red.first_baron_rate || 0],
+  // Total games del split (blue.games == red.games == total games finalizados)
+  const totalGames = Math.max(Number(blue.games) || 0, Number(red.games) || 0);
+  // Helper: para cada métrica devuelve [blueCount, redCount, neitherCount]
+  // neither = games donde nadie consiguió el objetivo (barra amarilla rellenando el hueco)
+  const triplet = (b: number, r: number): [number, number, number] => {
+    const n = Math.max(0, totalGames - (b + r));
+    return [b, r, n];
+  };
+  const sideStats: [string, number, number, number, number, number][] = [
+    ['Win Rate',     blue.win_rate || 0,           red.win_rate || 0,           ...triplet(blue.wins     || 0, red.wins     || 0)],
+    ['First Blood',  blue.first_blood_rate  || 0,  red.first_blood_rate  || 0,  ...triplet(blue.fb_count || 0, red.fb_count || 0)],
+    ['First Dragon', blue.first_dragon_rate || 0,  red.first_dragon_rate || 0,  ...triplet(blue.fd_count || 0, red.fd_count || 0)],
+    ['First Herald', blue.first_herald_rate || 0,  red.first_herald_rate || 0,  ...triplet(blue.fh_count || 0, red.fh_count || 0)],
+    ['First Tower',  blue.first_tower_rate  || 0,  red.first_tower_rate  || 0,  ...triplet(blue.ft_count || 0, red.ft_count || 0)],
+    ['First Baron',  blue.first_baron_rate  || 0,  red.first_baron_rate  || 0,  ...triplet(blue.fba_count|| 0, red.fba_count|| 0)],
   ];
 
   // ── Detect "no advanced stats" case: torneo sin telemetría detallada ──
@@ -601,9 +621,20 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
           <span className="p50-card-title">SIDE COMPARISON</span>
         </div>
         <div className="p50-card-body p50-sides">
-          {sideStats.map(([label, blueVal, redVal]) => (
+          {sideStats.map(([label, blueVal, redVal, blueCount, redCount, neitherCount]) => (
             <div className="p50-side-row" key={label}>
-              <div className="p50-side-lbl">{label}</div>
+              <div className="p50-side-lbl">
+                <span className="p50-side-lbl-text">{label}</span>
+                <span className="p50-side-lbl-counts">
+                  (<span className="p50-side-count blue">{blueCount}</span>
+                  <span className="p50-side-count-sep">–</span>
+                  {neitherCount > 0 && <>
+                    <span className="p50-side-count neutral">{neitherCount}</span>
+                    <span className="p50-side-count-sep">–</span>
+                  </>}
+                  <span className="p50-side-count red">{redCount}</span>)
+                </span>
+              </div>
               <div className="p50-side-bar-wrap">
                 <span className="p50-side-val blue"><AnimNum value={blueVal} decimals={1} suffix="%" /></span>
                 <div className="p50-side-bar">

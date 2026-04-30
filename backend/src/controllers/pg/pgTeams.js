@@ -889,7 +889,7 @@ export async function getTeamByAbbrPg(req, res) {
           JOIN match_opponents mo_team ON mo_team.match_id = m.id AND mo_team.team_id = $2
           JOIN match_opponents mo_opp  ON mo_opp.match_id  = m.id AND mo_opp.team_id != $2
           JOIN teams opp_t ON opp_t.id = mo_opp.team_id
-          WHERE m.serie_id = $1 AND m.tournament_id = $3
+          WHERE m.serie_id = $1 AND m.tournament_id = $3 AND m.status = 'finished'
           ORDER BY m.begin_at DESC
           LIMIT 20
         `, [serieId, teamId, ...stageParams])
@@ -907,7 +907,7 @@ export async function getTeamByAbbrPg(req, res) {
           JOIN match_opponents mo_team ON mo_team.match_id = m.id AND mo_team.team_id = $2
           JOIN match_opponents mo_opp  ON mo_opp.match_id  = m.id AND mo_opp.team_id != $2
           JOIN teams opp_t ON opp_t.id = mo_opp.team_id
-          WHERE m.serie_id = $1
+          WHERE m.serie_id = $1 AND m.status = 'finished'
           ORDER BY m.begin_at DESC
           LIMIT 20
         `, [serieId, teamId]),
