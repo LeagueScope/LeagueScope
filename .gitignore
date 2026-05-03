@@ -47,3 +47,7 @@ AUDITORIA_LIMPIEZA.md
 
 # Logos descargados localmente para plantillas de redes (no van al repo)
 team-logos/
+
+# Páginas en desarrollo que NO se suben al repo (mock data, work-in-progress)
+web/src/app/community/
+web/src/app/profile/
