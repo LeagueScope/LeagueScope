@@ -48,16 +48,22 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         ...(upstream.headers.get('cache-control')
           ? { 'Cache-Control': upstream.headers.get('cache-control')! }
           : {}),
-        // Debug header — remove after verifying proxy works
-        'X-Proxy-Target': target,
-        'X-Proxy-Status': String(upstream.status),
+        // Debug headers solo en dev (en producción exponen URL interna del backend)
+        ...(process.env.NODE_ENV === 'development' ? {
+          'X-Proxy-Target': target,
+          'X-Proxy-Status': String(upstream.status),
+        } : {}),
       },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[API Proxy] Failed to reach backend: ${target}`, message);
+    // En producción no exponemos URL interna ni mensaje detallado
+    const isDev = process.env.NODE_ENV === 'development';
     return NextResponse.json(
-      { error: 'Backend unreachable', detail: message, target, backendUrl: BACKEND_URL },
+      isDev
+        ? { error: 'Backend unreachable', detail: message, target, backendUrl: BACKEND_URL }
+        : { error: 'Service temporarily unavailable' },
       { status: 502 },
     );
   }
