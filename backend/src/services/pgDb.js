@@ -7,6 +7,9 @@
  */
 
 import pg from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const { Pool } = pg;
 
@@ -28,8 +31,18 @@ const poolConfig = {
 };
 
 if (useSSL) {
-  poolConfig.ssl = { rejectUnauthorized: false };
-  console.log('[pgDb] SSL enabled (RDS detected)');
+  // Verificar el certificado del servidor contra el bundle de CA de AWS RDS.
+  // Sin esto, la conexión va cifrada pero es vulnerable a MITM.
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const caPath = path.join(__dirname, '..', '..', 'certs', 'eu-west-3-bundle.pem');
+  try {
+    const ca = fs.readFileSync(caPath, 'utf8');
+    poolConfig.ssl = { rejectUnauthorized: true, ca };
+    console.log('[pgDb] SSL enabled with verified RDS CA bundle');
+  } catch {
+    console.warn(`[pgDb] WARN: RDS CA bundle not found at ${caPath} — falling back to unverified SSL`);
+    poolConfig.ssl = { rejectUnauthorized: false };
+  }
 }
 
 const pool = new Pool(poolConfig);

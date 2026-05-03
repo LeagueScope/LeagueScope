@@ -5,11 +5,27 @@
 
 type JsonLdProps = { data: Record<string, unknown> };
 
+// Escapa caracteres que romperían el <script> tag o el JSON-in-HTML embedding.
+// JSON.stringify por defecto NO escapa "</script>" ni los separadores Unicode
+// U+2028 / U+2029, así que un nombre de jugador con "</script><script>..." en
+// la URL inyectaría HTML.
+function safeJsonLd(data: Record<string, unknown>): string {
+  // JSON.stringify por defecto NO escapa los separadores de linea/parrafo
+  // U+2028 / U+2029, que rompen un <script> tag inline. Tampoco escapa "<",
+  // permitiendo "</script>" en los datos. Los blindamos antes de inyectar.
+  const LS = String.fromCharCode(0x2028);
+  const PS = String.fromCharCode(0x2029);
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .split(LS).join('\\u2028')
+    .split(PS).join('\\u2029');
+}
+
 export function JsonLd({ data }: JsonLdProps) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }

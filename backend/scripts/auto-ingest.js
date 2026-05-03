@@ -149,6 +149,13 @@ async function pickLeagues(pool, limit) {
 // ─── Run ingestion for a single league ─────────────────────────────────────
 function runIngest(league, year, extraFlags = []) {
   return new Promise((resolve, reject) => {
+    // Defensa: el `league` viene de la tabla ingestion_state (no escribible
+    // desde el frontend público, pero un compromiso de la DB no debe escalar
+    // a RCE). Si no es un slug válido, abortar antes de spawn.
+    if (!/^[a-z0-9_-]{2,40}$/i.test(league)) {
+      return reject(new Error(`Invalid league slug: ${league}`));
+    }
+
     const cmdArgs = [
       SCRIPT_PATH,
       '--league', league,

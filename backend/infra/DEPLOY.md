@@ -23,8 +23,10 @@ Run this once to create the `ingestion_state` tracking table:
 
 ```bash
 cd backend
-PG_DSN="postgresql://leagueadmin:R...@leaguescopedb...rds.amazonaws.com:5432/postgres" \
-  node -e "
+# IMPORTANTE: nunca commitees PG_DSN al repo. Léelo de un .env local
+# (ya en .gitignore) o exportalo en la sesión:
+#   export PG_DSN="postgresql://USER:PASS@HOST:5432/DB"
+node -e "
     import pg from 'pg';
     import fs from 'fs';
     const pool = new pg.Pool({ connectionString: process.env.PG_DSN, ssl: { rejectUnauthorized: false } });
@@ -54,13 +56,15 @@ cd infra
 sam build --template template.yaml
 
 # Deploy (first time — creates the stack)
+# Lee PG_DSN y PANDASCORE_TOKEN de tu .env local antes de ejecutar:
+#   set -a; source ../.env; set +a
 sam deploy \
   --stack-name leaguescope-auto-ingest \
   --region eu-west-3 \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    PgDsn="postgresql://leagueadmin:R%3F%3AHZTn%3Fs4%212tTTs6diOpxe_F2Z%5B@leaguescopedb.chuge26sqef9.eu-west-3.rds.amazonaws.com:5432/postgres" \
-    PandascoreToken="Pv4BE43E6bY5PUnarzsxWBHpu569Jp3YFwtFpK1sfT6szQc5" \
+    PgDsn="$PG_DSN" \
+    PandascoreToken="$PANDASCORE_TOKEN" \
     ScheduleRate="rate(15 minutes)"
 
 # Subsequent deploys
