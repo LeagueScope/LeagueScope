@@ -40,12 +40,13 @@ const __dirname = path.dirname(__filename);
 
 const REGION = process.env.AWS_REGION || 'eu-west-3';
 const FROM = process.env.ALERTS_FROM || 'LeagueScope Alerts <alerts@leaguescope.com>';
-const TO = process.env.ALERTS_TO || 'leaguescopeweb@gmail.com';
+const TO = process.env.ALERTS_TO || 'contact@leaguescope.com';
 const CONFIG_SET = process.env.SES_CONFIG_SET || 'leaguescope-default';
 const AUTO_INGEST_FN = process.env.AUTO_INGEST_FN || 'leaguescope-auto-ingest';
 const MATCH_POLLER_FN = process.env.MATCH_POLLER_FN || 'leaguescope-match-poller';
 const HOURLY_LIMIT = parseInt(process.env.PANDASCORE_HOURLY_LIMIT || '10000', 10);
-const WINDOW_LIMIT = HOURLY_LIMIT * 8; // 8h quota
+// El límite total de la ventana se calcula dinámicamente en handler() en función
+// del tamaño real de la ventana (8h para slots 00/08/16, 168h para weekly).
 
 const ses = new SESv2Client({ region: REGION });
 const cw = new CloudWatchClient({ region: REGION });
@@ -159,6 +160,12 @@ function fmtRelativeHours(iso) {
 // ─── Ventana del correo ─────────────────────────────────────────────────────
 // Calcula [start, end) en UTC para una ventana alineada a los slots 00/08/16 Madrid.
 function computeWindow(now, slotHintMadrid) {
+  // Modo semanal: ventana de 7 días terminando en el último lunes 08:00 Madrid
+  if (slotHintMadrid === 'weekly') {
+    const end = alignToLastMondayMadrid8(now);
+    const start = new Date(end.getTime() - 7 * 24 * 3_600_000);
+    return { start, end, slot: 'weekly' };
+  }
   // Convertimos now a hora Madrid para decidir el slot actual.
   const madridNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
   let slot;
@@ -214,6 +221,22 @@ function alignUtcToMadridSlot(now, slot) {
   // el candidato más grande que sea <= now
   const valid = candidates.filter((c) => c.getTime() <= now.getTime()).sort((a, b) => b - a);
   return valid[0] || candidates[0];
+}
+
+// Devuelve el último lunes 08:00 Madrid en UTC (≤ now). Si "now" es lunes
+// y >=08:00 Madrid, devuelve el 08:00 de hoy; sino, retrocede al lunes anterior.
+function alignToLastMondayMadrid8(now) {
+  // Ancla: último 08:00 Madrid <= now (puede ser hoy o ayer)
+  const last8 = alignUtcToMadridSlot(now, '08');
+  // Día de la semana en Madrid de ese instante (0=domingo,1=lunes,...,6=sábado)
+  const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dowAbbr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid', weekday: 'short',
+  }).format(last8);
+  const dowMadrid = dowMap[dowAbbr] ?? 1; // fallback a Mon si algo falla
+  // Si ese 08:00 cae en lunes, perfecto. Si no, retrocedemos hasta el lunes anterior.
+  const daysSinceMon = (dowMadrid + 6) % 7; // Mon→0, Tue→1, ..., Sun→6
+  return new Date(last8.getTime() - daysSinceMon * 24 * 3_600_000);
 }
 
 function computeTzOffsetMinutes(tz, date) {
@@ -511,17 +534,22 @@ async function fetchPatchInfo(client) {
 
 // ─── CloudWatch ────────────────────────────────────────────────────────────
 async function getLambdaMetric(functionName, metricName, startTime, endTime) {
+  // Period dinámico según tamaño de la ventana:
+  //   ventana ≤ 8h  → Period 8h (1 datapoint)
+  //   ventana > 8h  → Period 1d (varios datapoints; sumamos en cliente)
+  const windowMs = endTime.getTime() - startTime.getTime();
+  const period = windowMs <= 8 * 3_600_000 ? 3600 * 8 : 86400;
   const cmd = new GetMetricStatisticsCommand({
     Namespace: 'AWS/Lambda',
     MetricName: metricName,
     Dimensions: [{ Name: 'FunctionName', Value: functionName }],
     StartTime: startTime,
     EndTime: endTime,
-    Period: 3600 * 8,
+    Period: period,
     Statistics: ['Sum'],
   });
   const res = await cw.send(cmd);
-  return res.Datapoints?.[0]?.Sum || 0;
+  return (res.Datapoints || []).reduce((acc, dp) => acc + (dp.Sum || 0), 0);
 }
 
 async function fetchCloudWatch(start, end) {
@@ -814,6 +842,10 @@ export async function handler(event) {
     ({ start, end, slot } = computeWindow(now, hintSlot));
   }
 
+  // Cuota PandaScore proporcional a la ventana (10000/h × horas de ventana)
+  const windowHours = (end.getTime() - start.getTime()) / 3_600_000;
+  const windowLimit = Math.round(HOURLY_LIMIT * windowHours);
+
   const client = await openPool();
   try {
     await ensureTables(client);
@@ -890,7 +922,7 @@ export async function handler(event) {
       start, end, slot, status,
       bandSections, patchActive, patchAge, patchRows,
       matchesInWindow, stats: windowStats, cwData,
-      ingestionState, failures,
+      ingestionState, failures, windowLimit,
     });
     const text = buildText({ slot, status, matchesInWindow, stats: windowStats, cwData, failures });
 
@@ -961,6 +993,11 @@ function inferSlotFromEnd(end) {
 }
 
 function buildSubject(slot, matches) {
+  if (slot === 'weekly') {
+    const finished = matches.filter((m) => m._classification === 'COMPLETO' || m._classification === 'PARCIAL' || m._classification === 'SOLO_RESULTADO');
+    if (matches.length === 0) return 'LeagueScope · Resumen semanal · sin actividad';
+    return `LeagueScope · Resumen semanal · ${finished.length} resultados · ${matches.length} partidos`;
+  }
   const finished = matches.filter((m) => m._classification === 'COMPLETO' || m._classification === 'PARCIAL' || m._classification === 'SOLO_RESULTADO');
   let lead = '';
   if (finished.length) {
@@ -992,7 +1029,7 @@ function buildSubject(slot, matches) {
   return `LeagueScope · ${slot}:00 · ${matches.length} ${matches.length === 1 ? 'partido' : 'partidos'}`;
 }
 
-function buildHtml({ start, end, slot, status, bandSections, patchActive, patchAge, patchRows, matchesInWindow, stats, cwData, ingestionState, failures }) {
+function buildHtml({ start, end, slot, status, bandSections, patchActive, patchAge, patchRows, matchesInWindow, stats, cwData, ingestionState, failures, windowLimit }) {
   const windowLabel = `${fmtMadrid(start)} → ${fmtMadrid(end)}  ·  ${fmtUtc(start)} → ${fmtUtc(end)}`;
   const today = new Date().toLocaleString('es-ES', {
     timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -1015,7 +1052,7 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
 
   const offseason = buildOffseasonBlock(ingestionState);
   const failuresBlock = buildFailuresBlock(failures);
-  const statusCards = buildStatusCards(stats, cwData, WINDOW_LIMIT);
+  const statusCards = buildStatusCards(stats, cwData, windowLimit);
 
   const consoleUrl = `https://${REGION}.console.aws.amazon.com/cloudwatch/home?region=${REGION}#dashboards:`;
 
@@ -1029,7 +1066,7 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:720px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
       <tr>
         <td style="background:${status.bg};border-left:3px solid ${status.accent};padding:22px 28px;">
-          <div style="font-size:11px;font-weight:600;color:${status.accent};text-transform:uppercase;letter-spacing:1.2px;">Informe ${esc(slot)}:00 · ${esc(status.label)}</div>
+          <div style="font-size:11px;font-weight:600;color:${status.accent};text-transform:uppercase;letter-spacing:1.2px;">${slot === 'weekly' ? 'Resumen semanal' : 'Informe ' + esc(slot) + ':00'} · ${esc(status.label)}</div>
           <h1 style="margin:6px 0 2px;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-0.2px;">LeagueScope</h1>
           <div style="font-size:13px;color:#475569;margin-top:2px;">${esc(today)}</div>
           <div style="font-size:12px;color:#64748b;margin-top:2px;font-variant-numeric:tabular-nums;">Ventana: ${esc(windowLabel)}</div>
@@ -1067,7 +1104,8 @@ function buildHtml({ start, end, slot, status, bandSections, patchActive, patchA
 
 function buildText({ slot, status, matchesInWindow, stats, cwData, failures }) {
   const lines = [];
-  lines.push(`LeagueScope · Informe ${slot}:00 · ${status.label}`);
+  const header = slot === 'weekly' ? 'Resumen semanal' : `Informe ${slot}:00`;
+  lines.push(`LeagueScope · ${header} · ${status.label}`);
   lines.push(`Partidos en ventana: ${matchesInWindow.length}`);
   lines.push(`Matches ingestados: ${fmtNum(stats.new_ingestions)}`);
   lines.push(`Games con frames: ${fmtNum(stats.games_with_frames)} / ${fmtNum(stats.games_total)}`);

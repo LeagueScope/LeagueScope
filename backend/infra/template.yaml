@@ -33,25 +33,13 @@ Parameters:
     Description: Verified SES sender (name + address) for alert emails
   AlertsRecipient:
     Type: String
-    Default: 'leaguescopeweb@gmail.com'
+    Default: 'contact@leaguescope.com'
     Description: Recipient email for CloudWatch alerts (must be SES-verified while in sandbox)
-  DigestSchedule:
+  DigestScheduleWeekly:
     Type: String
-    Default: 'cron(0 9 * * ? *)'
-    Description: (LEGACY) Cron for single 09:00 digest. Kept for backward-compat;
-                 the 8h cadence uses DigestSchedule00/08/16 below.
-  DigestSchedule00:
-    Type: String
-    Default: 'cron(0 0 * * ? *)'
-    Description: Cron (Europe/Madrid) para el correo de las 00:00. Cubre 16:00-00:00.
-  DigestSchedule08:
-    Type: String
-    Default: 'cron(0 8 * * ? *)'
-    Description: Cron (Europe/Madrid) para el correo de las 08:00. Cubre 00:00-08:00.
-  DigestSchedule16:
-    Type: String
-    Default: 'cron(0 16 * * ? *)'
-    Description: Cron (Europe/Madrid) para el correo de las 16:00. Cubre 08:00-16:00.
+    Default: 'cron(0 8 ? * MON *)'
+    Description: Cron (Europe/Madrid) para el correo semanal del lunes 08:00.
+                 Cubre los últimos 7 días + previsión inmediata.
   PandascoreHourlyLimit:
     Type: Number
     Default: 10000
@@ -255,14 +243,13 @@ Resources:
                 Resource: !GetAtt DailyDigestFunction.Arn
 
   # EventBridge Scheduler con tz nativo Europe/Madrid.
-  # Se disparan 3 schedules al día (00:00 / 08:00 / 16:00), cada uno pasa
-  # slotMadrid al Lambda para que calcule la ventana de 8h previa.
-  DailyDigestSchedule00:
+  # Un único schedule semanal: lunes 08:00 Madrid → resumen de los últimos 7 días.
+  DailyDigestScheduleWeekly:
     Type: AWS::Scheduler::Schedule
     Properties:
-      Name: leaguescope-digest-00
-      Description: Digest 8h — slot 00:00 Madrid (cubre 16:00-00:00 día anterior)
-      ScheduleExpression: !Ref DigestSchedule00
+      Name: leaguescope-digest-weekly
+      Description: Digest semanal — lunes 08:00 Madrid (cubre últimos 7 días)
+      ScheduleExpression: !Ref DigestScheduleWeekly
       ScheduleExpressionTimezone: Europe/Madrid
       FlexibleTimeWindow:
         Mode: 'OFF'
@@ -270,37 +257,7 @@ Resources:
       Target:
         Arn: !GetAtt DailyDigestFunction.Arn
         RoleArn: !GetAtt DailyDigestSchedulerRole.Arn
-        Input: '{"slotMadrid":"00"}'
-
-  DailyDigestSchedule08:
-    Type: AWS::Scheduler::Schedule
-    Properties:
-      Name: leaguescope-digest-08
-      Description: Digest 8h — slot 08:00 Madrid (cubre 00:00-08:00)
-      ScheduleExpression: !Ref DigestSchedule08
-      ScheduleExpressionTimezone: Europe/Madrid
-      FlexibleTimeWindow:
-        Mode: 'OFF'
-      State: ENABLED
-      Target:
-        Arn: !GetAtt DailyDigestFunction.Arn
-        RoleArn: !GetAtt DailyDigestSchedulerRole.Arn
-        Input: '{"slotMadrid":"08"}'
-
-  DailyDigestSchedule16:
-    Type: AWS::Scheduler::Schedule
-    Properties:
-      Name: leaguescope-digest-16
-      Description: Digest 8h — slot 16:00 Madrid (cubre 08:00-16:00)
-      ScheduleExpression: !Ref DigestSchedule16
-      ScheduleExpressionTimezone: Europe/Madrid
-      FlexibleTimeWindow:
-        Mode: 'OFF'
-      State: ENABLED
-      Target:
-        Arn: !GetAtt DailyDigestFunction.Arn
-        RoleArn: !GetAtt DailyDigestSchedulerRole.Arn
-        Input: '{"slotMadrid":"16"}'
+        Input: '{"slotMadrid":"weekly"}'
 
   # ═══════════════════════════════════════════════════════════════════════════
   # CloudWatch alarms: alert if a Lambda errors repeatedly

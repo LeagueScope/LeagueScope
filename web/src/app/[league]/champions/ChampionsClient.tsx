@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useRouter } from 'next/navigation';
 import { champImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import { cellHasData, cellVal, cellCls } from '@/lib/formatters';
@@ -10,6 +10,7 @@ import type { ChampionData } from './page';
 import { useFilters } from '@/context/FilterContext';
 import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
+import TableSearchInput, { buildSearchKeys, matchesSearch, normalizeSearch } from '@/app/components/TableSearchInput';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Champions Client — PRO VISION + Normal Table
@@ -107,6 +108,10 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [champions, setChampions] = useState(initialChampions);
+  const [searchTokens, setSearchTokens] = useState<string[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const searchKeys = useMemo(() => buildSearchKeys(searchTokens, searchInput), [searchTokens, searchInput]);
+  const deferredKeys = useDeferredValue(searchKeys);
 
   useEffect(() => {
     if (!filters.ready) return;
@@ -124,16 +129,25 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
     return () => { cancelled = true; };
   }, [league, filters.ready, filters.year, filters.split, filters.stage]);
 
-  const filtered = useMemo(() =>
-    posFilter === 'All'
+  const filtered = useMemo(() => {
+    const byRole = posFilter === 'All'
       ? champions
       : champions.filter(c => {
           if (c.position_breakdown && c.position_breakdown[posFilter] > 0) return true;
           if (c.position === posFilter) return true;
           return false;
-        }),
-    [champions, posFilter]
-  );
+        });
+    if (deferredKeys.length === 0) return byRole;
+    // OR sobre las keys, cada key con fallback compacto para "lee sin"/"k'sante"
+    return byRole.filter(c => {
+      const nameCompact = (c.name || '').replace(/[\s'.]+/g, '').toLowerCase();
+      return deferredKeys.some(k => {
+        if (matchesSearch(k, [c.name])) return true;
+        const kCompact = normalizeSearch(k).replace(/[\s'.]+/g, '');
+        return !!kCompact && nameCompact.includes(kCompact);
+      });
+    });
+  }, [champions, posFilter, deferredKeys]);
 
   const sorted = useMemo(() =>
     sortKey
@@ -228,6 +242,16 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
               </button>
             ))}
           </div>
+          <div className="p25-ed-filters-spacer" />
+          <TableSearchInput
+            prefix="p25-"
+            tokens={searchTokens}
+            onTokensChange={setSearchTokens}
+            input={searchInput}
+            onInputChange={setSearchInput}
+            placeholder="Buscar campeon... (Enter para anclar)"
+            ariaLabel="Buscar campeon"
+          />
         </div>
 
         {/* ── BODY: NORMAL ── */}
@@ -244,6 +268,13 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
               <span className="p25-ed-col-num">KDA</span>
             </div>
             <div className="p25-ed-tbody">
+              {filtered.length === 0 && (
+                <div className="p25-ed-empty">
+                  Sin resultados para {deferredKeys.map((k, i) => (
+                    <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                  ))}.
+                </div>
+              )}
               {filtered.map((c, i) => {
                 const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
                 const wrCls = c.win_rate != null ? getWinRateClass(c.win_rate) : '';
@@ -305,6 +336,15 @@ export default function ChampionsClient({ league, accent, initialChampions }: Pr
               </tr>
             </thead>
             <tbody>
+              {sorted.length === 0 && (
+                <tr>
+                  <td className="p25-ed-empty" colSpan={ALL_COLS.length + 2}>
+                    Sin resultados para {deferredKeys.map((k, i) => (
+                      <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                    ))}.
+                  </td>
+                </tr>
+              )}
               {sorted.map((c, i) => (
                 <tr
                   key={c.name}

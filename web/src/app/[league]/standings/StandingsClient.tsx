@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFilters } from '@/context/FilterContext';
 import { teamImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
+import TableSearchInput, { buildSearchKeys, matchesAnyKey } from '@/app/components/TableSearchInput';
 import type { TeamData } from './page';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -226,6 +227,10 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [teams, setTeams] = useState(initialTeams);
+  const [searchTokens, setSearchTokens] = useState<string[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const searchKeys = useMemo(() => buildSearchKeys(searchTokens, searchInput), [searchTokens, searchInput]);
+  const deferredKeys = useDeferredValue(searchKeys);
 
   useEffect(() => {
     if (!filters.ready) return;
@@ -249,16 +254,16 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
   };
 
   // Default sort: use series W/L + series WR when available (BO3+), else games
-  const defaultSorted = [...teams].sort((a, b) => {
+  const defaultSorted = useMemo(() => [...teams].sort((a, b) => {
     const aw = a.match_wins ?? a.wins;
     const bw = b.match_wins ?? b.wins;
     if (bw !== aw) return bw - aw;
     const awr = a.match_wr ?? a.win_rate;
     const bwr = b.match_wr ?? b.win_rate;
     return bwr - awr;
-  });
+  }), [teams]);
 
-  const sorted = sortKey
+  const sortedAll = useMemo(() => sortKey
     ? [...defaultSorted].sort((a, b) => {
         const va = (a[sortKey] as number | string) ?? -Infinity;
         const vb = (b[sortKey] as number | string) ?? -Infinity;
@@ -266,7 +271,14 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
           return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
         return sortDir === 'asc' ? (va as number) - (vb as number) : (vb as number) - (va as number);
       })
-    : defaultSorted;
+    : defaultSorted, [defaultSorted, sortKey, sortDir]);
+
+  // Search filter: OR sobre tokens + input activo. Cada key se compara contra
+  // team + abbr (normalizados, sin acentos).
+  const sorted = useMemo(() =>
+    sortedAll.filter(t => matchesAnyKey(deferredKeys, [t.team, t.abbr])),
+    [sortedAll, deferredKeys]
+  );
 
   // Streak — prefer series_history (BO3+) over game match_history
   const getStreak = (team: TeamData): { type: string; count: number } => {
@@ -323,10 +335,25 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
               {proVision && <span className="p20-pv-dot" />}
             </button>
             <div className="p20-ed-teamstat">
-              <span className="p20-ed-teamcount">{teams.length}</span>
+              <span className="p20-ed-teamcount">{sorted.length}</span>
               <span className="p20-ed-teamlbl">Equipos</span>
             </div>
           </div>
+        </div>
+
+        {/* ── Filter strip: search por equipo / abreviatura ── */}
+        <div className="p20-ed-filters">
+          <span className="p20-ed-filters-lbl">Filtrar</span>
+          <div className="p20-ed-filters-spacer" />
+          <TableSearchInput
+            prefix="p20-"
+            tokens={searchTokens}
+            onTokensChange={setSearchTokens}
+            input={searchInput}
+            onInputChange={setSearchInput}
+            placeholder="Buscar equipo... (Enter para anclar)"
+            ariaLabel="Buscar equipo"
+          />
         </div>
 
         {/* ── BODY: NORMAL ── */}
@@ -341,6 +368,13 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
               <span className="p20-ed-col-streak">Racha</span>
             </div>
             <div className="p20-ed-tbody">
+              {sorted.length === 0 && (
+                <div className="p20-ed-empty">
+                  Sin resultados para {deferredKeys.map((k, i) => (
+                    <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                  ))}.
+                </div>
+              )}
               {sorted.map((t, i) => {
                 const streak = getStreak(t);
                 const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
@@ -411,6 +445,15 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
                 </tr>
               </thead>
               <tbody>
+                {sorted.length === 0 && (
+                  <tr>
+                    <td className="p20-ed-empty" colSpan={ALL_COLS.length + 2}>
+                      Sin resultados para {deferredKeys.map((k, i) => (
+                        <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                      ))}.
+                    </td>
+                  </tr>
+                )}
                 {sorted.map((t, i) => (
                     <tr
                       key={t.abbr}

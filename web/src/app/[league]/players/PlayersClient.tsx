@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFilters } from '@/context/FilterContext';
@@ -8,6 +8,7 @@ import { teamImg, LEAGUE_LOGO } from '@/lib/constants';
 import { cellHasData, cellVal, cellCls } from '@/lib/formatters';
 import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
+import TableSearchInput, { buildSearchKeys, matchesAnyKey } from '@/app/components/TableSearchInput';
 import type { ColDef, AllCol } from '@/lib/formatters';
 import type { PlayerData } from './page';
 
@@ -175,6 +176,10 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [players, setPlayers] = useState(initialPlayers);
+  const [searchTokens, setSearchTokens] = useState<string[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const searchKeys = useMemo(() => buildSearchKeys(searchTokens, searchInput), [searchTokens, searchInput]);
+  const deferredKeys = useDeferredValue(searchKeys);
 
   useEffect(() => {
     if (!filters.ready) return;
@@ -194,12 +199,10 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
 
   const leagueName = league.toUpperCase();
 
-  const filtered = useMemo(() =>
-    posFilter === 'All'
-      ? players
-      : players.filter(p => p.position === posFilter),
-    [players, posFilter]
-  );
+  const filtered = useMemo(() => {
+    const byRole = posFilter === 'All' ? players : players.filter(p => p.position === posFilter);
+    return byRole.filter(p => matchesAnyKey(deferredKeys, [p.name, p.team_abbr]));
+  }, [players, posFilter, deferredKeys]);
 
   const sorted = useMemo(() =>
     sortKey
@@ -281,6 +284,16 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
               </button>
             ))}
           </div>
+          <div className="p24-ed-filters-spacer" />
+          <TableSearchInput
+            prefix="p24-"
+            tokens={searchTokens}
+            onTokensChange={setSearchTokens}
+            input={searchInput}
+            onInputChange={setSearchInput}
+            placeholder="Buscar jugador o equipo... (Enter)"
+            ariaLabel="Buscar jugador"
+          />
         </div>
 
         {/* ── BODY: NORMAL ── */}
@@ -296,6 +309,13 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
               <span className="p24-ed-col-streak">Racha</span>
             </div>
             <div className="p24-ed-tbody">
+              {filtered.length === 0 && (
+                <div className="p24-ed-empty">
+                  Sin resultados para {deferredKeys.map((k, i) => (
+                    <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                  ))}.
+                </div>
+              )}
               {filtered.map((p, i) => {
                 const streak = computeStreak(p);
                 const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
@@ -373,6 +393,15 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
                 </tr>
               </thead>
               <tbody>
+                {sorted.length === 0 && (
+                  <tr>
+                    <td className="p24-ed-empty" colSpan={ALL_COLS.length + 3}>
+                      Sin resultados para {deferredKeys.map((k, i) => (
+                        <span key={i}>{i > 0 ? ', ' : ''}<strong>«{k}»</strong></span>
+                      ))}.
+                    </td>
+                  </tr>
+                )}
                 {sorted.map((p, i) => (
                   <tr
                     key={`${p.name}-${p.team_abbr}`}

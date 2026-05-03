@@ -259,8 +259,17 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
   useEffect(() => {
     // No solo esperamos a filters.ready: tambien que year y split tengan
     // valores reales. Sin esto, el primer dispatch del context puede salir
-    // con year=null y mandar peticiones invalidas que devuelven vacio
+    // con year=null y mandar peticiones invalidas que devuelven vacio.
+    //
+    // Y MUY IMPORTANTE: filters.league tiene que coincidir con la liga de
+    // la URL. Cuando navegas desde otra liga, hay una ventana en la que el
+    // FilterContext aun tiene los filtros (year/split/stage) de la liga
+    // anterior antes de que Navbar dispare initForLeague() con la nueva.
+    // Sin este guard, la primera fetch sale con filtros mestizos y devuelve
+    // datos parciales (caso reproducible en /lck/team_profile/* navegando
+    // desde /lec/...). F5 lo "arregla" porque filters.league arranca null.
     if (!filters.ready || filters.year == null || !filters.split) return;
+    if (filters.league && filters.league.toLowerCase() !== league.toLowerCase()) return;
 
     let cancelled = false;
     async function loadData() {
@@ -328,7 +337,7 @@ export default function TeamProfileClient({ league, abbr, accent }: TeamProfileC
     }
     loadData();
     return () => { cancelled = true; };
-  }, [abbr, league, filters.ready, filters.year, filters.split, filters.stage]);
+  }, [abbr, league, filters.ready, filters.year, filters.split, filters.stage, filters.league]);
 
   if (loading && !team) {
     return (

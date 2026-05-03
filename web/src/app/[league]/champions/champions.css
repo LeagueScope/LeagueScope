@@ -217,6 +217,125 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+.p25-ed-filters-spacer { flex: 1; }
+
+/* ── Search input multi-token (familia p25-) ───────────────────────────── */
+.p25-ed-search {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 300px;
+  max-width: 100%;
+  min-height: 34px;
+  padding: 4px 8px 4px 10px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  cursor: text;
+  transition: border-color 0.15s, background 0.15s;
+}
+.p25-ed-search:hover { border-color: rgba(255,255,255,0.18); }
+.p25-ed-search:focus-within {
+  border-color: var(--p25-accent, #f0a500);
+  background: rgba(240,165,0,0.04);
+}
+.p25-ed-search-icon {
+  color: var(--text-muted, #64748b);
+  flex-shrink: 0;
+}
+.p25-ed-search:focus-within .p25-ed-search-icon { color: var(--p25-accent, #f0a500); }
+
+.p25-ed-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  height: 22px;
+  background: rgba(240,165,0,0.14);
+  border: 1px solid rgba(240,165,0,0.32);
+  border-radius: 2px;
+  color: var(--p25-accent, #f0a500);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  max-width: 160px;
+  flex-shrink: 0;
+}
+.p25-ed-search-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p25-ed-search-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  border-radius: 2px;
+  color: var(--p25-accent, #f0a500);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.p25-ed-search-chip-remove:hover {
+  opacity: 1;
+  background: rgba(240,165,0,0.2);
+}
+
+.p25-ed-search-input {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  height: 22px;
+}
+.p25-ed-search-input::placeholder {
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.5px;
+}
+.p25-ed-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 0;
+  border-radius: 2px;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.p25-ed-search-clear:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* ── Empty state cuando el search no matchea ───────────────────────────── */
+.p25-ed-empty {
+  padding: 28px 48px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.04));
+}
+.p25-ed-empty strong {
+  color: var(--p25-accent, #f0a500);
+  font-weight: 700;
+}
 
 /* ── Table body (vista normal) ────────────────────────────────────────── */
 .p25-ed-table {
@@ -626,6 +745,8 @@
   .p25-ed-hero { font-size: 40px; letter-spacing: -1.5px; }
   .p25-ed-teamcount { font-size: 34px; }
   .p25-ed-filters { padding: 12px 28px; }
+  .p25-ed-search { width: 220px; }
+  .p25-ed-empty { padding: 24px 28px; }
   .p25-ed-thead,
   .p25-ed-row { padding-left: 28px; padding-right: 28px; }
 }
@@ -641,6 +762,9 @@
   .p25-ed-logo { width: 48px !important; height: 48px !important; }
   .p25-ed-teamcount { font-size: 26px; }
   .p25-ed-filters { flex-wrap: wrap; gap: 10px; padding: 12px 20px; }
+  .p25-ed-filters-spacer { display: none; }
+  .p25-ed-search { width: 100%; flex: 1 1 100%; order: 99; }
+  .p25-ed-empty { padding: 22px 20px; font-size: 12px; }
   /* 8-col compact: pos(52) | champ(flex) | 6x56 = 388 + flex */
   .p25-ed-thead {
     grid-template-columns: 52px minmax(0,1fr) 56px 56px 56px 56px 56px 60px;
@@ -666,14 +790,15 @@
   .p25-ed-subhero { font-size: 9px; letter-spacing: 2px; }
   .p25-ed-logo { width: 40px !important; height: 40px !important; }
   .p25-ed-teamcount { font-size: 20px; }
-  /* Filtros de rol — todos los botones en una sola fila en mobile */
-  .p25-ed-filters { padding: 10px 12px; gap: 6px; flex-wrap: nowrap; }
+  /* Filtros de rol — todos los botones en una sola fila en mobile, search debajo */
+  .p25-ed-filters { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .p25-ed-filters-lbl { display: none; }
   .p25-ed-filters-group {
     flex-wrap: nowrap;
     gap: 4px;
     width: 100%;
     justify-content: space-between;
+    order: 1;
   }
   .p25-filter-btn {
     padding: 6px 8px;
@@ -683,6 +808,8 @@
     min-width: 0;
     text-align: center;
   }
+  .p25-ed-search { width: 100%; flex: 1 1 100%; min-height: 38px; order: 2; }
+  .p25-ed-search-input { font-size: 13px; }
 
   /* Mobile compact: solo 3 metricas + pos + champ.
      Orden visual: # | Campeon | PICKS | BANS | WR%
