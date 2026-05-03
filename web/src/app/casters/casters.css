@@ -1,0 +1,367 @@
+/* ════════════════════════════════════════════════════════════════════════
+   /casters — sistema privado para casters/streamers
+   Familia: cs-*
+   ════════════════════════════════════════════════════════════════════════ */
+
+.cs-page {
+  min-height: calc(100vh - 80px);
+  color: var(--text-primary, #f8fafc);
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg, #0a0e14);
+}
+
+.cs-loading {
+  padding: 80px 24px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  font-size: 14px;
+}
+
+/* ── Login ─────────────────────────────────────────────────────────────── */
+.cs-login-wrap {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.cs-login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 40px 32px;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.cs-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent, #f0a500), transparent);
+}
+
+.cs-login-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -1px;
+  background: linear-gradient(to right, #fff, var(--accent, #f0a500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0 0 4px;
+}
+.cs-login-sub {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  font-family: 'JetBrains Mono', monospace;
+  margin: 0 0 28px;
+}
+
+/* ── Form fields ──────────────────────────────────────────────────────── */
+.cs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.cs-field-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  font-family: 'JetBrains Mono', monospace;
+}
+.cs-input {
+  height: 40px;
+  padding: 0 12px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  outline: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cs-input:focus {
+  border-color: var(--accent, #f0a500);
+  background: rgba(240,165,0,0.04);
+}
+
+/* Botones */
+.cs-btn-primary {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  background: var(--accent, #f0a500);
+  border: 0;
+  border-radius: 2px;
+  color: #0a0e14;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.cs-btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.cs-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cs-btn-link {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted, #64748b);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: color 0.15s;
+}
+.cs-btn-link:hover { color: #fff; }
+
+.cs-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 2px;
+  color: #fca5a5;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+
+/* ── Dashboard layout ──────────────────────────────────────────────────── */
+.cs-dashboard { padding: 0; }
+
+.cs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--surface-card, #141820);
+  border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+}
+.cs-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cs-brand {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: 1.5px;
+  color: #fff;
+}
+.cs-brand-divider {
+  color: var(--text-muted, #64748b);
+}
+.cs-brand-section {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: var(--accent, #f0a500);
+}
+.cs-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cs-user {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.cs-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: calc(100vh - 80px - 65px);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.cs-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 12px;
+  background: rgba(0,0,0,0.18);
+  border-right: 1px solid var(--border-card, rgba(255,255,255,0.08));
+}
+.cs-sidebar-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  padding: 8px 12px 16px;
+}
+.cs-sidebar-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+}
+.cs-tpl-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cs-tpl-item:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+.cs-tpl-active {
+  background: rgba(240,165,0,0.06);
+  border-color: rgba(240,165,0,0.3);
+}
+.cs-tpl-cat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--accent, #f0a500);
+}
+.cs-tpl-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.1px;
+}
+
+/* ── Main / runner ─────────────────────────────────────────────────────── */
+.cs-main {
+  padding: 32px;
+}
+.cs-empty {
+  padding: 80px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+}
+
+.cs-runner {
+  max-width: 720px;
+}
+.cs-runner-header { margin-bottom: 24px; }
+.cs-runner-title {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.cs-runner-desc {
+  font-size: 13px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  margin-bottom: 24px;
+}
+
+/* ── Result card ───────────────────────────────────────────────────────── */
+.cs-result {
+  padding: 24px;
+  background: var(--surface-card, #141820);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.cs-result::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--accent, #f0a500);
+}
+.cs-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.cs-result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cs-result-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+.cs-result-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.cs-result-raw {
+  padding: 16px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .cs-header { padding: 14px 16px; }
+  .cs-body { grid-template-columns: 1fr; }
+  .cs-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-card, rgba(255,255,255,0.08));
+  }
+  .cs-main { padding: 20px 16px; }
+  .cs-runner-title { font-size: 20px; }
+  .cs-form { padding: 18px; }
+  .cs-result { padding: 18px; }
+  .cs-result-val { font-size: 18px; }
+}
