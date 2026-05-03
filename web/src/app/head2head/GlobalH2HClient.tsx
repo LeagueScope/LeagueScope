@@ -656,6 +656,158 @@ function VsComparison<T extends Record<string, unknown>>({ selected, statGroups,
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   H2HSeriesList — Últimas N series entre 2 equipos
+   Estilo inspirado en /record (tr-match-card)
+   ══════════════════════════════════════════════════════════════ */
+
+interface H2HSeriesItem {
+  match_id: number;
+  best_of: number;
+  date: string | null;
+  match_name?: string | null;
+  league_slug: string;
+  league_name: string;
+  serie_label: string;
+  year: number;
+  season: string;
+  teamA: { id: number; name: string; abbr: string; logo_url: string; score: number; winner: boolean } | null;
+  teamB: { id: number; name: string; abbr: string; logo_url: string; score: number; winner: boolean } | null;
+}
+
+function H2HSeriesList({ teamAId, teamBId, fallbackA, fallbackB }: {
+  teamAId: number; teamBId: number;
+  fallbackA?: { abbr?: string | null; logo?: string | null };
+  fallbackB?: { abbr?: string | null; logo?: string | null };
+}) {
+  const sameTeam = teamAId === teamBId;
+  const [series, setSeries] = useState<H2HSeriesItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (sameTeam) {
+      setSeries([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    clientFetch<H2HSeriesItem[]>(`/api/v1/pg/compare/teams-h2h?ids=${teamAId},${teamBId}&limit=5`)
+      .then(d => { if (!cancelled) setSeries(d || []); })
+      .catch(() => { if (!cancelled) setSeries([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [teamAId, teamBId, sameTeam]);
+
+  // Caso: mismo equipo contra sí mismo (no tiene sentido un H2H)
+  if (sameTeam) {
+    return (
+      <div className="gh2h-h2h-section">
+        <div className="gh2h-h2h-header">
+          <span className="gh2h-h2h-title">HISTORIAL DIRECTO</span>
+        </div>
+        <div className="gh2h-h2h-empty">Selecciona dos equipos distintos para ver su historial.</div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="gh2h-h2h-section">
+        <div className="gh2h-h2h-loading">Cargando historial…</div>
+      </div>
+    );
+  }
+  if (!series.length) {
+    return (
+      <div className="gh2h-h2h-section">
+        <div className="gh2h-h2h-header">
+          <span className="gh2h-h2h-title">HISTORIAL DIRECTO</span>
+        </div>
+        <div className="gh2h-h2h-empty">No hay enfrentamientos directos registrados.</div>
+      </div>
+    );
+  }
+
+  // Tally W-L desde la perspectiva del primero seleccionado
+  const aWins = series.filter(s => s.teamA?.winner).length;
+  const bWins = series.filter(s => s.teamB?.winner).length;
+  const abbrA = series[0].teamA?.abbr || fallbackA?.abbr || 'A';
+  const abbrB = series[0].teamB?.abbr || fallbackB?.abbr || 'B';
+
+  return (
+    <div className="gh2h-h2h-section">
+      <div className="gh2h-h2h-header">
+        <span className="gh2h-h2h-title">ÚLTIMAS {series.length} SERIES</span>
+        <span className="gh2h-h2h-tally">
+          <strong>{abbrA}</strong>
+          <span className="gh2h-h2h-tally-num">{aWins}</span>
+          <span className="gh2h-h2h-tally-sep">—</span>
+          <span className="gh2h-h2h-tally-num">{bWins}</span>
+          <strong>{abbrB}</strong>
+        </span>
+      </div>
+      <div className="gh2h-h2h-list">
+        {series.map(s => {
+          const aWon = !!s.teamA?.winner;
+          const bWon = !!s.teamB?.winner;
+          const dateLabel = s.date
+            ? new Date(s.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '')
+            : '';
+          // Limpia "league-of-legends-lec" -> "LEC" / "league-of-legends-world-championship" -> "WORLDS"
+          const leagueLabel = (() => {
+            const raw = (s.league_slug || s.league_name || '').replace(/^league-of-legends-?/i, '');
+            if (/world.*championship|worlds/i.test(raw)) return 'WORLDS';
+            return (raw || s.league_name || '').toUpperCase();
+          })();
+          // Etiqueta izquierda: liga + año + season + (a veces fecha)
+          const leftLabel = [leagueLabel, s.year, s.season ? s.season.toUpperCase() : '']
+            .filter(Boolean).join(' · ');
+          return (
+            <div key={s.match_id} className="gh2h-h2h-card">
+              {/* Match label (absoluta, mitad izquierda) — estilo /record */}
+              <span className="gh2h-h2h-label">{leftLabel}{dateLabel ? ` · ${dateLabel}` : ''}</span>
+              {/* BO badge (absoluta, mitad derecha) */}
+              {s.best_of > 1 && <span className="gh2h-h2h-bo">BO{s.best_of}</span>}
+
+              <div className="gh2h-h2h-content">
+                <div className={`gh2h-h2h-team gh2h-h2h-left ${aWon ? 'gh2h-h2h-winner' : ''}`}>
+                  {s.teamA?.abbr || abbrA}
+                </div>
+                <div className="gh2h-h2h-logo-wrap">
+                  {(s.teamA?.logo_url || fallbackA?.logo) && (
+                    <Image src={s.teamA?.logo_url || fallbackA?.logo || ''} alt="" width={32} height={32} className="gh2h-h2h-logo" />
+                  )}
+                </div>
+                <div className="gh2h-h2h-score">
+                  <span className={`gh2h-h2h-score-num ${aWon ? 'gh2h-h2h-score-winner-left' : 'gh2h-h2h-score-loser-left'}`}>{s.teamA?.score ?? 0}</span>
+                  <span className="gh2h-h2h-score-sep">—</span>
+                  <span className={`gh2h-h2h-score-num ${bWon ? 'gh2h-h2h-score-winner-right' : 'gh2h-h2h-score-loser-right'}`}>{s.teamB?.score ?? 0}</span>
+                </div>
+                <div className="gh2h-h2h-logo-wrap">
+                  {(s.teamB?.logo_url || fallbackB?.logo) && (
+                    <Image src={s.teamB?.logo_url || fallbackB?.logo || ''} alt="" width={32} height={32} className="gh2h-h2h-logo" />
+                  )}
+                </div>
+                <div className={`gh2h-h2h-team gh2h-h2h-right ${bWon ? 'gh2h-h2h-winner' : ''}`}>
+                  {s.teamB?.abbr || abbrB}
+                </div>
+              </div>
+
+              {/* Winner accent bar — vertical 3px en el lado del ganador */}
+              {aWon
+                ? <div className="gh2h-h2h-bar gh2h-h2h-bar-left" />
+                : bWon
+                  ? <div className="gh2h-h2h-bar gh2h-h2h-bar-right" />
+                  : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── CmpTable sub-component (3-4 way comparison) ─────────────── */
 function CmpTable<T extends Record<string, unknown>>({ selected, statGroups, getLogoFn, getNameFn }: {
   selected: T[];
@@ -1176,6 +1328,16 @@ export default function GlobalH2HClient() {
                 baseline={effectiveMode === 'players' ? roleBaseline : null}
                 regionLabel={String(comparisonData[0].region || '').toUpperCase() || 'la liga'}
                 sectionTitle={effectiveMode === 'teams' ? 'PERFIL DE EQUIPO' : 'PERFIL POR ROL'}
+              />
+            )}
+
+            {/* Historial directo — solo para 2 equipos */}
+            {effectiveMode === 'teams' && selected.length === 2 && (
+              <H2HSeriesList
+                teamAId={selected[0].id}
+                teamBId={selected[1].id}
+                fallbackA={{ abbr: selected[0].acronym || selected[0].name, logo: selected[0].image_url || undefined }}
+                fallbackB={{ abbr: selected[1].acronym || selected[1].name, logo: selected[1].image_url || undefined }}
               />
             )}
 

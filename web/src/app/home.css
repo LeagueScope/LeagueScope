@@ -1362,6 +1362,41 @@
     gap: 24px;
 }
 
+/* Click affordance: el header de cada major card es un Link a /[league]/overview */
+.p1-major-header-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.p1-major-header-link:hover {
+    opacity: 0.85;
+    transform: translateX(2px);
+}
+.p1-major-header-link:focus-visible {
+    outline: 2px solid var(--accent, #f0a500);
+    outline-offset: 4px;
+}
+.mc-header-link,
+.t3-header-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.mc-header-link:hover,
+.t3-header-link:hover {
+    opacity: 0.85;
+    transform: translateX(2px);
+}
+.mc-header-link:focus-visible,
+.t3-header-link:focus-visible {
+    outline: 2px solid var(--accent, #f0a500);
+    outline-offset: 4px;
+}
+
 .p1-major-logo-small {
     width: 64px;
     height: 64px;

@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRef, useEffect } from 'react';
 import { teamImg, champImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import type { LeagueOverview } from '@/lib/types';
@@ -88,12 +89,16 @@ function Tier3Card({ league }: { league: LeagueOverview }) {
       <Image src={LEAGUE_LOGO(region)} alt="" className="t3-editorial-watermark" aria-hidden="true" width={200} height={200} />
 
       <div className="t3-editorial-header">
-        <div className="t3-header-left">
+        <Link
+          href={`/${regionLower}/overview`}
+          className="t3-header-left t3-header-link"
+          aria-label={`Ver ${region}`}
+        >
           <Image src={LEAGUE_LOGO(region)} alt={region} className="t3-logo-small" width={40} height={40} />
           <span className="t3-region-label">{region}</span>
           <span className="t3-split-label">{league.split || 'REGIONAL MASTERS'}</span>
           {league.isPlayoffs && <span className="p1-playoffs-tag">PLAYOFFS</span>}
-        </div>
+        </Link>
       </div>
 
       {league.isPlayoffs ? (

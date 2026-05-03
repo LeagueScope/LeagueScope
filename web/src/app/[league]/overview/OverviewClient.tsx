@@ -6,6 +6,7 @@ import { teamImg, champImg, DRAGON_ICON, LEAGUE_LOGO, getWinRateClass } from '@/
 import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
 import DragonChart from './DragonChart';
+import ChampionIcon from '@/app/components/ChampionIcon';
 import { useFilters } from '@/context/FilterContext';
 import { ExpandableGrid, ExpandableCard } from './ExpandableCard';
 import './overview.css';
@@ -397,7 +398,7 @@ function ChampionsPlayedCard({ topChamps }: { topChamps: TopChamp[] }) {
               {displayed.map((c, i) => (
                 <div key={`${c.name}-${i}`} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
                   <div className="p50-row-info">
-                    <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                    <div className="p50-champ-img"><ChampionIcon name={c.name} imageUrl={c.image_url} size={28} /></div>
                     <span className="p50-row-name">{c.name}</span>
                   </div>
                   <div className="p50-row-stats">
@@ -445,7 +446,7 @@ function BanRateCard({ blueBans, redBans }: { blueBans: BanChamp[]; redBans: Ban
                   {blueDisplayed.map((c, i) => (
                     <div key={c.name} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
                       <div className="p50-row-info">
-                        <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                        <div className="p50-champ-img"><ChampionIcon name={c.name} imageUrl={c.image_url} size={28} /></div>
                         <span className="p50-row-name">{c.name}</span>
                       </div>
                       <span className="p50-bans-cell">
@@ -464,7 +465,7 @@ function BanRateCard({ blueBans, redBans }: { blueBans: BanChamp[]; redBans: Ban
                   {redDisplayed.map((c, i) => (
                     <div key={c.name} className={`p50-table-row ${q ? '' : getMedal(i)}`}>
                       <div className="p50-row-info">
-                        <div className="p50-champ-img"><Image src={champImg(c.image_url) || ''} alt={c.name} width={28} height={28} /></div>
+                        <div className="p50-champ-img"><ChampionIcon name={c.name} imageUrl={c.image_url} size={28} /></div>
                         <span className="p50-row-name">{c.name}</span>
                       </div>
                       <span className="p50-bans-cell">
@@ -765,4 +766,4 @@ export default function OverviewClient({ league, accent, initialData }: Props) {
       </ExpandableGrid>
     </div>
   );
-}
+}

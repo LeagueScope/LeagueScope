@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { teamImg, champImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import type {
@@ -168,13 +169,17 @@ function MajorCard({ league }: { league: LeagueOverview }) {
 
       {/* Editorial Header */}
       <div className="p1-major-card-header">
-        <div className="p1-major-header-left">
+        <Link
+          href={`/${regionLower}/overview`}
+          className="p1-major-header-left p1-major-header-link"
+          aria-label={`Ver ${region}`}
+        >
           <Image src={LEAGUE_LOGO(region)} alt={region} className="p1-major-logo-small" width={40} height={40} />
           <div className="p1-major-header-text">
             <span className="p1-major-name-hero">{region}</span>
             {league.split && <span className="p1-major-split-editorial">{league.split}</span>}
           </div>
-        </div>
+        </Link>
         <div className="p1-major-header-right">
                     {league.isPlayoffs && <span className="p1-playoffs-tag">PLAYOFFS</span>}
         </div>

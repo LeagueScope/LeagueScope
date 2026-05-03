@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRef, useEffect } from 'react';
 import { teamImg, LEAGUE_LOGO } from '@/lib/constants';
 import type { LeagueOverview } from '@/lib/types';
@@ -87,12 +88,16 @@ function McCard({ league }: { league: LeagueOverview }) {
       <Image src={LEAGUE_LOGO(region)} alt="" className="mc-editorial-watermark" aria-hidden="true" width={200} height={200} />
 
       <div className="mc-editorial-header">
-        <div className="mc-header-left">
+        <Link
+          href={`/${regionLower}/overview`}
+          className="mc-header-left mc-header-link"
+          aria-label={`Ver ${region}`}
+        >
           <Image src={LEAGUE_LOGO(region)} alt={region} className="mc-logo-small" width={40} height={40} />
           <span className="mc-region-label">{region}</span>
           <span className="mc-split-label">{league.split || 'SEASON 2026'}</span>
           {league.isPlayoffs && <span className="p1-playoffs-tag">PLAYOFFS</span>}
-        </div>
+        </Link>
       </div>
 
       {league.isPlayoffs ? (

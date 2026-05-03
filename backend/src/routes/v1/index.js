@@ -26,7 +26,7 @@ import { getPlayerHistoryPg, getTeamHistoryPg } from '../../controllers/pg/pgHis
 import { getOverviewPg, getTournamentPg, getHomeOverviewPg, getLiveStatusPg } from '../../controllers/pg/pgHome.js';
 import { getFilterYearsPg, getFilterSeriesPg, getFilterStagesPg, getFilterInitPg } from '../../controllers/pg/pgFilters.js';
 import { getHeadToHeadPg } from '../../controllers/pg/pgHeadToHead.js';
-import { compareTeamsPg, comparePlayersPg, getPlayerSeriesPg, getTeamSeriesPg, getPlayerRoleBaselinePg } from '../../controllers/pg/pgCompare.js';
+import { compareTeamsPg, comparePlayersPg, getPlayerSeriesPg, getTeamSeriesPg, getPlayerRoleBaselinePg, getTeamsH2HPg } from '../../controllers/pg/pgCompare.js';
 import { searchPg } from '../../controllers/pg/pgSearch.js';
 import { getPlayerEvaluation } from '../../controllers/pg/pgEvaluation.js';
 
@@ -92,6 +92,7 @@ router.get('/pg/compare/teams',                 asyncHandler(compareTeamsPg));
 router.get('/pg/compare/players',               asyncHandler(comparePlayersPg));
 router.get('/pg/compare/player-series',         asyncHandler(getPlayerSeriesPg));
 router.get('/pg/compare/team-series',           asyncHandler(getTeamSeriesPg));
+router.get('/pg/compare/teams-h2h',             asyncHandler(getTeamsH2HPg));
 router.get('/pg/compare/player-role-baseline',  asyncHandler(getPlayerRoleBaselinePg));
 
 // ── Search ──────────────────────────────────────────────────────────────────

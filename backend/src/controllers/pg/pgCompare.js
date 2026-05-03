@@ -872,6 +872,84 @@ export async function getTeamSeriesPg(req, res) {
 }
 
 /**
+ * GET /pg/compare/teams-h2h?ids=A,B&limit=5
+ * Returns the last N finished SERIES (matches in our schema, BO1/BO3/BO5)
+ * between two teams, ordered most recent first.
+ *
+ * Each row includes: match id, BO, score from each team's perspective,
+ * winner side, league info, date.
+ */
+export async function getTeamsH2HPg(req, res) {
+  const idsParam = (req.query.ids || '').toString();
+  const ids = idsParam.split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+  if (ids.length !== 2) return res.json([]);
+  const [a, b] = ids;
+  // Mismo equipo contra sí mismo: no tiene sentido un H2H
+  if (a === b) return res.json([]);
+  const limit = Math.max(1, Math.min(20, parseInt(req.query.limit, 10) || 5));
+
+  // Find the last N finished matches where BOTH teams played as opponents
+  const { rows: matches } = await pgDb.query(`
+    SELECT m.id, m.number_of_games, m.begin_at, m.scheduled_at, m.winner_id,
+           m.name AS match_name,
+           s.id AS serie_id, s.year, s.season, s.full_name AS serie_full_name,
+           l.slug AS league_slug, l.name AS league_name
+    FROM matches m
+    JOIN series s ON s.id = m.serie_id
+    JOIN leagues l ON l.id = s.league_id
+    WHERE m.status = 'finished'
+      AND EXISTS (SELECT 1 FROM match_opponents mo WHERE mo.match_id = m.id AND mo.team_id = $1)
+      AND EXISTS (SELECT 1 FROM match_opponents mo WHERE mo.match_id = m.id AND mo.team_id = $2)
+    ORDER BY COALESCE(m.begin_at, m.scheduled_at) DESC NULLS LAST
+    LIMIT $3
+  `, [a, b, limit]);
+
+  if (!matches.length) return res.json([]);
+  const matchIds = matches.map(m => m.id);
+
+  // Pull opponents (branded) for those matches in one shot
+  const { rows: opps } = await pgDb.query(`
+    SELECT mo.match_id, mo.team_id, mo.result_score AS score, mo.side,
+           COALESCE(tb.display_name, t.name) AS name,
+           COALESCE(tb.display_acronym, t.acronym) AS acronym,
+           COALESCE(tb.display_logo, t.dark_mode_image_url, t.image_url) AS image_url
+    FROM match_opponents mo
+    JOIN teams t ON t.id = mo.team_id
+    JOIN matches m ON m.id = mo.match_id
+    JOIN series _s ON _s.id = m.serie_id
+    LEFT JOIN team_brands tb ON tb.team_id = mo.team_id AND _s.year BETWEEN tb.year_start AND tb.year_end
+    WHERE mo.match_id = ANY($1::int[])
+    ORDER BY mo.match_id, mo.side
+  `, [matchIds]);
+
+  const oppsByMatch = {};
+  for (const o of opps) (oppsByMatch[o.match_id] ||= []).push(o);
+
+  // Build response: always team A first (the first id in the request), team B second
+  res.json(matches.map(m => {
+    const ms = oppsByMatch[m.id] || [];
+    const tA = ms.find(o => o.team_id === a) || ms[0];
+    const tB = ms.find(o => o.team_id === b) || ms[1];
+    const aWon = m.winner_id === a;
+    const bWon = m.winner_id === b;
+    return {
+      match_id: m.id,
+      best_of: m.number_of_games || 1,
+      date: m.begin_at || m.scheduled_at,
+      match_name: m.match_name,
+      league_slug: m.league_slug,
+      league_name: m.league_name,
+      serie_id: m.serie_id,
+      serie_label: serieLabel(m.league_name || m.league_slug, m.serie_full_name, m.season, m.year),
+      year: m.year,
+      season: m.season,
+      teamA: tA ? { id: tA.team_id, name: tA.name, abbr: tA.acronym, logo_url: tA.image_url, score: tA.score, winner: aWon } : null,
+      teamB: tB ? { id: tB.team_id, name: tB.name, abbr: tB.acronym, logo_url: tB.image_url, score: tB.score, winner: bWon } : null,
+    };
+  }));
+}
+
+/**
  * GET /pg/compare/player-role-baseline?role=X&serieId=Y
  * Returns averaged stats across all players of a given role in a given serie.
  * Used as the "league average" baseline for the radar chart in H2H comparisons.

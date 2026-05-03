@@ -5,6 +5,25 @@ export const ASSETS_URL = 'https://raw.githubusercontent.com/ItsAndroide01/asset
 // Champion images from PandaScore CDN via backend image_url field
 export const champImg = (image_url?: string | null): string | null => image_url || null;
 
+/**
+ * Local fallback path for champion icons in /public/champions.
+ * Slug rules: lowercase, '&' -> 'and', drop spaces/apostrophes/dots/dashes,
+ * keep only [a-z0-9]. Coincide con el dataset cargado en /public/champions.
+ *   "Lee Sin"          -> /champions/leesin.png
+ *   "K'Sante"          -> /champions/ksante.png
+ *   "Nunu & Willump"   -> /champions/nunuandwillump.png
+ *   "Renata Glasc"     -> /champions/renataglasc.png
+ */
+export function champLocalFallback(name?: string | null): string {
+  if (!name) return '';
+  const slug = name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]/g, '');
+  if (!slug) return '';
+  return `/champions/${slug}.png`;
+}
+
 // Team logos — uses backend-provided URL first, falls back to GitHub assets
 export const TEAM_LOGO = (abbr?: string, league = 'lec') =>
   `${ASSETS_URL}/leagues/${league.toUpperCase()}/${abbr?.toLowerCase() || 'unknown'}.png`;
