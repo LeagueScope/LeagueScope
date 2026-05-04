@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   // Standalone output for self-hosted deployments (no node_modules needed)
   output: 'standalone',
 
+  // Tree-shake imports of these libs to reduce bundle size.
+  experimental: {
+    optimizePackageImports: ['motion'],
+  },
+
   // Monorepo root - avoids "multiple lockfiles" warning
   outputFileTracingRoot: path.join(__dirname, '..'),
 
@@ -42,7 +47,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://cdn.pandascore.co https://cdn-api.pandascore.co https://raw.githubusercontent.com https://flagcdn.com",
-              "connect-src 'self'",
+              "connect-src 'self' https://wwzhhxf7jd.eu-west-3.awsapprunner.com https://leaguescope.com https://www.leaguescope.com",
               "object-src 'none'",
               "frame-src 'none'",
               "base-uri 'self'",
