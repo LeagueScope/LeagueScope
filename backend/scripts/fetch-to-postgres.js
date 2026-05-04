@@ -1254,7 +1254,9 @@ async function phase4_timeline(seriesList) {
         }
 
         // Events
-        const { data: events } = await apiGet(`/lol/games/${game.id}/events`);
+        // apiGetAll: PandaScore pagina events con per_page=50 por defecto.
+        // Sin paginar, games con >50 events (la mayoria) se ingestan parcialmente.
+        const events = await apiGetAll(`/lol/games/${game.id}/events`);
         if (events && Array.isArray(events)) {
           // Delete existing events for clean re-insert
           await pool.query(`DELETE FROM game_events WHERE game_id = $1`, [game.id]);
@@ -2325,7 +2327,9 @@ async function ingestSingleMatch(matchId) {
         }
       }
 
-      const { data: events } = await apiGet(`/lol/games/${game.id}/events`);
+      // apiGetAll: PandaScore pagina events con per_page=50 por defecto.
+      // Sin paginar, games con >50 events (la mayoria) se ingestan parcialmente.
+      const events = await apiGetAll(`/lol/games/${game.id}/events`);
       if (events && Array.isArray(events)) {
         // Delete existing events for this game to avoid UNIQUE constraint dedup issues
         await pool.query(`DELETE FROM game_events WHERE game_id = $1`, [game.id]);

@@ -33,6 +33,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logIngestionFailure, markFailuresResolved } from './lib/digestFailures.js';
+import { fixPartialEvents } from './lib/eventsBackfill.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,16 @@ const MAX_LEAGUES = Number(getArg('max-leagues') || 10);
 const STATIC_FIRST = hasFlag('static-first');
 const CURRENT_YEAR = Number(getArg('year') || process.env.CURRENT_YEAR || new Date().getFullYear());
 const SKIP_TIMELINE = hasFlag('skip-timeline');
+
+// Auto-curación de events parciales (bug histórico: apiGet no paginaba).
+// Cada Lambda invocation dedica hasta BACKFILL_BUDGET_SEC al inicio para
+// reingestar games con discrepancia events vs game_teams aggregate.
+// Tras unos pocos cycles, todos los games con gap quedan curados.
+// 0 = desactivado (también con --skip-backfill).
+const BACKFILL_BUDGET_MS = (Number(getArg('backfill-budget') || process.env.BACKFILL_BUDGET_SECONDS || 240)) * 1000;
+const BACKFILL_MAX_GAMES = Number(getArg('backfill-max-games') || process.env.BACKFILL_MAX_GAMES || 100);
+const BACKFILL_MIN_GAP = Number(getArg('backfill-min-gap') || process.env.BACKFILL_MIN_GAP || 5);
+const SKIP_BACKFILL = hasFlag('skip-backfill') || BACKFILL_BUDGET_MS <= 0;
 
 const SCRIPT_PATH = path.join(__dirname, 'fetch-to-postgres.js');
 
@@ -275,6 +286,31 @@ async function orchestrate() {
   try {
     await ensureStateTable(pool);
 
+    // ── Auto-cura de events parciales ────────────────────────────────────────
+    // Antes de empezar la ingesta normal, dedicamos un budget para reingestar
+    // games con discrepancia agregado vs eventos individuales (bug histórico
+    // de apiGet sin paginar, ya corregido en fetch-to-postgres.js para games
+    // futuros). Esto cura los games existentes en lotes de ~100 por invocación.
+    if (!SKIP_BACKFILL) {
+      try {
+        const backfillDeadline = Math.min(
+          Date.now() + BACKFILL_BUDGET_MS,
+          deadline - 60_000,  // siempre dejar 60s para la fase principal
+        );
+        const r = await fixPartialEvents({
+          pool,
+          token: TOKEN,
+          deadlineMs: backfillDeadline,
+          minGap: BACKFILL_MIN_GAP,
+          maxGames: BACKFILL_MAX_GAMES,
+          log,
+        });
+        totalApiCalls += r.apiCalls;
+      } catch (e) {
+        err(`Events backfill phase failed (non-fatal): ${e.message}`);
+      }
+    }
+
     // Static data: run once per day (check last completion)
     if (STATIC_FIRST) {
       const res = await runStaticData();
@@ -321,7 +357,7 @@ async function orchestrate() {
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    log(`\nâ•â•â• Done: ${leaguesProcessed} leagues, ${totalApiCalls} API calls, ${elapsed}s â•â•â•`);
+    log(`\n═══ Done: ${leaguesProcessed} leagues, ${totalApiCalls} API calls, ${elapsed}s ═══`);
 
     return { processed: leaguesProcessed, apiCalls: totalApiCalls, elapsed };
   } finally {
@@ -329,7 +365,7 @@ async function orchestrate() {
   }
 }
 
-// ─── Lambda handler ────────────────────────────────────────────────────────
+// ─── Lambda handler ────────────────────────────────────────────────────────────
 export async function handler(event, context) {
   // Lambda: adjust max time based on remaining context time
   if (context?.getRemainingTimeInMillis) {
@@ -353,7 +389,7 @@ export async function handler(event, context) {
   }
 }
 
-// ─── CLI entry point ───────────────────────────────────────────────────────
+// ─── CLI entry point ───────────────────────────────────────────────────────────
 const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 if (!isLambda) {
   orchestrate().catch(e => {

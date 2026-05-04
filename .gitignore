@@ -51,3 +51,7 @@ team-logos/
 # Páginas en desarrollo que NO se suben al repo (mock data, work-in-progress)
 web/src/app/community/
 web/src/app/profile/
+
+# Scripts one-shot con credenciales inline (NO commitear)
+backend/scripts/_local-*.js
+backend/scripts/*-local.js
