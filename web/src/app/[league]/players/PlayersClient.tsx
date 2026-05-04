@@ -224,7 +224,6 @@ export default function PlayersClient({ league, accent, initialPlayers }: Player
 
   // ── BO3+ detection (surface series-level W/L in normal view) ───────────────
   const isBo3 = sorted.some(p => p.match_wins != null || p.match_losses != null);
-  const serieBo = sorted.find(p => p.best_of != null)?.best_of;
   const showSeries = isBo3;
 
   return (

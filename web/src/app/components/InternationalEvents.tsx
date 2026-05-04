@@ -1,5 +1,6 @@
 // InternationalEvents — First Stand 2026 Spotlight (Server Component, mock data)
 import Image from 'next/image';
+import Link from 'next/link';
 import { teamImg } from '@/lib/constants';
 
 const FS_EVENT = {
@@ -176,7 +177,7 @@ export default function InternationalEvents() {
               ))}
             </div>
 
-            <a href="/firststand/overview" className="ie-firststand-link">Ver First Stand 2026</a>
+            <Link href="/firststand/overview" className="ie-firststand-link">Ver First Stand 2026</Link>
 
             <div className="ie-prize-box-editorial">
               <div className="ie-prize-info">

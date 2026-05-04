@@ -3,12 +3,11 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { teamImg, champImg, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import type {
-  HomeData, LeagueOverview, MetaSnapshot, MetaChampion, LiveMatch,
+  HomeData, LeagueOverview, MetaSnapshot, MetaChampion,
 } from '@/lib/types';
 import type { Metadata } from 'next';
 import { BreadcrumbJsonLd } from '@/components/JsonLd';
 import './home.css';
-import InternationalEvents from './components/InternationalEvents';
 import Tier3Carousel from './components/Tier3Carousel';
 import McCarousel from './components/McCarousel';
 import HomeLivePoller from './components/HomeLivePoller';
@@ -203,7 +202,7 @@ function MajorCard({ league }: { league: LeagueOverview }) {
                 <span className="p1-table-cell-team" style={{ flex: 1 }}>MATCH</span>
                 <span className="p1-table-cell-val" style={{ width: '50px', textAlign: 'center' }}>SCORE</span>
               </div>
-              {(league.recentMatches || []).slice(0, 5).map((m, i) => (
+              {(league.recentMatches || []).slice(0, 5).map((m) => (
                 <div key={m.matchid} className="p1-table-row">
                   <div className="p1-table-cell-team-editorial" style={{ flex: 1 }}>
                     {m.blue.logo_url && <Image src={m.blue.logo_url} alt={m.blue.abbr} className="p1-team-mini" width={24} height={24} />}

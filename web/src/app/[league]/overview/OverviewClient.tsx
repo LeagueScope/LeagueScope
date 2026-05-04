@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { teamImg, champImg, DRAGON_ICON, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
+import { teamImg, DRAGON_ICON, LEAGUE_LOGO, getWinRateClass } from '@/lib/constants';
 import { clientFetch } from '@/lib/clientFetch';
 import { logger } from '@/lib/logger';
 import DragonChart from './DragonChart';
@@ -102,12 +102,6 @@ interface Props {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-function getRankByValue<T>(arr: T[] | undefined, value: unknown, key: keyof T): number {
-  if (!arr || !Array.isArray(arr)) return 0;
-  const sorted = [...arr].sort((a, b) => ((b[key] as number) || 0) - ((a[key] as number) || 0));
-  const uniqueValues = [...new Set(sorted.map(item => item[key]))];
-  return uniqueValues.indexOf(value as T[keyof T]) + 1;
-}
 
 function getMedal(i: number): string {
   if (i === 0) return 'p50-row-gold';

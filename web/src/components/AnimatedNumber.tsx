@@ -65,6 +65,8 @@ export default function AnimatedNumber({
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
+    // safeValue se deriva de value; depender solo de value es intencional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration]);
 
   const dec =

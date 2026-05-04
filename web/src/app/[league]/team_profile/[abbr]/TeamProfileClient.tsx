@@ -241,6 +241,7 @@ interface TeamProfileClientProps {
   accent: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function TeamProfileClient({ league, abbr, accent }: TeamProfileClientProps) {
   const router = useRouter();
 

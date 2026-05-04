@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import './welcome-modal.css';
+import Image from 'next/image';
 
 const STORAGE_KEY = 'ls_welcome_seen';
 
@@ -33,7 +34,7 @@ export default function WelcomeModal() {
       <div className="wm-modal" onClick={e => e.stopPropagation()}>
         {/* Logo */}
         <div className="wm-logo-row">
-          <img src="/LeagueScope_Logo.png" alt="LeagueScope" className="wm-logo" />
+          <Image src="/LeagueScope_Logo.png" alt="LeagueScope" className="wm-logo" width={120} height={120} />
         </div>
 
         {/* Español (primero) */}

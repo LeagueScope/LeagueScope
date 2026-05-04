@@ -40,8 +40,6 @@ const kdaClass = (kda: number | null | undefined): string => {
   return 'p70-kda-red';
 };
 
-const ROLE_ORDER: Record<string, number> = { top: 0, jun: 1, jungle: 1, jng: 1, mid: 2, adc: 3, bot: 3, sup: 4, support: 4 };
-const ROLE_LABEL: Record<string, string> = { top: 'TOP', jun: 'JNG', jungle: 'JNG', jng: 'JNG', mid: 'MID', adc: 'ADC', bot: 'BOT', sup: 'SUP', support: 'SUP' };
 const PLACEMENT_LABEL: Record<number, string> = { 1: '1°', 2: '2°', 3: '3°', 4: '4°', 5: '5°', 6: '6°' };
 
 /* ── Interfaces ───────────────────────────────────────────── */
@@ -868,8 +866,6 @@ export default function TeamHistoricalClient({ league, identifier, accent, glow 
 
       {/* ═══════════ CAREER TIMELINE (colapsado por defecto) ═══════════ */}
       {career.length > 0 && (() => {
-        const maxGames = Math.max(...career.map(c => c.games || 0), 1);
-        const sortedAsc = [...career].sort((a, b) => (a.year - b.year) || a.split.localeCompare(b.split));
         const totalGames = career.reduce((s, c) => s + (c.games || 0), 0);
         const podiumCount = career.filter(c => [1,2,3].includes(c.placement || 0)).length;
         return (

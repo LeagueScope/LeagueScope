@@ -295,8 +295,6 @@ export default function StandingsClient({ league, accent, initialTeams }: Standi
   const leagueName = league.toUpperCase();
 
   // BO3+ detection (shared by both views)
-  const isBo3 = sorted.some(t => t.match_wins != null);
-  const serieBo = sorted.find(t => t.best_of)?.best_of;
 
   return (
     <div className="p20-page" style={{ '--p20-accent': accent } as React.CSSProperties}>

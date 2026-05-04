@@ -757,6 +757,7 @@ function GlobalSearchBar({
           role="combobox"
           aria-expanded={open && hasResults}
           aria-autocomplete="list"
+          aria-controls="gs-listbox"
           aria-label="Buscar jugador, equipo o campeón"
           placeholder="Buscar jugador, equipo o campeón…"
           value={query}

@@ -541,6 +541,7 @@ function RadarChart({
 }
 
 /* ── VsComparison sub-component (2-way comparison) ────────────── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function VsComparison<T extends Record<string, unknown>>({ selected, statGroups, getLogoFn, getNameFn }: {
   selected: T[];
   statGroups: StatGroup[];

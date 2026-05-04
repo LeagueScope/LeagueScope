@@ -396,7 +396,7 @@ export default function Head2HeadClient({ league, accent, glow }: Props) {
           </div>
           <div className="p11-header-text">
             <div className="p11-header-league-name">{league.toUpperCase()} COMPARAR</div>
-            <div className="p11-header-season">SEASON {filterYear} // {filterSplit.toUpperCase()}</div>
+            <div className="p11-header-season">SEASON {filterYear} {'//'} {filterSplit.toUpperCase()}</div>
           </div>
         </div>
         <div className="p11-header-filters">

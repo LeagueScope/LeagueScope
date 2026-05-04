@@ -162,6 +162,7 @@ interface ChampHistoryData {
 }
 
 /* ── Chevron ───────────────────────────────────────────── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SectionChevron({ open }: { open: boolean }) {
   return (
     <svg className={`ch-section-chevron ${open ? 'open' : ''}`}
@@ -228,6 +229,7 @@ interface TrendDataset {
   formatAlt?: (v: number) => string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TrendChart({ labels, datasets }: { labels: string[]; datasets: TrendDataset[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -326,7 +328,7 @@ function TrendChart({ labels, datasets }: { labels: string[]; datasets: TrendDat
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
       const x = xFor(i), y = yFor(data[i]);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = ds.color; ctx.lineWidth = 2.5; ctx.stroke();
 
@@ -481,7 +483,7 @@ function PresenceChart({ patches }: { patches: PatchData[] }) {
       ctx.globalAlpha = 0.07; ctx.fillStyle = s.color; ctx.fill(); ctx.globalAlpha = 1;
 
       ctx.beginPath();
-      for (let i = 0; i < n; i++) { const x = xFor(i), y = yFor(s.data[i]); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      for (let i = 0; i < n; i++) { const x = xFor(i), y = yFor(s.data[i]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
       ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.stroke();
 
       if (n <= 60) {
@@ -650,7 +652,6 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
   const [data, setData] = useState<ChampHistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -682,14 +683,6 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
 
   const { profile, career, players, roleHistory, matchLog, synergies } = data;
 
-  const toggleSeason = (sId: string) => {
-    setExpandedSeasons(prev => {
-      const next = new Set(prev);
-      if (next.has(sId)) { next.delete(sId); setExpandedMatchId(null); }
-      else next.add(sId);
-      return next;
-    });
-  };
 
   /* ── Trend data (aggregated by PATCH across all seasons) ── */
   const trendData = (() => {
@@ -1035,7 +1028,7 @@ export default function ChampionHistoricalClient({ league, name, accent, glow }:
                   if (!grid) return;
                   const rect = grid.getBoundingClientRect();
                   let x = e.clientX - rect.left + 14;
-                  let y = e.clientY - rect.top - 10;
+                  const y = e.clientY - rect.top - 10;
                   const tipW = tip.offsetWidth;
                   if (x + tipW > rect.width) x = e.clientX - rect.left - tipW - 14;
                   tip.style.left = x + 'px';

@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   // Monorepo root - avoids "multiple lockfiles" warning
   outputFileTracingRoot: path.join(__dirname, '..'),
 
+  // ESLint corre como script aparte (`npm run lint`), no durante el build.
+  // El codebase tiene un baseline grande de warnings/errors heredados que
+  // estamos limpiando incrementalmente; bloquear deploys por lint mientras
+  // tanto rompería iteración. El TypeScript checker (tsc) sigue activo.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // API proxy: handled by src/app/api/[...path]/route.ts (Route Handler)
   // Rewrites to external URLs are unreliable on AWS Amplify WEB_COMPUTE,
   // so we use a server-side Route Handler instead.

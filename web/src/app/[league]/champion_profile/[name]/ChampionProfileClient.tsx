@@ -230,6 +230,7 @@ interface Props {
   accent: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ChampionProfileClient({ league, name, accent }: Props) {
   const router = useRouter();
 
