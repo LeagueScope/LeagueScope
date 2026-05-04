@@ -46,9 +46,7 @@ jobs:
         run: npm run build
 
       - name: Audit (production deps only, high+ severity)
-        run: npm audit --omit=dev --audit-level=high || true
-        # Non-blocking for now — flip to `run: npm audit …` (no `|| true`)
-        # once the baseline is clean.
+        run: npm audit --omit=dev --audit-level=high
 
   # ─────────────────────────────────────────────────────────────────────────
   # Backend (Express + pg): install, audit

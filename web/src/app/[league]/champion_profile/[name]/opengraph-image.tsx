@@ -6,7 +6,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 export default async function Image({ params }: { params: { league: string; name: string } }) {
-  const champName = decodeURIComponent(params.name);
+  const champName = decodeURIComponent(params.name).slice(0, 30);
   const leagueUpper = params.league.toUpperCase();
 
   return new ImageResponse(

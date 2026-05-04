@@ -31,6 +31,11 @@ let io = null;
 function createApp() {
   const app = express();
 
+  // App Runner pone un proxy delante. Confiar en X-Forwarded-* del primer hop.
+  // IMPORTANTE: debe ir ANTES de rate-limit para que rate-limit funcione por IP cliente.
+  // Usamos `1` (no `true`) para confiar SOLO en 1 hop y prevenir spoofing.
+  app.set('trust proxy', 1);
+
   // ── Correlation ID — first, so every subsequent log/error carries it ────────
   app.use(requestId);
 
